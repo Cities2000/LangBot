@@ -209,6 +209,16 @@ stages:
         type: string
         required: true
         default: 'your-api-key'
+      - name: timeout
+        label:
+          en_US: Request Timeout
+          zh_Hans: 请求超时
+        description:
+          en_US: Timeout in seconds for Dify API requests (excluding SSE read timeout, which is automatically extended for long-running workflows)
+          zh_Hans: Dify API 请求超时时间（秒），不含 SSE 读取超时（长时间运行的工作流会自动延长）
+        type: integer
+        required: false
+        default: 120
   - name: n8n-service-api
     label:
       en_US: n8n Workflow API

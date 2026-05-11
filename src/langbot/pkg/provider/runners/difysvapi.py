@@ -39,6 +39,8 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             base_url=self.pipeline_config['ai']['dify-service-api']['base-url'],
         )
 
+        self.timeout = self.pipeline_config['ai']['dify-service-api'].get('timeout', 120)
+
     def _process_thinking_content(
         self,
         content: str,
@@ -204,7 +206,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             user=f'{query.session.launcher_type.value}_{query.session.launcher_id}',
             conversation_id=cov_id,
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-chat-chunk: ' + str(chunk))
 
@@ -272,7 +274,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             response_mode='streaming',
             conversation_id=cov_id,
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-agent-chunk: ' + str(chunk))
 
@@ -371,7 +373,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             inputs=inputs,
             user=f'{query.session.launcher_type.value}_{query.session.launcher_id}',
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-workflow-chunk: ' + str(chunk))
             if chunk['event'] in ignored_events:
@@ -451,7 +453,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             user=f'{query.session.launcher_type.value}_{query.session.launcher_id}',
             conversation_id=cov_id,
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-chat-chunk: ' + str(chunk))
 
@@ -554,7 +556,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             response_mode='streaming',
             conversation_id=cov_id,
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-agent-chunk: ' + str(chunk))
 
@@ -678,7 +680,7 @@ class DifyServiceAPIRunner(runner.RequestRunner):
             inputs=inputs,
             user=f'{query.session.launcher_type.value}_{query.session.launcher_id}',
             files=files,
-            timeout=120,
+            timeout=self.timeout,
         ):
             self.ap.logger.debug('dify-workflow-chunk: ' + str(chunk))
             if chunk['event'] in ignored_events:

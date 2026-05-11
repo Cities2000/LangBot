@@ -61,7 +61,7 @@
             "base-url": "https://api.dify.ai/v1",
             "app-type": "chat",
             "api-key": "your-api-key",
-            "timeout": 30
+            "timeout": 120
         },
         "dashscope-app-api": {
             "app-type": "agent",

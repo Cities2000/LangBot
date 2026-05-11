@@ -38,10 +38,13 @@ class AsyncDifyServiceClient:
         if response_mode != 'streaming':
             raise DifyAPIError('当前仅支持 streaming 模式')
 
+        # SSE流式请求：读超时需足够长，Dify工作流/Agent可能长时间不发中间事件
+        stream_timeout = httpx.Timeout(timeout, read=600.0)
+
         async with httpx.AsyncClient(
             base_url=self.base_url,
             trust_env=True,
-            timeout=timeout,
+            timeout=stream_timeout,
         ) as client:
             payload = {
                 'inputs': inputs,
@@ -82,10 +85,13 @@ class AsyncDifyServiceClient:
         if response_mode != 'streaming':
             raise DifyAPIError('当前仅支持 streaming 模式')
 
+        # SSE流式请求：读超时需足够长，Dify工作流/Agent可能长时间不发中间事件
+        stream_timeout = httpx.Timeout(timeout, read=600.0)
+
         async with httpx.AsyncClient(
             base_url=self.base_url,
             trust_env=True,
-            timeout=timeout,
+            timeout=stream_timeout,
         ) as client:
             async with client.stream(
                 'POST',
