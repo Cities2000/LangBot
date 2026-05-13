@@ -14,7 +14,14 @@ class TokenManager:
 
     def __init__(self, name: str, tokens: list[str]):
         self.name = name
-        self.tokens = tokens
+        self.tokens = []
+        seen_tokens = set()
+        for token in tokens:
+            normalized_token = token.strip() if isinstance(token, str) else ''
+            if not normalized_token or normalized_token in seen_tokens:
+                continue
+            self.tokens.append(normalized_token)
+            seen_tokens.add(normalized_token)
         self.using_token_index = 0
 
     def get_token(self) -> str:
