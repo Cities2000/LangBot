@@ -43,6 +43,10 @@ stages:
             label:
               en_US: Aliyun Dashscope App API
               zh_Hans: 阿里云百炼平台 API
+          - name: gsb-agent
+            label:
+              en_US: GsbAgent
+              zh_Hans: GsbAgent
           - name: langflow-api
             label:
               en_US: Langflow API
@@ -570,3 +574,58 @@ stages:
         type: json
         required: false
         default: '{}'
+  - name: gsb-agent
+    label:
+      en_US: GsbAgent
+      zh_Hans: GsbAgent
+    description:
+      en_US: Configure the GsbAgent service API of the pipeline
+      zh_Hans: 配置 GsbAgent 服务 API
+    config:
+      - name: base-url
+        label:
+          en_US: Base URL
+          zh_Hans: 基础 URL
+        description:
+          en_US: The base URL of the GsbAgent server
+          zh_Hans: GsbAgent 服务器的基础 URL
+        type: string
+        required: true
+        default: 'http://localhost:8000'
+      - name: api-key
+        label:
+          en_US: API Key
+          zh_Hans: API 密钥
+        type: string
+        required: false
+        default: ''
+      - name: default-agent
+        label:
+          en_US: Default Agent
+          zh_Hans: 默认 Agent
+        description:
+          en_US: The default agent ID to use when not specified by plugin variable
+          zh_Hans: 未通过插件变量指定时使用的默认 Agent ID
+        type: string
+        required: true
+        default: ''
+      - name: base-prompt
+        label:
+          en_US: Base Prompt
+          zh_Hans: 基础提示词
+        description:
+          en_US: Fallback prompt when user message contains only images/files (no text)
+          zh_Hans: 当用户消息仅包含图片/文件（无文字）时的默认提示词
+        type: string
+        required: false
+        default: 'Please describe the content of this image or file.'
+      - name: timeout
+        label:
+          en_US: Request Timeout
+          zh_Hans: 请求超时
+        description:
+          en_US: Timeout in seconds for GsbAgent API requests
+          zh_Hans: GsbAgent API 请求超时时间（秒）
+        type: integer
+        required: false
+        default: 120
