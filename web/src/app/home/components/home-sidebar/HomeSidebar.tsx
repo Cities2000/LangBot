@@ -338,7 +338,9 @@ function NavItems({
                 tooltip={config.name}
               >
                 {config.icon}
-                <span>{config.name}</span>
+                <span className="cursor-pointer select-none">
+                  {config.name}
+                </span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           );
@@ -728,7 +730,9 @@ function NavItems({
                   }}
                 >
                   {config.icon}
-                  <span>{config.name}</span>
+                  <span className="cursor-pointer select-none">
+                    {config.name}
+                  </span>
                   <div className="ml-auto flex items-center gap-0.5 -mr-1">
                     {canCreate &&
                       (isPlugin ? (
@@ -1108,7 +1112,7 @@ function PluginPagesNav() {
                       className="select-none"
                     >
                       {pluginIcon}
-                      <span>{page.name}</span>
+                      <span className="cursor-pointer">{page.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -1128,7 +1132,7 @@ function PluginPagesNav() {
                         className="select-none"
                       >
                         {pluginIcon}
-                        <span>{label}</span>
+                        <span className="cursor-pointer">{label}</span>
                         <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -1144,7 +1148,9 @@ function PluginPagesNav() {
                                 onClick={() => navigate(route)}
                                 className="select-none"
                               >
-                                <span>{page.name}</span>
+                                <span className="cursor-pointer">
+                                  {page.name}
+                                </span>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           );

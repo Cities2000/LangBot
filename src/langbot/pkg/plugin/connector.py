@@ -35,6 +35,10 @@ from ..core import taskmgr
 from ..entity.persistence import plugin as persistence_plugin
 
 
+class PluginRuntimeNotConnectedError(RuntimeError):
+    """Raised when plugin runtime operations are requested before connection."""
+
+
 class PluginRuntimeConnector:
     """Plugin runtime connector"""
 
@@ -192,7 +196,7 @@ class PluginRuntimeConnector:
 
     async def ping_plugin_runtime(self):
         if not hasattr(self, 'handler'):
-            raise Exception('Plugin runtime is not connected')
+            raise PluginRuntimeNotConnectedError('Plugin runtime is not connected')
 
         return await self.handler.ping()
 
@@ -633,11 +637,12 @@ class PluginRuntimeConnector:
         Raises:
             ValueError: If plugin_id is not in the expected 'author/name' format.
         """
-        if '/' not in plugin_id:
+        segments = plugin_id.split('/')
+        if len(segments) != 2 or not all(segments):
             raise ValueError(
                 f"Invalid plugin_id format: '{plugin_id}'. Expected 'author/name' format (e.g. 'langbot/rag-engine')."
             )
-        return plugin_id.split('/', 1)
+        return segments[0], segments[1]
 
     async def call_rag_ingest(self, plugin_id: str, context_data: dict[str, Any]) -> dict[str, Any]:
         """Call plugin to ingest document.
