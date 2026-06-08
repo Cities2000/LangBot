@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"E:\\\\pr\\\\ai\\\\LangBot\\\\src\\\\langbot\\\\api\\\\http\\\\service\\\\pipeline.py\"}",
+  "error": "File does not exist. Note: your current working directory is E:\\pr\\ai\\LangBot.",
+  "timestamp": "2026-05-06T07:57:19.478Z",
+  "retry_count": 1
+}

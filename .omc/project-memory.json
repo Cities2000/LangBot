@@ -1,0 +1,435 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778503331942,
+  "projectRoot": "D:\\PR\\ai\\LangBot",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "src",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1778503331806,
+      "keyFiles": [
+        "deploy-k8s-test.sh",
+        "docker-compose.yaml",
+        "kubernetes.yaml",
+        "README_K8S.md"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 8,
+      "lastAccessed": 1778503331806,
+      "keyFiles": [
+        "API_KEY_AUTH.md",
+        "MIGRATION_SUMMARY.md",
+        "PYPI_INSTALLATION.md",
+        "SEEKDB_INTEGRATION.md",
+        "service-api-openapi.json"
+      ]
+    },
+    "res": {
+      "path": "res",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1778503331807,
+      "keyFiles": [
+        "announcement.json",
+        "announcement_saved.json",
+        "instance_id.json",
+        "logo-blue.png",
+        "logo.png"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1778503331808,
+      "keyFiles": []
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1778503331809,
+      "keyFiles": [
+        "README.md",
+        "__init__.py"
+      ]
+    },
+    "web": {
+      "path": "web",
+      "purpose": null,
+      "fileCount": 18,
+      "lastAccessed": 1778503331809,
+      "keyFiles": [
+        "components.json",
+        "eslint.config.mjs",
+        "fix_router.sh",
+        "index.html",
+        "migrate.sh"
+      ]
+    },
+    "res\\scripts": {
+      "path": "res\\scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1778503331811,
+      "keyFiles": [
+        "publish_announcement.py"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 20,
+      "lastAccessed": 1778503504621,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runners\\difysvapi.py",
+      "accessCount": 15,
+      "lastAccessed": 1778057248334,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\libs\\dify_service_api\\v1\\client.py",
+      "accessCount": 8,
+      "lastAccessed": 1778055750907,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\pipelinemgr.py",
+      "accessCount": 8,
+      "lastAccessed": 1778057572424,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\process\\handlers\\chat.py",
+      "accessCount": 8,
+      "lastAccessed": 1778057572484,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\templates\\default-pipeline-config.json",
+      "accessCount": 6,
+      "lastAccessed": 1778055750775,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\templates\\metadata\\pipeline\\ai.yaml",
+      "accessCount": 6,
+      "lastAccessed": 1778055765448,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\libs\\wecom_ai_bot_api\\api.py",
+      "accessCount": 6,
+      "lastAccessed": 1778057315085,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\libs\\wecom_ai_bot_api\\ws_client.py",
+      "accessCount": 4,
+      "lastAccessed": 1778053578751,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 4,
+      "lastAccessed": 1778054278781,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\libs\\wecom_ai_bot_api\\wecombotevent.py",
+      "accessCount": 3,
+      "lastAccessed": 1778053578821,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\process\\process.py",
+      "accessCount": 3,
+      "lastAccessed": 1778053634555,
+      "type": "file"
+    },
+    {
+      "path": "docs\\wecom-langbot-dify-data-flow.md",
+      "accessCount": 3,
+      "lastAccessed": 1778056079997,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\platform\\sources\\wecombot.py",
+      "accessCount": 3,
+      "lastAccessed": 1778057254500,
+      "type": "file"
+    },
+    {
+      "path": ".wolf\\cerebrum.md",
+      "accessCount": 3,
+      "lastAccessed": 1778503413884,
+      "type": "file"
+    },
+    {
+      "path": ".wolf\\anatomy.md",
+      "accessCount": 3,
+      "lastAccessed": 1778503413970,
+      "type": "file"
+    },
+    {
+      "path": "Dockerfile",
+      "accessCount": 2,
+      "lastAccessed": 1777449690486,
+      "type": "file"
+    },
+    {
+      "path": "web",
+      "accessCount": 2,
+      "lastAccessed": 1778054278716,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\api\\http\\service\\pipeline.py",
+      "accessCount": 2,
+      "lastAccessed": 1778054282741,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runners\\gsbagent.py",
+      "accessCount": 2,
+      "lastAccessed": 1778503456755,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runner.py",
+      "accessCount": 2,
+      "lastAccessed": 1778503504504,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg",
+      "accessCount": 2,
+      "lastAccessed": 1778503513197,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runners",
+      "accessCount": 2,
+      "lastAccessed": 1778503568320,
+      "type": "directory"
+    },
+    {
+      "path": "README_CN.md",
+      "accessCount": 1,
+      "lastAccessed": 1777448211442,
+      "type": "file"
+    },
+    {
+      "path": "docs\\PYPI_INSTALLATION.md",
+      "accessCount": 1,
+      "lastAccessed": 1777448211506,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\templates",
+      "accessCount": 1,
+      "lastAccessed": 1777454549504,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\persistence",
+      "accessCount": 1,
+      "lastAccessed": 1777454670114,
+      "type": "directory"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\monitoring_helper.py",
+      "accessCount": 1,
+      "lastAccessed": 1777536986745,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\preproc\\preproc.py",
+      "accessCount": 1,
+      "lastAccessed": 1777537043453,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\api\\http\\service\\monitoring.py",
+      "accessCount": 1,
+      "lastAccessed": 1777537072233,
+      "type": "file"
+    },
+    {
+      "path": ".wolf\\buglog.json",
+      "accessCount": 1,
+      "lastAccessed": 1778053532242,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\libs\\dify_service_api\\v1\\errors.py",
+      "accessCount": 1,
+      "lastAccessed": 1778053651536,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\pipeline\\process",
+      "accessCount": 1,
+      "lastAccessed": 1778053658308,
+      "type": "directory"
+    },
+    {
+      "path": "web\\src\\app\\home\\pipelines\\PipelineDetailContent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778054231593,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\infra\\entities\\pipeline\\index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778054231625,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\home\\pipelines\\components\\pipeline-form\\PipelineFormComponent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778054231676,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runners\\n8nsvapi.py",
+      "accessCount": 1,
+      "lastAccessed": 1778054245363,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\home\\components\\dynamic-form\\DynamicFormComponent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778054245448,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\infra\\http\\BackendClient.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778054245455,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\home\\components\\dynamic-form\\N8nAuthFormComponent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778054245509,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\persistence\\migrations\\dbm003_n8n_config.py",
+      "accessCount": 1,
+      "lastAccessed": 1778054263070,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\core\\migrations\\m017_dify_api_timeout_params.py",
+      "accessCount": 1,
+      "lastAccessed": 1778054263148,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\api\\http\\controller\\groups\\pipelines\\pipelines.py",
+      "accessCount": 1,
+      "lastAccessed": 1778054270904,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\home\\components\\dynamic-form\\DynamicFormItemComponent.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1778054270946,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\home\\components\\dynamic-form\\DynamicFormItemConfig.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778054270956,
+      "type": "file"
+    },
+    {
+      "path": "web\\src\\app\\infra\\entities\\form\\dynamic.ts",
+      "accessCount": 1,
+      "lastAccessed": 1778054282674,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\provider\\runners\\__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1778503466809,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\core\\app.py",
+      "accessCount": 1,
+      "lastAccessed": 1778503467068,
+      "type": "file"
+    },
+    {
+      "path": "src\\langbot\\pkg\\utils\\image.py",
+      "accessCount": 1,
+      "lastAccessed": 1778503468252,
+      "type": "file"
+    },
+    {
+      "path": "uv.lock",
+      "accessCount": 1,
+      "lastAccessed": 1778503504654,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

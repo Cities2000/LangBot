@@ -1,0 +1,3741 @@
+{
+  "version": 1,
+  "created_at": "2026-04-29T02:56:58.896Z",
+  "lifetime": {
+    "total_tokens_estimated": 418922,
+    "total_reads": 453,
+    "total_writes": 73,
+    "total_sessions": 7,
+    "anatomy_hits": 52,
+    "anatomy_misses": 270,
+    "repeated_reads_blocked": 195,
+    "estimated_savings_vs_bare_cli": 401921
+  },
+  "sessions": [
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T07:37:32.060Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1807,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T07:39:04.850Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1807,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T07:44:02.084Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1807,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:00:15.801Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 1807,
+        "output_tokens_estimated": 0,
+        "reads_count": 2,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:01:49.583Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 3,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:04:38.281Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 3,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:06:30.235Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 3,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:07:40.861Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 3,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:15:01.389Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 3,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:23:57.578Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 6,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:32:19.139Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 6,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:40:03.990Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 6,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:41:34.835Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 6,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T08:45:47.858Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:11:37.533Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:14:40.600Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:16:11.285Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:19:42.639Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:22:44.930Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:25:32.528Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:27:54.263Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-29-1531",
+      "started": "2026-04-29T07:31:26.107Z",
+      "ended": "2026-04-29T09:40:23.858Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/README_CN.md",
+          "tokens_estimated": 1807,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/docs/PYPI_INSTALLATION.md",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 107,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/Dockerfile",
+          "tokens_estimated": 37,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 1914,
+        "output_tokens_estimated": 37,
+        "reads_count": 7,
+        "writes_count": 1,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 2
+      }
+    },
+    {
+      "id": "session-2026-04-30-1613",
+      "started": "2026-04-30T08:13:43.170Z",
+      "ended": "2026-04-30T08:20:04.493Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/monitoring_helper.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/preproc/preproc.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/monitoring.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 11,
+        "writes_count": 0,
+        "repeated_reads_blocked": 0,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-04-30-1613",
+      "started": "2026-04-30T08:13:43.170Z",
+      "ended": "2026-04-30T08:23:07.856Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/monitoring_helper.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/preproc/preproc.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/monitoring.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 11,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-04-30-1613",
+      "started": "2026-04-30T08:13:43.170Z",
+      "ended": "2026-04-30T12:43:51.062Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/platform/sources/wecombot.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/monitoring_helper.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/preproc/preproc.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/monitoring.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2516,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 2516,
+        "reads_count": 11,
+        "writes_count": 1,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T07:54:41.593Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 2202,
+        "output_tokens_estimated": 0,
+        "reads_count": 10,
+        "writes_count": 0,
+        "repeated_reads_blocked": 10,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T07:59:42.615Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 2202,
+        "output_tokens_estimated": 0,
+        "reads_count": 26,
+        "writes_count": 0,
+        "repeated_reads_blocked": 10,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:02:40.631Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 2202,
+        "output_tokens_estimated": 0,
+        "reads_count": 26,
+        "writes_count": 0,
+        "repeated_reads_blocked": 10,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:18:41.459Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3696,
+        "output_tokens_estimated": 25779,
+        "reads_count": 26,
+        "writes_count": 6,
+        "repeated_reads_blocked": 13,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:19:25.562Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 3696,
+        "output_tokens_estimated": 25779,
+        "reads_count": 26,
+        "writes_count": 6,
+        "repeated_reads_blocked": 13,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:23:07.836Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 26,
+        "writes_count": 6,
+        "repeated_reads_blocked": 17,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:28:26.970Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 26,
+        "writes_count": 6,
+        "repeated_reads_blocked": 19,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:49:41.128Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 27,
+        "writes_count": 6,
+        "repeated_reads_blocked": 20,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:53:12.135Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 27,
+        "writes_count": 6,
+        "repeated_reads_blocked": 20,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:54:58.326Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 27,
+        "writes_count": 6,
+        "repeated_reads_blocked": 20,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T08:59:28.403Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 27,
+        "writes_count": 6,
+        "repeated_reads_blocked": 20,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-06-1542",
+      "started": "2026-05-06T07:42:39.270Z",
+      "ended": "2026-05-06T09:03:05.444Z",
+      "reads": [
+        {
+          "file": "E:/pr/ai/LangBot/docs/wecom-langbot-dify-data-flow.md",
+          "tokens_estimated": 2202,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/wecombotevent.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/ws_client.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/process.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/process/handlers/chat.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/pipeline/pipelinemgr.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8976,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 874,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1494,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/errors.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/PipelineDetailContent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/pipeline/index.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/pipelines/components/pipeline-form/PipelineFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/N8nAuthFormComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/n8nsvapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/http/BackendClient.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/persistence/migrations/dbm003_n8n_config.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4747,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/core/migrations/m017_dify_api_timeout_params.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/controller/groups/pipelines/pipelines.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemConfig.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/home/components/dynamic-form/DynamicFormItemComponent.tsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/api/http/service/pipeline.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/web/src/app/infra/entities/form/dynamic.ts",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/wecom_ai_bot_api/api.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/metadata/pipeline/ai.yaml",
+          "tokens_estimated": 4583,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/templates/default-pipeline-config.json",
+          "tokens_estimated": 842,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8738,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/pkg/provider/runners/difysvapi.py",
+          "tokens_estimated": 8754,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1414,
+          "action": "edit"
+        },
+        {
+          "file": "E:/pr/ai/LangBot/src/langbot/libs/dify_service_api/v1/client.py",
+          "tokens_estimated": 1448,
+          "action": "edit"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 18293,
+        "output_tokens_estimated": 25779,
+        "reads_count": 27,
+        "writes_count": 6,
+        "repeated_reads_blocked": 20,
+        "anatomy_lookups": 1
+      }
+    },
+    {
+      "id": "session-2026-05-11-2042",
+      "started": "2026-05-11T12:42:10.867Z",
+      "ended": "2026-05-11T12:47:33.454Z",
+      "reads": [
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/gsbagent.py",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/utils/image.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/__init__.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/runner.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/core/app.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/cozeapi.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/core/entities.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/modelmgr/entities.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "D:/PR/ai/LangBot/src/langbot/pkg/provider/__init__.py",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [],
+      "totals": {
+        "input_tokens_estimated": 0,
+        "output_tokens_estimated": 0,
+        "reads_count": 9,
+        "writes_count": 0,
+        "repeated_reads_blocked": 1,
+        "anatomy_lookups": 0
+      }
+    }
+  ],
+  "daemon_usage": [],
+  "waste_flags": [],
+  "optimization_report": {
+    "last_generated": null,
+    "patterns": []
+  }
+}

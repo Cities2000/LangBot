@@ -1,0 +1,58 @@
+{
+  "session_id": "session-2026-05-11-2042",
+  "started": "2026-05-11T12:42:10.867Z",
+  "files_read": {
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/gsbagent.py": {
+      "count": 2,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:43:31.841Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/utils/image.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:44:24.743Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/__init__.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:44:24.893Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/runner.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:44:24.996Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/core/app.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:44:26.432Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/runners/cozeapi.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:45:12.088Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/core/entities.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:45:17.896Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/modelmgr/entities.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:45:30.391Z"
+    },
+    "D:/PR/ai/LangBot/src/langbot/pkg/provider/__init__.py": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-05-11T12:45:43.476Z"
+    }
+  },
+  "files_written": [],
+  "edit_counts": {},
+  "anatomy_hits": 0,
+  "anatomy_misses": 8,
+  "repeated_reads_warned": 1,
+  "cerebrum_warnings": 0,
+  "stop_count": 1
+}
