@@ -1,4 +1,7 @@
-import { IDynamicFormItemSchema } from '@/app/infra/entities/form/dynamic';
+import {
+  IDynamicFormItemSchema,
+  SYSTEM_FIELD_PREFIX,
+} from '@/app/infra/entities/form/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,8 +23,14 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Globe, QrCode } from 'lucide-react';
+import { Copy, Check, Globe, Info, QrCode } from 'lucide-react';
 import { copyToClipboard } from '@/app/utils/clipboard';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { systemInfo } from '@/app/infra/http';
 
 /**
@@ -38,8 +47,8 @@ function resolveShowIfValue(
   externalDependentValues?: Record<string, unknown>,
   systemContext?: Record<string, unknown>,
 ): unknown {
-  if (field.startsWith('__system.')) {
-    const key = field.slice('__system.'.length);
+  if (field.startsWith(SYSTEM_FIELD_PREFIX)) {
+    const key = field.slice(SYSTEM_FIELD_PREFIX.length);
     return systemContext?.[key];
   }
   if (watchedValues[field] !== undefined) {
@@ -123,13 +132,13 @@ function WebhookUrlField({
   };
 
   return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <div className="flex items-center gap-2">
+    <FormItem className="min-w-0">
+      <FormLabel className="break-words">{label}</FormLabel>
+      <div className="flex min-w-0 items-center gap-2">
         <Input
           value={url}
           readOnly
-          className="flex-1 bg-muted"
+          className="min-w-0 flex-1 bg-muted"
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
         <Button
@@ -146,11 +155,11 @@ function WebhookUrlField({
         </Button>
       </div>
       {extraUrl && (
-        <div className="flex items-center gap-2 mt-2">
+        <div className="mt-2 flex min-w-0 items-center gap-2">
           <Input
             value={extraUrl}
             readOnly
-            className="flex-1 bg-muted"
+            className="min-w-0 flex-1 bg-muted"
             onClick={(e) => (e.target as HTMLInputElement).select()}
           />
           <Button
@@ -168,12 +177,14 @@ function WebhookUrlField({
         </div>
       )}
       {description && (
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-sm break-words text-muted-foreground">
+          {description}
+        </p>
       )}
       {systemInfo.edition === 'community' && (
-        <div className="flex items-start gap-2.5 rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 mt-1 max-w-2xl">
+        <div className="mt-1 flex max-w-full min-w-0 items-start gap-2.5 rounded-md border border-border/60 bg-muted/40 px-3 py-2.5">
           <Globe className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <p className="text-sm leading-relaxed break-words text-muted-foreground">
             {t('bots.webhookSaasHint')}{' '}
             <a
               href="https://space.langbot.app/cloud?utm_source=local_webui&utm_medium=webhook_alert&utm_campaign=saas_conversion"
@@ -187,6 +198,95 @@ function WebhookUrlField({
         </div>
       )}
     </FormItem>
+  );
+}
+
+/**
+ * Display-only component for `__system.*` fields (e.g. the deployment's
+ * outbound IPs that the operator must add to a platform's trusted-IP list).
+ * Renders one read-only row per value, each with a copy button. Rendered
+ * outside of react-hook-form binding since the values come from
+ * systemContext, not user input.
+ */
+function SystemInfoField({
+  label,
+  description,
+  values,
+}: {
+  label: string;
+  description?: string;
+  values: string[];
+}) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const handleCopy = (text: string, index: number) => {
+    copyToClipboard(text).catch(() => {});
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  return (
+    <FormItem className="min-w-0">
+      <FormLabel className="break-words">{label}</FormLabel>
+      <div className="space-y-2">
+        {values.map((value, index) => (
+          <div key={index} className="flex min-w-0 items-center gap-2">
+            <Input
+              value={value}
+              readOnly
+              className="min-w-0 flex-1 bg-muted"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleCopy(value, index)}
+            >
+              {copiedIndex === index ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        ))}
+      </div>
+      {description && (
+        <p className="text-sm break-words text-muted-foreground">
+          {description}
+        </p>
+      )}
+    </FormItem>
+  );
+}
+
+// Hover-only Radix tooltips never open on touch devices (no pointer hover),
+// so the ``disabled_tooltip`` explaining why a field is locked was invisible on
+// mobile. This wrapper makes the info icon also toggle the tooltip on tap while
+// keeping hover behavior on desktop.
+function DisabledTooltipIcon({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={text}
+            className="inline-flex shrink-0"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen((v) => !v);
+            }}
+          >
+            <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help shrink-0" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -253,15 +353,17 @@ export default function DynamicFormComponent({
     return value;
   };
 
-  // Filter out display-only field types (e.g. webhook-url, embed-code) that should not
-  // participate in form state, validation, or value emission.
+  // Filter out display-only fields (webhook-url/embed-code/qr-code-login types
+  // and `__system.*`-named fields) that should not participate in form state,
+  // validation, or value emission.
   const editableItems = useMemo(
     () =>
       itemConfigList.filter(
         (item) =>
           item.type !== 'webhook-url' &&
           item.type !== 'embed-code' &&
-          item.type !== 'qr-code-login',
+          item.type !== 'qr-code-login' &&
+          !item.name.startsWith(SYSTEM_FIELD_PREFIX),
       ),
     [itemConfigList],
   );
@@ -462,7 +564,7 @@ export default function DynamicFormComponent({
 
   return (
     <Form {...form}>
-      <div className="space-y-4">
+      <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
         {/* QR code login dialog */}
         <QrCodeLoginDialog
           open={qrDialogOpen}
@@ -507,8 +609,69 @@ export default function DynamicFormComponent({
             }
           }
 
-          // All fields are disabled when editing (creation_settings are immutable)
-          const isFieldDisabled = !!isEditing;
+          // ``disable_if`` mirrors ``show_if``'s evaluator but instead of
+          // hiding the field, leaves it visible and inert. Use it when the
+          // operator needs to see that the field exists yet cannot edit it
+          // under the current runtime state (e.g. sandbox-bound fields when
+          // Box is disabled).
+          let isDisabledByCondition = false;
+          if (config.disable_if) {
+            const dependValue = resolveShowIfValue(
+              config.disable_if.field,
+              watchedValues as Record<string, unknown>,
+              externalDependentValues,
+              systemContext,
+            );
+            const cond = config.disable_if;
+            if (cond.operator === 'eq' && dependValue === cond.value) {
+              isDisabledByCondition = true;
+            } else if (cond.operator === 'neq' && dependValue !== cond.value) {
+              isDisabledByCondition = true;
+            } else if (
+              cond.operator === 'in' &&
+              Array.isArray(cond.value) &&
+              cond.value.includes(dependValue)
+            ) {
+              isDisabledByCondition = true;
+            }
+          }
+
+          // All fields are disabled when editing (creation_settings are
+          // immutable) or when ``disable_if`` matches.
+          const isFieldDisabled = !!isEditing || isDisabledByCondition;
+          const disabledTooltip =
+            isDisabledByCondition && config.disabled_tooltip
+              ? extractI18nObject(config.disabled_tooltip)
+              : '';
+          const renderDisabledTooltipIcon = () =>
+            disabledTooltip ? (
+              <DisabledTooltipIcon text={disabledTooltip} />
+            ) : null;
+
+          // `__system.*` fields are display-only; their value is resolved
+          // from systemContext (same namespace as show_if), not user input.
+          // Hidden entirely when the deployment doesn't provide the value.
+          if (config.name.startsWith(SYSTEM_FIELD_PREFIX)) {
+            const rawValue =
+              systemContext?.[config.name.slice(SYSTEM_FIELD_PREFIX.length)];
+            const values = (Array.isArray(rawValue) ? rawValue : [rawValue])
+              .filter((v) => v !== undefined && v !== null && v !== '')
+              .map(String);
+            if (values.length === 0) return null;
+
+            return (
+              <SystemInfoField
+                key={config.id}
+                label={extractI18nObject(config.label)}
+                description={
+                  config.description
+                    ? extractI18nObject(config.description)
+                    : undefined
+                }
+                values={values}
+              />
+            );
+          }
 
           // Webhook URL fields are display-only; render outside of form binding
           if (config.type === 'webhook-url') {
@@ -631,19 +794,20 @@ export default function DynamicFormComponent({
                 control={form.control}
                 name={config.name as keyof FormValues}
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <div
                       className={cn(
-                        'flex flex-row items-center justify-between rounded-lg border p-4 max-w-2xl',
+                        'flex w-full min-w-0 max-w-full flex-row items-center justify-between rounded-lg border p-4',
                         isFieldDisabled && 'pointer-events-none opacity-60',
                       )}
                     >
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
+                      <div className="min-w-0 space-y-0.5">
+                        <FormLabel className="flex min-w-0 items-center gap-1.5 text-base">
                           {extractI18nObject(config.label)}
+                          {renderDisabledTooltipIcon()}
                         </FormLabel>
                         {config.description && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm break-words text-muted-foreground">
                             {extractI18nObject(config.description)}
                           </p>
                         )}
@@ -669,16 +833,22 @@ export default function DynamicFormComponent({
               control={form.control}
               name={config.name as keyof FormValues}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {extractI18nObject(config.label)}{' '}
-                    {config.required && <span className="text-red-500">*</span>}
+                <FormItem className="min-w-0">
+                  <FormLabel className="flex min-w-0 items-center gap-1.5">
+                    <span className="min-w-0 break-words">
+                      {extractI18nObject(config.label)}{' '}
+                      {config.required && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </span>
+                    {renderDisabledTooltipIcon()}
                   </FormLabel>
                   <FormControl>
                     <div
-                      className={
-                        isFieldDisabled ? 'pointer-events-none opacity-60' : ''
-                      }
+                      className={cn(
+                        'min-w-0 max-w-full overflow-x-hidden',
+                        isFieldDisabled && 'pointer-events-none opacity-60',
+                      )}
                     >
                       <DynamicFormItemComponent
                         config={config}
@@ -688,7 +858,7 @@ export default function DynamicFormComponent({
                     </div>
                   </FormControl>
                   {config.description && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm break-words text-muted-foreground">
                       {extractI18nObject(config.description)}
                     </p>
                   )}

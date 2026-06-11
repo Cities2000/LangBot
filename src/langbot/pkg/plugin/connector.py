@@ -18,6 +18,7 @@ from langbot_plugin.api.entities.builtin.pipeline.query import provider_session
 from ..core import app
 from . import handler
 from ..utils import platform
+from ..utils.managed_runtime import ManagedRuntimeConnector
 from langbot_plugin.runtime.io.controllers.stdio import (
     client as stdio_client_controller,
 )
@@ -39,10 +40,8 @@ class PluginRuntimeNotConnectedError(RuntimeError):
     """Raised when plugin runtime operations are requested before connection."""
 
 
-class PluginRuntimeConnector:
+class PluginRuntimeConnector(ManagedRuntimeConnector):
     """Plugin runtime connector"""
-
-    ap: app.Application
 
     handler: handler.RuntimeConnectionHandler
 
@@ -53,10 +52,6 @@ class PluginRuntimeConnector:
     stdio_client_controller: stdio_client_controller.StdioClientController
 
     ctrl: stdio_client_controller.StdioClientController | ws_client_controller.WebSocketClientController
-
-    runtime_subprocess_on_windows: asyncio.subprocess.Process | None = None
-
-    runtime_subprocess_on_windows_task: asyncio.Task | None = None
 
     runtime_disconnect_callback: typing.Callable[
         [PluginRuntimeConnector], typing.Coroutine[typing.Any, typing.Any, None]
@@ -72,7 +67,7 @@ class PluginRuntimeConnector:
             [PluginRuntimeConnector], typing.Coroutine[typing.Any, typing.Any, None]
         ],
     ):
-        self.ap = ap
+        super().__init__(ap)
         self.runtime_disconnect_callback = runtime_disconnect_callback
         self.is_enable_plugin = self.ap.instance_config.data.get('plugin', {}).get('enable', True)
 
@@ -108,6 +103,16 @@ class PluginRuntimeConnector:
 
             self.handler_task = asyncio.create_task(self.handler.run())
             _ = await self.handler.ping()
+            # Push the configured marketplace (Space) URL to the runtime so it
+            # downloads plugins from the same Space LangBot is bound to, rather
+            # than relying on the runtime's own env/default.
+            space_url = self.ap.instance_config.data.get('space', {}).get('url', '').rstrip('/')
+            if space_url:
+                try:
+                    await self.handler.set_runtime_config(cloud_service_url=space_url)
+                    self.ap.logger.info(f'Pushed marketplace URL to plugin runtime: {space_url}')
+                except Exception as e:
+                    self.ap.logger.warning(f'Failed to push runtime config: {e}')
             self.ap.logger.info('Connected to plugin runtime.')
             await self.handler_task
 
@@ -140,19 +145,7 @@ class PluginRuntimeConnector:
             # We have to launch runtime via cmd but communicate via ws.
             self.ap.logger.info('(windows) use cmd to launch plugin runtime and communicate via ws')
 
-            if self.runtime_subprocess_on_windows is None:  # only launch once
-                python_path = sys.executable
-                env = os.environ.copy()
-                self.runtime_subprocess_on_windows = await asyncio.create_subprocess_exec(
-                    python_path,
-                    '-m',
-                    'langbot_plugin.cli.__init__',
-                    'rt',
-                    env=env,
-                )
-
-                # hold the process
-                self.runtime_subprocess_on_windows_task = asyncio.create_task(self.runtime_subprocess_on_windows.wait())
+            await self._start_runtime_subprocess('-m', 'langbot_plugin.cli.__init__', 'rt')
 
             ws_url = 'ws://localhost:5400/control/ws'
 
@@ -236,6 +229,85 @@ class PluginRuntimeConnector:
 
         return plugin_author, plugin_name
 
+    async def _install_mcp_from_marketplace(
+        self,
+        mcp_data: dict[str, Any],
+        task_context: taskmgr.TaskContext | None = None,
+    ):
+        """Install an MCP server from marketplace data.
+
+        Marketplace MCP records carry the runtime-ready ``mode`` and
+        ``extra_args`` directly (the same shape LangBot stores in
+        ``mcp_servers``), so they are used as-is rather than reconstructed.
+        For ``stdio`` this preserves ``command``/``args``/``env``/``box``;
+        for ``http``/``sse`` it preserves ``url``/``headers``/``timeout``/
+        ``ssereadtimeout``.
+        """
+        from ..entity.persistence import mcp as persistence_mcp
+        import uuid
+
+        mode = mcp_data.get('mode') or 'stdio'
+        extra_args = mcp_data.get('extra_args') or {}
+        # Marketplace records carry the rendered README markdown; persist it so
+        # the detail page Docs tab works offline and without a marketplace round-trip.
+        readme = mcp_data.get('readme') or ''
+        # Use __ instead of / to avoid URL routing issues with slashes
+        name = f'{mcp_data.get("author", "")}__{mcp_data.get("name", "")}'
+
+        # Check if MCP server already exists
+        existing = await self.ap.persistence_mgr.execute_async(
+            sqlalchemy.select(persistence_mcp.MCPServer).where(persistence_mcp.MCPServer.name == name)
+        )
+        if existing.scalar_one_or_none():
+            self.ap.logger.info(f'MCP server {name} already exists, skipping installation')
+            return
+
+        # Create MCP server record
+        server_uuid = str(uuid.uuid4())
+        server_data = {
+            'uuid': server_uuid,
+            'name': name,
+            'enable': True,
+            'mode': mode,
+            'extra_args': extra_args,
+            'readme': readme,
+        }
+
+        await self.ap.persistence_mgr.execute_async(sqlalchemy.insert(persistence_mcp.MCPServer).values(server_data))
+
+        # Start the MCP server
+        result = await self.ap.persistence_mgr.execute_async(
+            sqlalchemy.select(persistence_mcp.MCPServer).where(persistence_mcp.MCPServer.uuid == server_uuid)
+        )
+        server_entity = result.first()
+        if server_entity:
+            server_config = self.ap.persistence_mgr.serialize_model(persistence_mcp.MCPServer, server_entity)
+            if self.ap.tool_mgr.mcp_tool_loader:
+                mcp_task = asyncio.create_task(self.ap.tool_mgr.mcp_tool_loader.host_mcp_server(server_config))
+                self.ap.tool_mgr.mcp_tool_loader._hosted_mcp_tasks.append(mcp_task)
+
+        self.ap.logger.info(f'Installed MCP server {name} from marketplace')
+
+    async def _install_skill_from_zip(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        task_context: taskmgr.TaskContext | None = None,
+    ):
+        """Install a skill from marketplace ZIP data."""
+        from ..api.http.service.skill import SkillService
+
+        skill_service = SkillService(self.ap)
+
+        self.ap.logger.info(f'Installing skill from marketplace ZIP ({len(file_bytes)} bytes)')
+
+        # Install from ZIP using skill service
+        result = await skill_service.install_from_zip_upload(
+            file_bytes=file_bytes,
+            filename=filename + '.zip',
+        )
+        self.ap.logger.info(f'Skill installed successfully: {result}')
+
     def _build_plugin_startup_failure_message(
         self,
         plugin_author: str,
@@ -297,6 +369,117 @@ class PluginRuntimeConnector:
     ):
         plugin_author = install_info.get('plugin_author')
         plugin_name = install_info.get('plugin_name')
+
+        if install_source == PluginInstallSource.MARKETPLACE:
+            # Handle marketplace plugin/mcp/skill installation
+            plugin_author = install_info.get('plugin_author', '')
+            plugin_name = install_info.get('plugin_name', '')
+            space_url = (
+                self.ap.instance_config.data.get('space', {}).get('url', 'https://space.langbot.app').rstrip('/')
+            )
+
+            # Try MCP endpoint first
+            async with httpx.AsyncClient(trust_env=True, timeout=15) as client:
+                mcp_resp = await client.get(f'{space_url}/api/v1/marketplace/mcps/{plugin_author}/{plugin_name}')
+                if mcp_resp.status_code == 200:
+                    mcp_data = mcp_resp.json().get('data', {}).get('mcp', {})
+                    if mcp_data.get('mode'):
+                        # It's an MCP - create server locally
+                        self.ap.logger.info(f'Installing MCP from marketplace: {plugin_author}/{plugin_name}')
+                        if task_context:
+                            task_context.set_current_action('installing mcp server')
+                        await self._install_mcp_from_marketplace(mcp_data, task_context)
+                        # Best-effort install report (bumps marketplace install_count).
+                        try:
+                            await client.post(
+                                f'{space_url}/api/v1/marketplace/mcps/{plugin_author}/{plugin_name}/install'
+                            )
+                        except Exception as report_err:
+                            self.ap.logger.debug(f'Failed to report MCP install: {report_err}')
+                        return
+                    else:
+                        raise Exception(f'MCP {plugin_author}/{plugin_name} has no mode')
+                elif mcp_resp.status_code == 404:
+                    # Try skill endpoint - download ZIP and install
+                    self.ap.logger.info(f'Trying skill endpoint for: {plugin_author}/{plugin_name}')
+                    if task_context:
+                        task_context.set_current_action('checking skill marketplace')
+
+                    # Get skill detail to find version
+                    skill_resp = await client.get(
+                        f'{space_url}/api/v1/marketplace/skills/{plugin_author}/{plugin_name}'
+                    )
+                    if skill_resp.status_code == 200:
+                        self.ap.logger.info(f'Installing skill from marketplace: {plugin_author}/{plugin_name}')
+                        if task_context:
+                            task_context.set_current_action('installing skill from marketplace')
+
+                        # Download the skill ZIP (no version needed - uses latest)
+                        if task_context:
+                            task_context.set_current_action('downloading skill package')
+
+                        download_resp = await client.get(
+                            f'{space_url}/api/v1/marketplace/skills/download/{plugin_author}/{plugin_name}'
+                        )
+                        if download_resp.status_code != 200:
+                            raise Exception(
+                                f'Failed to download skill {plugin_author}/{plugin_name}: {download_resp.status_code}'
+                            )
+
+                        file_bytes = download_resp.content
+                        file_size = len(file_bytes)
+                        self.ap.logger.info(f'Downloaded skill ZIP ({file_size} bytes)')
+
+                        # Install skill from ZIP using skill service
+                        await self._install_skill_from_zip(file_bytes, f'{plugin_author}-{plugin_name}', task_context)
+                        return
+                    elif skill_resp.status_code == 404:
+                        # Try plugin endpoint - get versions and download
+                        self.ap.logger.info(f'Trying plugin endpoint for: {plugin_author}/{plugin_name}')
+                        if task_context:
+                            task_context.set_current_action('checking plugin marketplace')
+
+                        # Get plugin versions to find latest
+                        versions_resp = await client.get(
+                            f'{space_url}/api/v1/marketplace/plugins/{plugin_author}/{plugin_name}/versions'
+                        )
+                        if versions_resp.status_code == 200:
+                            versions_data = versions_resp.json().get('data', {}).get('versions', [])
+                            if versions_data:
+                                latest_version = versions_data[0].get('version', '')
+                                if latest_version:
+                                    self.ap.logger.info(
+                                        f'Installing plugin from marketplace: {plugin_author}/{plugin_name} v{latest_version}'
+                                    )
+                                    if task_context:
+                                        task_context.set_current_action('downloading plugin package')
+
+                                    download_resp = await client.get(
+                                        f'{space_url}/api/v1/marketplace/plugins/download/{plugin_author}/{plugin_name}/{latest_version}'
+                                    )
+                                    if download_resp.status_code != 200:
+                                        raise Exception(
+                                            f'Failed to download plugin {plugin_author}/{plugin_name}: {download_resp.status_code}'
+                                        )
+
+                                    file_bytes = download_resp.content
+                                    self._inspect_plugin_package(file_bytes, task_context)
+                                    file_key = await self.handler.send_file(file_bytes, 'lbpkg')
+                                    install_info['plugin_file_key'] = file_key
+                                    self.ap.logger.info(f'Transfered file {file_key} to plugin runtime')
+                                    # Continue to install via runtime
+                                else:
+                                    raise Exception(f'No version found for plugin {plugin_author}/{plugin_name}')
+                            else:
+                                raise Exception(f'Plugin {plugin_author}/{plugin_name} has no versions')
+                        else:
+                            raise Exception(f'Plugin {plugin_author}/{plugin_name} not found in marketplace')
+                    else:
+                        skill_resp.raise_for_status()
+                        raise Exception(f'Failed to get skill {plugin_author}/{plugin_name}')
+                else:
+                    mcp_resp.raise_for_status()
+                    raise Exception(f'Failed to get MCP {plugin_author}/{plugin_name}')
 
         if install_source == PluginInstallSource.LOCAL:
             # transfer file before install
@@ -613,12 +796,17 @@ class PluginRuntimeConnector:
         return await self.handler.retrieve_knowledge(plugin_author, plugin_name, retriever_name, retrieval_context)
 
     def dispose(self):
-        # No need to consider the shutdown on Windows
-        # for Windows can kill processes and subprocesses chainly
-
-        if self.is_enable_plugin and isinstance(self.ctrl, stdio_client_controller.StdioClientController):
+        # On non-Windows stdio mode, terminate via the controller's process handle.
+        # On Windows, the managed subprocess is cleaned up by the base class.
+        if (
+            self.is_enable_plugin
+            and hasattr(self, 'ctrl')
+            and isinstance(self.ctrl, stdio_client_controller.StdioClientController)
+        ):
             self.ap.logger.info('Terminating plugin runtime process...')
             self.ctrl.process.terminate()
+
+        self._dispose_subprocess()
 
         if self.heartbeat_task is not None:
             self.heartbeat_task.cancel()

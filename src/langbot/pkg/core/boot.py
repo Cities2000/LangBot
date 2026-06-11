@@ -62,4 +62,6 @@ async def main(loop: asyncio.AbstractEventLoop):
         app_inst = await make_app(loop)
         await app_inst.run()
     except Exception:
+        if app_inst is not None:
+            app_inst.dispose()
         traceback.print_exc()

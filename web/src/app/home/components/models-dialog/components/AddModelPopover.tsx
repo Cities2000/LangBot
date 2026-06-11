@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from 'react-i18next';
 import { ScannedProviderModel } from '@/app/infra/entities/api';
 import {
@@ -298,20 +298,8 @@ export default function AddModelPopover({
           </div>
 
           <div className="overflow-y-auto flex-1 min-h-0">
-            <Tabs
-              value={mode}
-              onValueChange={(v) => setMode(v as 'manual' | 'scan')}
-            >
-              {!trigger && (
-                <TabsList className="grid w-full grid-cols-2 mt-3">
-                  <TabsTrigger value="manual">
-                    {t('models.manualAdd')}
-                  </TabsTrigger>
-                  <TabsTrigger value="scan">{t('models.scanAdd')}</TabsTrigger>
-                </TabsList>
-              )}
-
-              <TabsContent value="manual" className="mt-3">
+            {mode === 'manual' ? (
+              <div className="mt-3">
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label>{t('models.modelName')}</Label>
@@ -390,9 +378,9 @@ export default function AddModelPopover({
                     </Button>
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="scan" className="space-y-2 mt-0 pt-0">
+              </div>
+            ) : (
+              <div className="space-y-2 mt-3">
                 {scanLoading ? (
                   <div className="flex items-center justify-center py-4">
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin text-muted-foreground" />
@@ -565,8 +553,8 @@ export default function AddModelPopover({
                     />
                   </Button>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
           </div>
         </Tabs>
       </PopoverContent>
