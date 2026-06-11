@@ -12,7 +12,7 @@ RUN cd web && npm config set registry https://registry.npmmirror.com && npm inst
 # out of the final image; only the nsjail binary and its small runtime libs
 # (libprotobuf, libnl-route-3) are carried over.
 FROM python:3.12.7-slim AS nsjail-build
-
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 ARG NSJAIL_VERSION=3.6
 
 RUN apt-get update \
@@ -20,7 +20,7 @@ RUN apt-get update \
         ca-certificates git build-essential \
         autoconf bison flex libtool pkg-config \
         protobuf-compiler libprotobuf-dev libnl-route-3-dev \
-    && git clone --depth 1 --branch "${NSJAIL_VERSION}" https://github.com/google/nsjail.git /nsjail \
+    && git clone --depth 1 --branch "${NSJAIL_VERSION}" https://gh-proxy.com/https://github.com/google/nsjail.git /nsjail \
     && make -C /nsjail \
     && install -m 0755 /nsjail/nsjail /usr/local/bin/nsjail \
     && rm -rf /var/lib/apt/lists/*
@@ -49,9 +49,9 @@ RUN apt-get update \
     # containers. The same image powers langbot / plugin_runtime / box; only
     # box uses the client. Arch-aware via dpkg so multi-arch builds work.
     && install -m 0755 -d /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
     && chmod a+r /etc/apt/keyrings/docker.asc \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" > /etc/apt/sources.list.d/docker.list \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://mirrors.aliyun.com/docker-ce/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends docker-ce-cli \
     && python -m pip install --no-cache-dir uv  -i https://pypi.tuna.tsinghua.edu.cn/simple \
