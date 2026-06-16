@@ -624,7 +624,17 @@ class GsbAgentRunner(runner.RequestRunner):
             yield _cmd_reply('✨ 已开启新对话，历史记录已清空。')
             return
         if command in ('/help',):
-            yield _cmd_reply('可用命令：\n/new 或 /clear — 开启新对话\n/help — 显示帮助')
+            # 优先展示当前 Agent 的 usage_guide，无则展示通用帮助
+            try:
+                agent_info = await self._get_agent_info(agent_id)
+                usage_guide = agent_info.get('usage_guide', '')
+            except Exception:
+                usage_guide = ''
+            if usage_guide:
+                help_text = usage_guide
+            else:
+                help_text = '可用命令：\n/new 或 /clear — 开启新对话\n/help — 显示帮助'
+            yield _cmd_reply(help_text)
             return
 
         # 从消息中解析 key=value 结构化参数（禁止覆盖内部字段）
