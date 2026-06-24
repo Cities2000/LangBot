@@ -219,7 +219,7 @@ class GsbAgentRunner(runner.RequestRunner):
                         role='assistant',
                         content=[provider_message.ContentElement.from_image_url(full_url)],
                     )
-                elif f.get('file_type') == 'word':
+                else:
                     filename = f.get('filename', 'file')
                     url = f.get('url', '')
                     full_url = url if url.startswith('http') else f'{self.base_url}{url}'
@@ -232,20 +232,6 @@ class GsbAgentRunner(runner.RequestRunner):
                         yield provider_message.Message(
                             role='assistant',
                             content=f'\U0001f4ce {filename}: {full_url}',
-                        )
-                else:
-                    filename = f.get('filename', 'file')
-                    url = f.get('url', '')
-                    if url:
-                        full_url = url if url.startswith('http') else f'{self.base_url}{url}'
-                        yield provider_message.Message(
-                            role='assistant',
-                            content=f'\U0001f4ce {filename}: {full_url}',
-                        )
-                    else:
-                        yield provider_message.Message(
-                            role='assistant',
-                            content=f'\U0001f4ce {filename}',
                         )
             text_content = result.get('result', '')
             if isinstance(text_content, dict):
@@ -338,41 +324,33 @@ class GsbAgentRunner(runner.RequestRunner):
                                 content=[provider_message.ContentElement.from_image_url(full_url)],
                                 is_final=False,
                             )
-                        elif file_type == 'word' and file_url:
+                        elif file_url and self._current_platform in ('wecom', 'wecombot'):
+                            # 企业微信（标准+智能机器人）：发送文件标记，后续可由企微插件处理为文件附件
                             full_url = file_url if file_url.startswith('http') else f'{self.base_url}{file_url}'
-                            if self._current_platform in ('wecom', 'wecombot'):
-                                # 企业微信（标准+智能机器人）：发送文件标记，后续可由企微插件处理为文件附件
-                                yield provider_message.MessageChunk(
-                                    role='assistant',
-                                    content=f'\U0001f4ce {filename}',
-                                    is_final=False,
-                                )
-                                yield provider_message.MessageChunk(
-                                    role='assistant',
-                                    content=f'[file:{filename}|{full_url}]',
-                                    is_final=False,
-                                )
-                            else:
-                                # WeComCS / 其他平台：降级为下载链接
-                                yield provider_message.MessageChunk(
-                                    role='assistant',
-                                    content=f'\U0001f4ce {filename}: {full_url}',
-                                    is_final=False,
-                                )
+                            yield provider_message.MessageChunk(
+                                role='assistant',
+                                content=f'\U0001f4ce {filename}',
+                                is_final=False,
+                            )
+                            yield provider_message.MessageChunk(
+                                role='assistant',
+                                content=f'[file:{filename}|{full_url}]',
+                                is_final=False,
+                            )
+                        elif file_url:
+                            # WeComCS / 其他平台：降级为下载链接
+                            full_url = file_url if file_url.startswith('http') else f'{self.base_url}{file_url}'
+                            yield provider_message.MessageChunk(
+                                role='assistant',
+                                content=f'\U0001f4ce {filename}: {full_url}',
+                                is_final=False,
+                            )
                         else:
-                            full_url = file_url if file_url.startswith('http') else f'{self.base_url}{file_url}'
-                            if file_url:
-                                yield provider_message.MessageChunk(
-                                    role='assistant',
-                                    content=f'\U0001f4ce {filename}: {full_url}',
-                                    is_final=False,
-                                )
-                            else:
-                                yield provider_message.MessageChunk(
-                                    role='assistant',
-                                    content=f'\U0001f4ce {filename}',
-                                    is_final=False,
-                                )
+                            yield provider_message.MessageChunk(
+                                role='assistant',
+                                content=f'\U0001f4ce {filename}',
+                                is_final=False,
+                            )
 
                     elif event_type == 'agent_end':
                         if event.get('conversation_id') and not query.session.using_conversation.uuid:
