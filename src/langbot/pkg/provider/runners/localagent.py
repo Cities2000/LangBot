@@ -4,6 +4,7 @@ import json
 import copy
 import typing
 from .. import runner
+from ...telemetry import features as telemetry_features
 from ..modelmgr import requester as modelmgr_requester
 from ..tools.loaders.native import EXEC_TOOL_NAME
 import langbot_plugin.api.entities.builtin.pipeline.query as pipeline_query
@@ -39,6 +40,64 @@ SANDBOX_EXEC_SYSTEM_GUIDANCE = (
 # a sandbox exec), yielding a non-terminating request and runaway cost. Set
 # generously so it never interrupts legitimate multi-step agentic workflows.
 MAX_TOOL_CALL_ROUNDS = 128
+
+
+def _model_has_ability(model: modelmgr_requester.RuntimeLLMModel, ability: str) -> bool:
+    return ability in (model.model_entity.abilities or [])
+
+
+class _StreamAccumulator:
+    """Accumulate streamed content and fragmented OpenAI-style tool calls."""
+
+    def __init__(self, msg_sequence: int = 0, initial_content: str | None = None):
+        self.tool_calls_map: dict[str, provider_message.ToolCall] = {}
+        self.msg_idx = 0
+        self.accumulated_content = initial_content or ''
+        self.last_role = 'assistant'
+        self.msg_sequence = msg_sequence
+
+    def add(self, msg: provider_message.MessageChunk) -> provider_message.MessageChunk | None:
+        self.msg_idx += 1
+
+        if msg.role:
+            self.last_role = msg.role
+
+        if msg.content:
+            self.accumulated_content += msg.content
+
+        if msg.tool_calls:
+            for tool_call in msg.tool_calls:
+                if tool_call.id not in self.tool_calls_map:
+                    self.tool_calls_map[tool_call.id] = provider_message.ToolCall(
+                        id=tool_call.id,
+                        type=tool_call.type,
+                        function=provider_message.FunctionCall(
+                            name=tool_call.function.name if tool_call.function else '',
+                            arguments='',
+                        ),
+                    )
+                if tool_call.function and tool_call.function.arguments:
+                    self.tool_calls_map[tool_call.id].function.arguments += tool_call.function.arguments
+
+        if self.msg_idx % 8 == 0 or msg.is_final:
+            self.msg_sequence += 1
+            return provider_message.MessageChunk(
+                role=self.last_role,
+                content=self.accumulated_content,
+                tool_calls=list(self.tool_calls_map.values()) if (self.tool_calls_map and msg.is_final) else None,
+                is_final=msg.is_final,
+                msg_sequence=self.msg_sequence,
+            )
+
+        return None
+
+    def final_message(self) -> provider_message.MessageChunk:
+        return provider_message.MessageChunk(
+            role=self.last_role,
+            content=self.accumulated_content,
+            tool_calls=list(self.tool_calls_map.values()) if self.tool_calls_map else None,
+            msg_sequence=self.msg_sequence,
+        )
 
 
 @runner.runner_class('local-agent')
@@ -105,7 +164,7 @@ class LocalAgentRunner(runner.RequestRunner):
                     query,
                     model,
                     messages,
-                    funcs if model.model_entity.abilities.__contains__('func_call') else [],
+                    funcs if _model_has_ability(model, 'func_call') else [],
                     extra_args=model.model_entity.extra_args,
                     remove_think=remove_think,
                 )
@@ -135,7 +194,7 @@ class LocalAgentRunner(runner.RequestRunner):
                     query,
                     model,
                     messages,
-                    funcs if model.model_entity.abilities.__contains__('func_call') else [],
+                    funcs if _model_has_ability(model, 'func_call') else [],
                     extra_args=model.model_entity.extra_args,
                     remove_think=remove_think,
                 )
@@ -187,6 +246,8 @@ class LocalAgentRunner(runner.RequestRunner):
             # only support text for now
             all_results: list[rag_context.RetrievalResultEntry] = []
 
+            kb_engine_plugins: set[str] = set()
+
             # Retrieve from each knowledge base
             for kb_uuid in kb_uuids:
                 kb = await self.ap.rag_mgr.get_knowledge_base_by_uuid(kb_uuid)
@@ -194,6 +255,12 @@ class LocalAgentRunner(runner.RequestRunner):
                 if not kb:
                     self.ap.logger.warning(f'Knowledge base {kb_uuid} not found, skipping')
                     continue
+
+                try:
+                    engine_plugin_id = kb.get_knowledge_engine_plugin_id() or 'builtin'
+                except Exception:
+                    engine_plugin_id = 'builtin'
+                kb_engine_plugins.add(engine_plugin_id)
 
                 result = await kb.retrieve(
                     user_message_text,
@@ -206,6 +273,17 @@ class LocalAgentRunner(runner.RequestRunner):
 
                 if result:
                     all_results.extend(result)
+
+            # Telemetry: knowledge base usage (counts and engine categories only)
+            telemetry_features.set_value(
+                query,
+                'kb',
+                {
+                    'kb_count': len(kb_uuids),
+                    'engine_plugins': sorted(kb_engine_plugins),
+                    'retrieved_entries': len(all_results),
+                },
+            )
 
             # Rerank step: re-score results using a rerank model if configured
             local_agent_config = query.pipeline_config.get('ai', {}).get('local-agent', {})
@@ -302,11 +380,7 @@ class LocalAgentRunner(runner.RequestRunner):
             final_msg = msg
         else:
             # Streaming: invoke with fallback
-            tool_calls_map: dict[str, provider_message.ToolCall] = {}
-            msg_idx = 0
-            accumulated_content = ''
-            last_role = 'assistant'
-            msg_sequence = 1
+            stream_accumulator = _StreamAccumulator(msg_sequence=1)
 
             stream_src, use_llm_model = await self._invoke_stream_with_fallback(
                 query,
@@ -316,44 +390,12 @@ class LocalAgentRunner(runner.RequestRunner):
                 remove_think,
             )
             async for msg in stream_src:
-                msg_idx = msg_idx + 1
-
-                if msg.role:
-                    last_role = msg.role
-
-                if msg.content:
-                    accumulated_content += msg.content
-
-                if msg.tool_calls:
-                    for tool_call in msg.tool_calls:
-                        if tool_call.id not in tool_calls_map:
-                            tool_calls_map[tool_call.id] = provider_message.ToolCall(
-                                id=tool_call.id,
-                                type=tool_call.type,
-                                function=provider_message.FunctionCall(
-                                    name=tool_call.function.name if tool_call.function else '', arguments=''
-                                ),
-                            )
-                        if tool_call.function and tool_call.function.arguments:
-                            tool_calls_map[tool_call.id].function.arguments += tool_call.function.arguments
-
-                if msg_idx % 8 == 0 or msg.is_final:
-                    msg_sequence += 1
-                    yield provider_message.MessageChunk(
-                        role=last_role,
-                        content=accumulated_content,
-                        tool_calls=list(tool_calls_map.values()) if (tool_calls_map and msg.is_final) else None,
-                        is_final=msg.is_final,
-                        msg_sequence=msg_sequence,
-                    )
+                chunk = stream_accumulator.add(msg)
+                if chunk:
+                    yield chunk
                     initial_response_emitted = True
 
-            final_msg = provider_message.MessageChunk(
-                role=last_role,
-                content=accumulated_content,
-                tool_calls=list(tool_calls_map.values()) if tool_calls_map else None,
-                msg_sequence=msg_sequence,
-            )
+            final_msg = stream_accumulator.final_message()
 
         pending_tool_calls = final_msg.tool_calls
         first_content = final_msg.content
@@ -373,6 +415,7 @@ class LocalAgentRunner(runner.RequestRunner):
         tool_call_round = 0
         while pending_tool_calls:
             tool_call_round += 1
+            telemetry_features.set_value(query, 'tool_call_rounds', tool_call_round)
             if tool_call_round > MAX_TOOL_CALL_ROUNDS:
                 self.ap.logger.warning(
                     f'Tool-call loop reached the {MAX_TOOL_CALL_ROUNDS}-round cap '
@@ -438,69 +481,32 @@ class LocalAgentRunner(runner.RequestRunner):
             )
 
             if is_stream:
-                tool_calls_map = {}
-                msg_idx = 0
-                accumulated_content = ''
-                last_role = 'assistant'
-                msg_sequence = first_end_sequence
+                stream_accumulator = _StreamAccumulator(
+                    msg_sequence=first_end_sequence,
+                    initial_content=first_content,
+                )
 
                 tool_stream_src = use_llm_model.provider.invoke_llm_stream(
                     query,
                     use_llm_model,
                     req_messages,
-                    query.use_funcs if use_llm_model.model_entity.abilities.__contains__('func_call') else [],
+                    query.use_funcs if _model_has_ability(use_llm_model, 'func_call') else [],
                     extra_args=use_llm_model.model_entity.extra_args,
                     remove_think=remove_think,
                 )
                 async for msg in tool_stream_src:
-                    msg_idx += 1
+                    chunk = stream_accumulator.add(msg)
+                    if chunk:
+                        yield chunk
 
-                    if msg.role:
-                        last_role = msg.role
-
-                    # Prepend first-round content on first chunk of tool-call round
-                    if msg_idx == 1:
-                        accumulated_content = first_content if first_content is not None else accumulated_content
-
-                    if msg.content:
-                        accumulated_content += msg.content
-
-                    if msg.tool_calls:
-                        for tool_call in msg.tool_calls:
-                            if tool_call.id not in tool_calls_map:
-                                tool_calls_map[tool_call.id] = provider_message.ToolCall(
-                                    id=tool_call.id,
-                                    type=tool_call.type,
-                                    function=provider_message.FunctionCall(
-                                        name=tool_call.function.name if tool_call.function else '', arguments=''
-                                    ),
-                                )
-                            if tool_call.function and tool_call.function.arguments:
-                                tool_calls_map[tool_call.id].function.arguments += tool_call.function.arguments
-
-                    if msg_idx % 8 == 0 or msg.is_final:
-                        msg_sequence += 1
-                        yield provider_message.MessageChunk(
-                            role=last_role,
-                            content=accumulated_content,
-                            tool_calls=list(tool_calls_map.values()) if (tool_calls_map and msg.is_final) else None,
-                            is_final=msg.is_final,
-                            msg_sequence=msg_sequence,
-                        )
-
-                final_msg = provider_message.MessageChunk(
-                    role=last_role,
-                    content=accumulated_content,
-                    tool_calls=list(tool_calls_map.values()) if tool_calls_map else None,
-                    msg_sequence=msg_sequence,
-                )
+                final_msg = stream_accumulator.final_message()
             else:
                 # Non-streaming: use committed model directly (no fallback in tool loop)
                 msg = await use_llm_model.provider.invoke_llm(
                     query,
                     use_llm_model,
                     req_messages,
-                    query.use_funcs if use_llm_model.model_entity.abilities.__contains__('func_call') else [],
+                    query.use_funcs if _model_has_ability(use_llm_model, 'func_call') else [],
                     extra_args=use_llm_model.model_entity.extra_args,
                     remove_think=remove_think,
                 )

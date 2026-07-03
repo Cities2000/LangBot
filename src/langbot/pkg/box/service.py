@@ -12,6 +12,7 @@ import pydantic
 
 from langbot_plugin.box.client import BoxRuntimeClient
 from .connector import BoxRuntimeConnector, _get_box_config
+from ..telemetry import features as telemetry_features
 from langbot_plugin.box.errors import BoxError, BoxValidationError
 from langbot_plugin.box.models import (
     BUILTIN_PROFILES,
@@ -218,6 +219,7 @@ class BoxService:
             f'query_id={query.query_id} '
             f'summary={json.dumps(self._summarize_result(result), ensure_ascii=False)}'
         )
+        telemetry_features.increment(query, 'sandbox', 'execs')
         return self._serialize_result(result)
 
     def resolve_box_session_id(self, query: pipeline_query.Query) -> str:
@@ -785,6 +787,7 @@ class BoxService:
     # ── Observability ─────────────────────────────────────────────────
 
     def _record_error(self, exc: Exception, query: pipeline_query.Query):
+        telemetry_features.increment(query, 'sandbox', 'errors')
         self._recent_errors.append(
             {
                 'timestamp': _dt.datetime.now(_UTC).isoformat(),
