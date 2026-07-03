@@ -36,7 +36,7 @@ const jaJP = {
     emptyPassword: 'パスワードを入力してください',
     language: '言語',
     helpDocs: 'ヘルプドキュメント',
-    featureRequest: '機能リクエスト',
+    featureRequest: 'フィードバック',
     starOnGitHub: 'GitHubでStarする',
     joinDiscord: 'Discord に参加',
     create: '作成',
@@ -142,6 +142,16 @@ const jaJP = {
     noApiKeys: 'API キーが設定されていません',
     apiKeyHint:
       'API キーを使用すると、外部システムが LangBot Service API にアクセスできます',
+    mcpTab: 'MCP',
+    mcpHint:
+      'LangBot は MCP（Model Context Protocol）サーバーを提供し、AI エージェントがこのインスタンスを管理できます。Service API と同じ API キーを使用します。',
+    mcpEndpoint: 'MCP エンドポイント',
+    mcpAuthTitle: '認証',
+    mcpAuthDesc:
+      '「API キー」タブの任意のキーを、ヘッダーで送信して認証します：',
+    mcpGlobalKeyNote:
+      'config.yaml にグローバル API キー（api.global_api_key）を設定すると、ログインなしで使用できます。',
+    mcpClientConfigTitle: 'MCP クライアント設定の例',
     webhooks: 'Webhooks',
     createWebhook: 'Webhook を作成',
     webhookName: 'Webhook 名',
@@ -440,6 +450,26 @@ const jaJP = {
       userMessage: 'ユーザー',
       botMessage: 'アシスタント',
     },
+    admins: {
+      title: 'Admins',
+      description:
+        "Launchers (person/group IDs) that have admin privilege for this bot's commands",
+      addAdmin: 'Add Admin',
+      launcherType: 'Type',
+      launcherId: 'ID',
+      typePerson: 'Person',
+      typeGroup: 'Group',
+      placeholderId: 'User or group ID',
+      addSuccess: 'Admin added',
+      addError: 'Failed to add admin: ',
+      deleteSuccess: 'Admin removed',
+      deleteError: 'Failed to remove admin: ',
+      noAdmins: 'No admins configured',
+      setAdminTitle: 'Set as admin',
+      removeAdminTitle: 'Remove admin',
+      adminBadge: 'Admin',
+      configureAdmins: 'Manage Admins',
+    },
   },
   plugins: {
     title: '拡張機能',
@@ -588,8 +618,7 @@ const jaJP = {
     tabLogs: 'ログ',
     logsLevelAll: 'すべてのレベル',
     logsRefresh: '更新',
-    logsAutoRefreshOn: '自動更新：オン',
-    logsAutoRefreshOff: '自動更新：オフ',
+    logsAutoRefresh: '自動更新',
     logsEmpty:
       'ログはまだありません。プラグインが logger で出力したログがここに表示されます。',
     fileUpload: {
@@ -670,6 +699,10 @@ const jaJP = {
     loadFailed:
       'プラグインリストの取得に失敗しました。後でもう一度お試しください',
     noDescription: '説明がありません',
+    recommendation: {
+      pause: '自動ローテーションを一時停止',
+      resume: '自動ローテーションを再開',
+    },
     notFound: 'プラグイン情報が見つかりません',
     sortBy: '並び順',
     sort: {
@@ -749,6 +782,15 @@ const jaJP = {
     stdio: 'Stdioモード',
     sse: 'SSEモード',
     http: 'HTTPモード',
+    local: 'ローカル（Stdio）',
+    remote: 'リモート',
+    localModeDescription:
+      'Box サンドボックス内でサブプロセスとして MCP サーバーをローカル実行します。',
+    remoteModeDescription:
+      'URL でリモート MCP サーバーに接続します。トランスポート（Streamable HTTP または SSE）は自動検出されます。',
+    remoteUrlPlaceholder: 'https://example.com/mcp',
+    remoteUrlDescription:
+      'MCP サーバーの URL を貼り付けてください。Streamable HTTP と従来の SSE エンドポイントの両方に対応しています。',
     selectMode: '接続モードを選択',
     noServerInstalled: 'MCPサーバーが設定されていません',
     serverNameRequired: 'サーバー名は必須です',
@@ -788,7 +830,9 @@ const jaJP = {
     toolsFound: '個のツール',
     unknownError: '不明なエラー',
     noToolsFound: 'ツールが見つかりません',
+    noResourcesFound: 'リソースが見つかりません',
     tabTools: 'ツール',
+    tabResources: 'リソース',
     tabDocs: 'ドキュメント',
     noReadme: 'ドキュメントがありません',
     parseResultFailed: 'テスト結果の解析に失敗しました',
@@ -808,6 +852,12 @@ const jaJP = {
     toolCount: 'ツール：{{count}}',
     parameterCount: 'パラメータ：{{count}}',
     noParameters: 'パラメータなし',
+    resourceCount: 'リソース：{{count}}',
+    resourceBinaryContent: 'バイナリコンテンツ（表示できません）',
+    resourceBinaryOmitted:
+      'リソース安全ポリシーによりバイナリコンテンツを省略しました',
+    resourceTruncated: 'バイトまたはトークンの上限により内容を切り詰めました',
+    resourceReadFailed: 'リソースの読み込みに失敗しました',
     statusConnected: '接続済み',
     statusDisconnected: '未接続',
     statusError: '接続エラー',
@@ -897,9 +947,12 @@ const jaJP = {
       selectPlugins: 'プラグインを選択',
       pluginsTitle: 'プラグイン',
       mcpServersTitle: 'MCPサーバー',
+      mcpResourcesTitle: 'MCPリソース',
       noMCPServersSelected: 'MCPサーバーが選択されていません',
+      noMCPResourcesAvailable: '利用可能なMCPリソースがありません',
       addMCPServer: 'MCPサーバーを追加',
       selectMCPServers: 'MCPサーバーを選択',
+      enableMCPResourceAgentRead: 'モデルの読み取りを許可',
       toolCount: '{{count}}個のツール',
       noPluginsInstalled: 'インストールされているプラグインがありません',
       noMCPServersConfigured: '設定されているMCPサーバーがありません',
@@ -915,6 +968,42 @@ const jaJP = {
       addSkill: 'スキルを追加',
       selectSkills: 'スキルを選択',
       noSkillsAvailable: '利用可能なスキルがありません',
+      mcpServersScopeTooltip:
+        'ここでは、このパイプラインに紐付ける MCP サーバーだけを管理します。個別の MCP ツールとリソースは AI 機能の Local Agent で選択します。',
+      enableAllMCPServersTooltip:
+        '有効にすると、設定済みで有効なすべての MCP サーバーが AI 機能の MCP ツールとリソース候補になります。',
+    },
+    localAgent: {
+      toolsTitle: 'ツール',
+      toolsDescription:
+        'この Local Agent が使用できるプラグイン、MCP、組み込みツールを選択します。',
+      toolsScopeTooltip:
+        'MCP ツールは拡張機能で紐付けられた MCP サーバーからのみ表示されます。追加するには先に拡張機能でサーバーを紐付けてください。',
+      enableAllTools: 'すべてのツールを有効化',
+      allToolsEnabled: '利用可能なすべてのツールが有効です',
+      noToolsSelected: 'ツールが選択されていません',
+      editTools: 'ツールを編集',
+      builtinTools: '組み込みツール',
+      pluginTools: 'プラグインツール',
+      skillTools: 'スキルツール',
+      mcpTools: 'MCP ツール',
+      mcpToolsScopeTooltip:
+        '拡張機能で現在許可されている MCP サーバーのツールだけが表示されます。',
+      skillToolsScopeTooltip:
+        'スキルツールは LangBot のスキルサービスと Box サンドボックスバックエンドが利用可能なときに表示され、Agent がスキルを有効化または登録できるようにします。',
+      selectTools: 'ツールを選択',
+      resourcesTitle: 'リソース',
+      resourcesDescription:
+        'この Local Agent が読み取れる MCP リソースとナレッジベースを選択します。',
+      knowledgeBases: 'ナレッジベース',
+      mcpResources: 'MCP リソース',
+      mcpResourcesScopeTooltip:
+        '拡張機能で現在許可されている MCP サーバーのリソースだけが表示されます。',
+      enableMCPResourceRead: 'モデルによる MCP リソース読み取りを許可',
+      mcpResourceReadTooltip:
+        '無効にすると、選択済みの MCP リソースもモデルコンテキストに注入されません。',
+      noMCPResourcesAvailable: '利用可能な MCP リソースがありません',
+      selectKnowledgeBases: 'ナレッジベースを選択',
     },
     debugDialog: {
       title: 'パイプラインのチャット',
@@ -1247,6 +1336,20 @@ const jaJP = {
       level: 'レベル',
       runner: 'ランナー',
       viewConversation: '会話詳細を表示',
+      turns: '{{count}} 会話ターン',
+      userMessage: 'ユーザー',
+      noUserMessage: 'ユーザー入力は記録されていません',
+      assistantMessage: 'アシスタント',
+      assistantMessageCount: 'アシスタント +{{count}}',
+      noAssistantMessage: 'アシスタントの返信は記録されていません',
+      messageCount: 'メッセージ数',
+      conversationTrace: '会話トレース',
+      noLlmCalls: 'モデル呼び出しは記録されていません',
+      roles: {
+        user: 'ユーザー',
+        assistant: 'アシスタント',
+        message: 'メッセージ',
+      },
     },
     llmCalls: {
       title: 'LLM呼び出し',
@@ -1260,6 +1363,15 @@ const jaJP = {
       totalTokens: '合計トークン数',
       avgDuration: '平均期間',
       calls: '呼び出し',
+    },
+    toolCalls: {
+      title: 'ツール呼び出し',
+      totalCalls: '呼び出し',
+      duration: 'ツール時間',
+      errorCalls: '失敗した呼び出し',
+      arguments: '引数',
+      result: '結果',
+      noToolCalls: 'ツール呼び出しは記録されていません',
     },
     tokens: {
       totalTokens: '総トークン数',
@@ -1346,6 +1458,22 @@ const jaJP = {
       inaccurateReasons: '不正確な理由',
       platform: 'プラットフォーム',
       exportFeedback: 'フィードバックをエクスポート',
+      description:
+        '問題点や改善案を教えてください。診断のため、インスタンス UUID、ログインアカウント、ページ情報も送信されます。',
+      placeholder: '提案、問題、再現手順を入力してください...',
+      attachImage: '画像を追加',
+      screenshot: 'スクリーンショット',
+      submit: '送信',
+      privacyHint: '秘密鍵、パスワード、個人的な会話内容は含めないでください。',
+      contentRequired: 'フィードバック内容を入力してください',
+      imageOnly: '画像のみ添付できます',
+      imageTooLarge: '画像は 1 枚 2MB 未満にしてください',
+      tooManyImages: '画像は最大 3 枚まで添付できます',
+      screenshotFailed:
+        'スクリーンショットに失敗しました。貼り付けまたはアップロードを試してください。',
+      submitSuccess: 'フィードバックを送信しました。ありがとうございます！',
+      submitFailed: '送信に失敗しました。後でもう一度お試しください。',
+      removeImage: '画像を削除',
     },
     messageDetails: {
       noData: 'このクエリにはLLM呼び出しやエラーがありません',

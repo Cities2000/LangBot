@@ -144,6 +144,16 @@ const esES = {
     noApiKeys: 'No hay claves API configuradas',
     apiKeyHint:
       'Las claves API permiten a sistemas externos acceder a las API del servicio LangBot',
+    mcpTab: 'MCP',
+    mcpHint:
+      'LangBot exposes an MCP (Model Context Protocol) server so AI agents can manage this instance. It uses the same API keys as the Service API.',
+    mcpEndpoint: 'MCP Endpoint',
+    mcpAuthTitle: 'Authentication',
+    mcpAuthDesc:
+      'Authenticate with any API key from the API Keys tab, sent as a header:',
+    mcpGlobalKeyNote:
+      'You can also set a global API key in config.yaml (api.global_api_key) to use without logging in.',
+    mcpClientConfigTitle: 'Example MCP client config',
     webhooks: 'Webhooks',
     createWebhook: 'Crear Webhook',
     webhookName: 'Nombre del Webhook',
@@ -446,6 +456,26 @@ const esES = {
       userMessage: 'Usuario',
       botMessage: 'Asistente',
     },
+    admins: {
+      title: 'Admins',
+      description:
+        "Launchers (person/group IDs) that have admin privilege for this bot's commands",
+      addAdmin: 'Add Admin',
+      launcherType: 'Type',
+      launcherId: 'ID',
+      typePerson: 'Person',
+      typeGroup: 'Group',
+      placeholderId: 'User or group ID',
+      addSuccess: 'Admin added',
+      addError: 'Failed to add admin: ',
+      deleteSuccess: 'Admin removed',
+      deleteError: 'Failed to remove admin: ',
+      noAdmins: 'No admins configured',
+      setAdminTitle: 'Set as admin',
+      removeAdminTitle: 'Remove admin',
+      adminBadge: 'Admin',
+      configureAdmins: 'Manage Admins',
+    },
   },
   plugins: {
     title: 'Extensiones',
@@ -595,8 +625,7 @@ const esES = {
     tabLogs: 'Registros',
     logsLevelAll: 'Todos los niveles',
     logsRefresh: 'Actualizar',
-    logsAutoRefreshOn: 'Auto-actualizar: Activado',
-    logsAutoRefreshOff: 'Auto-actualizar: Desactivado',
+    logsAutoRefresh: 'Auto-actualizar',
     logsEmpty:
       'Aún no hay registros. Los registros que el plugin imprima mediante logger aparecerán aquí.',
     fileUpload: {
@@ -677,6 +706,10 @@ const esES = {
     loadFailed:
       'Error al obtener la lista de plugins, por favor inténtalo más tarde',
     noDescription: 'No hay descripción disponible',
+    recommendation: {
+      pause: 'Pausar rotación automática',
+      resume: 'Reanudar rotación automática',
+    },
     notFound: 'No se encontró la información del plugin',
     sortBy: 'Ordenar por',
     sort: {
@@ -758,6 +791,15 @@ const esES = {
     stdio: 'Modo Stdio',
     sse: 'Modo SSE',
     http: 'Modo HTTP',
+    local: 'Local (Stdio)',
+    remote: 'Remoto',
+    localModeDescription:
+      'Ejecuta un servidor MCP localmente como subproceso dentro del sandbox de Box.',
+    remoteModeDescription:
+      'Conéctate a un servidor MCP remoto por URL. El transporte (Streamable HTTP o SSE) se detecta automáticamente.',
+    remoteUrlPlaceholder: 'https://example.com/mcp',
+    remoteUrlDescription:
+      'Pega la URL del servidor MCP. Se admiten tanto endpoints Streamable HTTP como SSE heredados.',
     noServerInstalled: 'No hay servidores MCP configurados',
     serverNameRequired: 'El nombre del servidor no puede estar vacío',
     commandRequired: 'El comando no puede estar vacío',
@@ -796,7 +838,9 @@ const esES = {
     toolsFound: 'herramientas',
     unknownError: 'Error desconocido',
     noToolsFound: 'No se encontraron herramientas',
+    noResourcesFound: 'No se encontraron recursos',
     tabTools: 'Herramientas',
+    tabResources: 'Recursos',
     tabDocs: 'Documentación',
     noReadme: 'No hay documentación disponible',
     parseResultFailed: 'Error al analizar el resultado de la prueba',
@@ -816,6 +860,12 @@ const esES = {
     toolCount: 'Herramientas: {{count}}',
     parameterCount: 'Parámetros: {{count}}',
     noParameters: 'Sin parámetros',
+    resourceCount: 'Recursos: {{count}}',
+    resourceBinaryContent: 'Contenido binario (no se puede mostrar)',
+    resourceBinaryOmitted:
+      'Contenido binario omitido por la política de seguridad de recursos',
+    resourceTruncated: 'Contenido truncado por límites de bytes o tokens',
+    resourceReadFailed: 'Error al leer el contenido del recurso',
     statusConnected: 'Conectado',
     statusDisconnected: 'Desconectado',
     statusError: 'Error de conexión',
@@ -910,9 +960,12 @@ const esES = {
       selectPlugins: 'Seleccionar plugins',
       pluginsTitle: 'Plugins',
       mcpServersTitle: 'Servidores MCP',
+      mcpResourcesTitle: 'Recursos MCP',
       noMCPServersSelected: 'No hay servidores MCP seleccionados',
+      noMCPResourcesAvailable: 'No hay recursos MCP disponibles',
       addMCPServer: 'Añadir servidor MCP',
       selectMCPServers: 'Seleccionar servidores MCP',
+      enableMCPResourceAgentRead: 'Permitir lectura del modelo',
       toolCount: '{{count}} herramientas',
       noPluginsInstalled: 'No hay plugins instalados',
       noMCPServersConfigured: 'No hay servidores MCP configurados',
@@ -928,6 +981,42 @@ const esES = {
       addSkill: 'Añadir skill',
       selectSkills: 'Seleccionar skills',
       noSkillsAvailable: 'No hay skills disponibles',
+      mcpServersScopeTooltip:
+        'Aquí solo se controla qué servidores MCP se vinculan al Pipeline. Las herramientas y recursos MCP concretos se eligen en AI Feature > Local Agent.',
+      enableAllMCPServersTooltip:
+        'Al activarlo, todos los servidores MCP configurados y habilitados serán candidatos para herramientas y recursos MCP en AI Feature.',
+    },
+    localAgent: {
+      toolsTitle: 'Herramientas',
+      toolsDescription:
+        'Selecciona las herramientas de plugins, MCP e integradas disponibles para este Local Agent.',
+      toolsScopeTooltip:
+        'Las herramientas MCP solo provienen de servidores MCP vinculados en Extensiones. Vincula allí otro servidor para poder seleccionarlo aquí.',
+      enableAllTools: 'Activar todas las herramientas',
+      allToolsEnabled: 'Todas las herramientas disponibles están activadas',
+      noToolsSelected: 'No hay herramientas seleccionadas',
+      editTools: 'Editar herramientas',
+      builtinTools: 'Herramientas integradas',
+      pluginTools: 'Herramientas de plugin',
+      skillTools: 'Herramientas de skill',
+      mcpTools: 'Herramientas MCP',
+      mcpToolsScopeTooltip:
+        'Aquí solo se muestran herramientas de servidores MCP permitidos actualmente en Extensiones.',
+      skillToolsScopeTooltip:
+        'Las herramientas de skill aparecen cuando el servicio de skills de LangBot y el backend de sandbox Box están disponibles. Permiten al agente activar o registrar skills.',
+      selectTools: 'Seleccionar herramientas',
+      resourcesTitle: 'Recursos',
+      resourcesDescription:
+        'Selecciona los recursos MCP y bases de conocimiento disponibles para este Local Agent.',
+      knowledgeBases: 'Bases de conocimiento',
+      mcpResources: 'Recursos MCP',
+      mcpResourcesScopeTooltip:
+        'Aquí solo se muestran recursos expuestos por servidores MCP permitidos actualmente en Extensiones.',
+      enableMCPResourceRead: 'Permitir que el modelo lea recursos MCP',
+      mcpResourceReadTooltip:
+        'Si se desactiva, los recursos MCP seleccionados no se inyectarán en el contexto del modelo.',
+      noMCPResourcesAvailable: 'No hay recursos MCP disponibles',
+      selectKnowledgeBases: 'Seleccionar bases de conocimiento',
     },
     debugDialog: {
       title: 'Chat del Pipeline',
@@ -1274,6 +1363,20 @@ const esES = {
       level: 'Nivel',
       runner: 'Ejecutor',
       viewConversation: 'Ver conversación',
+      turns: '{{count}} turnos de conversación',
+      userMessage: 'Usuario',
+      noUserMessage: 'No se registró entrada del usuario',
+      assistantMessage: 'Asistente',
+      assistantMessageCount: 'Asistente +{{count}}',
+      noAssistantMessage: 'No se registró respuesta del asistente',
+      messageCount: 'Mensajes',
+      conversationTrace: 'Flujo de conversación',
+      noLlmCalls: 'No se registraron llamadas al modelo',
+      roles: {
+        user: 'Usuario',
+        assistant: 'Asistente',
+        message: 'Mensaje',
+      },
     },
     llmCalls: {
       title: 'Llamadas LLM',
@@ -1287,6 +1390,15 @@ const esES = {
       totalTokens: 'Tokens totales',
       avgDuration: 'Duración promedio',
       calls: 'Llamadas',
+    },
+    toolCalls: {
+      title: 'Llamadas de herramientas',
+      totalCalls: 'Llamadas',
+      duration: 'Duración de herramientas',
+      errorCalls: 'Llamadas fallidas',
+      arguments: 'Argumentos',
+      result: 'Resultado',
+      noToolCalls: 'No se registraron llamadas de herramientas',
     },
     tokens: {
       totalTokens: 'Tokens totales',
@@ -1373,6 +1485,22 @@ const esES = {
       inaccurateReasons: 'Razones de inexactitud',
       platform: 'Plataforma',
       exportFeedback: 'Exportar comentarios',
+      description:
+        'Tell us what went wrong or what could be better. Instance UUID and login account are included for diagnosis.',
+      placeholder: 'Describe your suggestion, issue, or reproduction steps...',
+      attachImage: 'Add image',
+      screenshot: 'Screenshot',
+      submit: 'Submit feedback',
+      privacyHint:
+        'Do not include secrets, passwords, or private chat content.',
+      contentRequired: 'Please enter feedback first',
+      imageOnly: 'Only image attachments are supported',
+      imageTooLarge: 'Each image must be under 1MB',
+      tooManyImages: 'You can attach up to 3 images',
+      screenshotFailed: 'Screenshot failed. Try pasting or uploading an image.',
+      submitSuccess: 'Feedback submitted. Thanks!',
+      submitFailed: 'Failed to submit feedback. Please try again later.',
+      removeImage: 'Remove image',
     },
     queries: {
       title: 'Consultas',

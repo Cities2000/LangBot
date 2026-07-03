@@ -646,7 +646,7 @@ export default function ModelsPanel({
       </PanelBody>
 
       <Dialog open={providerFormOpen} onOpenChange={setProviderFormOpen}>
-        <DialogContent className="w-[600px] p-6">
+        <DialogContent className="w-full max-w-[calc(100%-2rem)] p-4 sm:max-w-[600px] sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {editingProviderId

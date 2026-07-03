@@ -104,6 +104,68 @@ class _StreamAccumulator:
 class LocalAgentRunner(runner.RequestRunner):
     """Local agent request runner"""
 
+    async def _inject_inbound_attachments(
+        self,
+        query: pipeline_query.Query,
+        user_message: provider_message.Message,
+    ) -> None:
+        """Persist inbound attachments into the sandbox and tell the model.
+
+        No-op when the box service is unavailable or there are no attachments.
+        On success, appends an extra text ContentElement to the user message
+        listing the in-sandbox paths and the outbox convention, and stashes the
+        descriptors in ``query.variables['_sandbox_inbound_attachments']``.
+        """
+        box_service = getattr(self.ap, 'box_service', None)
+        if box_service is None or not getattr(box_service, 'available', False):
+            return
+        try:
+            attachments = await box_service.materialize_inbound_attachments(query)
+        except Exception as e:  # never break the chat turn over attachment IO
+            self.ap.logger.warning(f'Inbound attachment materialization failed: {e}')
+            return
+        if not attachments:
+            return
+
+        query.variables['_sandbox_inbound_attachments'] = attachments
+
+        lines = [
+            'The user sent attachments. They have been saved into the sandbox and are '
+            'available to the exec/read/write tools at these paths:'
+        ]
+        for att in attachments:
+            lines.append(f'- {att["type"]}: {att["path"]} ({att["size"]} bytes)')
+        outbox_dir = f'{box_service.OUTBOX_MOUNT_DIR}/{query.query_id}'
+        lines.append(
+            'If you produce any file (image, audio, document, etc.) that should be sent '
+            f'back to the user, write it into {outbox_dir}/ (create the directory if '
+            'needed). Every file placed there will be delivered to the user automatically.'
+        )
+        note = '\n'.join(lines)
+
+        # Voice/File attachments are now available to the agent via the sandbox
+        # (exec/read/write tools). Their raw bytes must NOT be forwarded to the
+        # chat model as multimodal content: providers reject non-image file
+        # parts ("Invalid user message ... ensure all user messages are valid
+        # OpenAI chat completion messages"). Strip those content elements and
+        # rely on the sandbox-path note instead. Images are kept so vision
+        # models can still see them.
+        _model_unsafe_types = {'file_base64', 'file_url'}
+        if isinstance(user_message.content, list):
+            user_message.content = [
+                ce for ce in user_message.content if getattr(ce, 'type', None) not in _model_unsafe_types
+            ]
+
+        if isinstance(user_message.content, str):
+            user_message.content = [
+                provider_message.ContentElement.from_text(user_message.content),
+                provider_message.ContentElement.from_text(note),
+            ]
+        elif isinstance(user_message.content, list):
+            user_message.content.append(provider_message.ContentElement.from_text(note))
+        else:
+            user_message.content = [provider_message.ContentElement.from_text(note)]
+
     def _build_request_messages(
         self,
         query: pipeline_query.Query,
@@ -115,7 +177,7 @@ class LocalAgentRunner(runner.RequestRunner):
             req_messages.append(
                 provider_message.Message(
                     role='system',
-                    content=self.ap.box_service.get_system_guidance(),
+                    content=self.ap.box_service.get_system_guidance(query.query_id),
                 )
             )
 
@@ -231,6 +293,12 @@ class LocalAgentRunner(runner.RequestRunner):
         kb_uuids = query.variables.get('_knowledge_base_uuids', [])
 
         user_message = copy.deepcopy(query.user_message)
+
+        # Materialize inbound attachments (images / voices / files) into the
+        # sandbox so the agent's exec/read/write tools can operate on the real
+        # bytes — not just the multimodal copy the model sees. The exact
+        # in-sandbox paths are announced to the model as a system note.
+        await self._inject_inbound_attachments(query, user_message)
 
         user_message_text = ''
 
@@ -348,6 +416,30 @@ class LocalAgentRunner(runner.RequestRunner):
                 if ce.type == 'text':
                     ce.text = final_user_message_text
                     break
+
+        mcp_loader = getattr(getattr(self.ap, 'tool_mgr', None), 'mcp_tool_loader', None)
+        if mcp_loader is not None:
+            resource_context = await mcp_loader.build_resource_context_for_query(query)
+            if resource_context:
+                resource_addition = (
+                    '\n\nMCP resource context selected by LangBot host:\n'
+                    f'{resource_context}\n\n'
+                    'Use this context as read-only reference material. If it conflicts with the user message, '
+                    'ask for clarification before taking external actions.'
+                )
+                if isinstance(user_message.content, str):
+                    user_message.content += resource_addition
+                elif isinstance(user_message.content, list):
+                    appended = False
+                    for ce in user_message.content:
+                        if ce.type == 'text':
+                            ce.text = (ce.text or '') + resource_addition
+                            appended = True
+                            break
+                    if not appended:
+                        user_message.content.append(
+                            provider_message.ContentElement.from_text(resource_addition.strip())
+                        )
 
         req_messages = self._build_request_messages(query, user_message)
 

@@ -64,15 +64,33 @@ import {
 import SettingsDialog, {
   SettingsSection,
 } from '@/app/home/components/settings-dialog/SettingsDialog';
+import ToolResourceSelectors from '@/app/home/components/dynamic-form/ToolResourceSelectors';
+import { LANGBOT_MODELS_PROVIDER_REQUESTER } from '@/app/home/components/models-dialog/types';
+
+function hasUsableUuid<T extends { uuid?: string | null }>(
+  item: T,
+): item is T & { uuid: string } {
+  return typeof item.uuid === 'string' && item.uuid.trim().length > 0;
+}
+
+function hasUsableOptionName(option: { name?: string | null }): boolean {
+  return typeof option.name === 'string' && option.name.trim().length > 0;
+}
 
 export default function DynamicFormItemComponent({
   config,
   field,
+  formValues,
   onFileUploaded,
+  setFormValue,
+  systemContext,
 }: {
   config: IDynamicFormItemSchema;
   field: ControllerRenderProps<any, any>;
+  formValues?: Record<string, unknown>;
   onFileUploaded?: (fileKey: string) => void;
+  setFormValue?: (name: string, value: unknown) => void;
+  systemContext?: Record<string, unknown>;
 }) {
   const [llmModels, setLlmModels] = useState<LLMModel[]>([]);
   const [embeddingModels, setEmbeddingModels] = useState<EmbeddingModel[]>([]);
@@ -96,10 +114,32 @@ export default function DynamicFormItemComponent({
     httpClient
       .getProviderLLMModels()
       .then((resp) => {
-        setLlmModels(resp.models);
+        setLlmModels(resp.models.filter(hasUsableUuid));
       })
       .catch((err) => {
         toast.error(t('models.getModelListError') + err.msg);
+      });
+  };
+
+  const fetchEmbeddingModels = () => {
+    httpClient
+      .getProviderEmbeddingModels()
+      .then((resp) => {
+        setEmbeddingModels(resp.models.filter(hasUsableUuid));
+      })
+      .catch((err) => {
+        toast.error(t('embedding.getModelListError') + err.msg);
+      });
+  };
+
+  const fetchRerankModels = () => {
+    httpClient
+      .getProviderRerankModels()
+      .then((resp) => {
+        setRerankModels(resp.models.filter(hasUsableUuid));
+      })
+      .catch((err) => {
+        toast.error('Failed to load rerank models: ' + err.msg);
       });
   };
 
@@ -107,6 +147,8 @@ export default function DynamicFormItemComponent({
     setModelsDialogOpen(open);
     if (!open) {
       fetchLlmModels();
+      fetchEmbeddingModels();
+      fetchRerankModels();
     }
   };
 
@@ -174,27 +216,13 @@ export default function DynamicFormItemComponent({
 
   useEffect(() => {
     if (config.type === DynamicFormItemType.EMBEDDING_MODEL_SELECTOR) {
-      httpClient
-        .getProviderEmbeddingModels()
-        .then((resp) => {
-          setEmbeddingModels(resp.models);
-        })
-        .catch((err) => {
-          toast.error(t('embedding.getModelListError') + err.msg);
-        });
+      fetchEmbeddingModels();
     }
   }, [config.type]);
 
   useEffect(() => {
     if (config.type === DynamicFormItemType.RERANK_MODEL_SELECTOR) {
-      httpClient
-        .getProviderRerankModels()
-        .then((resp) => {
-          setRerankModels(resp.models);
-        })
-        .catch((err) => {
-          toast.error('Failed to load rerank models: ' + err.msg);
-        });
+      fetchRerankModels();
     }
   }, [config.type]);
 
@@ -212,7 +240,7 @@ export default function DynamicFormItemComponent({
       httpClient
         .getKnowledgeBases()
         .then((resp) => {
-          setKnowledgeBases(resp.bases);
+          setKnowledgeBases(resp.bases.filter(hasUsableUuid));
         })
         .catch((err) => {
           toast.error(t('knowledge.getKnowledgeBaseListError') + err.msg);
@@ -225,7 +253,7 @@ export default function DynamicFormItemComponent({
       httpClient
         .getBots()
         .then((resp) => {
-          setBots(resp.bots);
+          setBots(resp.bots.filter(hasUsableUuid));
         })
         .catch((err) => {
           toast.error(t('bots.getBotListError') + err.msg);
@@ -247,6 +275,16 @@ export default function DynamicFormItemComponent({
         });
     }
   }, [config.type]);
+
+  const handleCompositePatch = (patch: Record<string, unknown>) => {
+    for (const [name, value] of Object.entries(patch)) {
+      if (setFormValue) {
+        setFormValue(name, value);
+      } else if (name === field.name) {
+        field.onChange(value);
+      }
+    }
+  };
 
   switch (config.type) {
     case DynamicFormItemType.INT:
@@ -360,7 +398,7 @@ export default function DynamicFormItemComponent({
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {config.options?.map((option) => (
+              {config.options?.filter(hasUsableOptionName).map((option) => (
                 <SelectItem
                   key={option.name}
                   value={option.name}
@@ -377,10 +415,10 @@ export default function DynamicFormItemComponent({
     case DynamicFormItemType.LLM_MODEL_SELECTOR:
       // Separate space models from regular models
       const spaceModels = llmModels.filter(
-        (m) => m.provider?.requester === 'space-chat-completions',
+        (m) => m.provider?.requester === LANGBOT_MODELS_PROVIDER_REQUESTER,
       );
       const regularModels = llmModels.filter(
-        (m) => m.provider?.requester !== 'space-chat-completions',
+        (m) => m.provider?.requester !== LANGBOT_MODELS_PROVIDER_REQUESTER,
       );
 
       // Group regular models by provider
@@ -481,7 +519,7 @@ export default function DynamicFormItemComponent({
                           </div>
                         ))}
                       {/* Blurred remaining models with login overlay */}
-                      <div className="relative">
+                      <div className="relative min-h-10">
                         <div
                           className="select-none overflow-hidden"
                           style={{ maxHeight: '3rem' }}
@@ -558,7 +596,10 @@ export default function DynamicFormItemComponent({
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 shrink-0"
-                onClick={() => setModelsDialogOpen(true)}
+                onClick={() => {
+                  setSettingsSection('models');
+                  setModelsDialogOpen(true);
+                }}
               >
                 <Settings className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -574,9 +615,15 @@ export default function DynamicFormItemComponent({
         </div>
       );
 
-    case DynamicFormItemType.EMBEDDING_MODEL_SELECTOR:
-      // Group embedding models by provider
-      const groupedEmbeddingModels = embeddingModels.reduce(
+    case DynamicFormItemType.EMBEDDING_MODEL_SELECTOR: {
+      const spaceEmbeddingModels = embeddingModels.filter(
+        (m) => m.provider?.requester === LANGBOT_MODELS_PROVIDER_REQUESTER,
+      );
+      const regularEmbeddingModels = embeddingModels.filter(
+        (m) => m.provider?.requester !== LANGBOT_MODELS_PROVIDER_REQUESTER,
+      );
+
+      const groupedEmbeddingModels = regularEmbeddingModels.reduce(
         (acc, model) => {
           const providerName = model.provider?.name || 'Unknown';
           if (!acc[providerName]) acc[providerName] = [];
@@ -586,29 +633,169 @@ export default function DynamicFormItemComponent({
         {} as Record<string, EmbeddingModel[]>,
       );
 
+      const groupedSpaceEmbeddingModels = spaceEmbeddingModels.reduce(
+        (acc, model) => {
+          const providerName =
+            model.provider?.name || model.provider?.requester || 'Unknown';
+          if (!acc[providerName]) acc[providerName] = [];
+          acc[providerName].push(model);
+          return acc;
+        },
+        {} as Record<string, EmbeddingModel[]>,
+      );
+
+      const previewEmbeddingModelNames = [
+        'text-embedding-3-large',
+        'text-embedding-3-small',
+        'bge-m3',
+        'jina-embeddings-v3',
+        'qwen3-embedding-8b',
+      ];
+
       return (
-        <div className="w-full max-w-md min-w-0">
-          <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger className="min-w-0 bg-[#ffffff] dark:bg-[#2a2a2e]">
-              <SelectValue placeholder={t('knowledge.selectEmbeddingModel')} />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(groupedEmbeddingModels).map(
-                ([providerName, models]) => (
-                  <SelectGroup key={providerName}>
-                    <SelectLabel>{providerName}</SelectLabel>
-                    {models.map((model) => (
-                      <SelectItem key={model.uuid} value={model.uuid}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
+        <div className="flex w-full max-w-md min-w-0 items-center gap-1.5">
+          <div className="min-w-0 flex-1">
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger className="min-w-0 bg-[#ffffff] dark:bg-[#2a2a2e]">
+                <SelectValue
+                  placeholder={t('knowledge.selectEmbeddingModel')}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(groupedEmbeddingModels).map(
+                  ([providerName, models]) => (
+                    <SelectGroup key={providerName}>
+                      <SelectLabel>{providerName}</SelectLabel>
+                      {models.map((model) => (
+                        <SelectItem key={model.uuid} value={model.uuid}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ),
+                )}
+                {showSpaceLoginCTA ? (
+                  <SelectGroup>
+                    <SelectLabel>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+                        {t('models.langbotModels')}
+                        <Tooltip>
+                          <TooltipTrigger
+                            asChild
+                            onMouseDown={(e) => e.preventDefault()}
+                          >
+                            <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[240px]">
+                            {t('models.spaceTrialTooltip')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </SelectLabel>
+                    <div
+                      className="relative"
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {(spaceEmbeddingModels.length > 0
+                        ? spaceEmbeddingModels.map((m) => m.name)
+                        : previewEmbeddingModelNames
+                      )
+                        .slice(0, 3)
+                        .map((name) => (
+                          <div
+                            key={name}
+                            className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm text-muted-foreground/60"
+                          >
+                            {name}
+                          </div>
+                        ))}
+                      <div className="relative min-h-10">
+                        <div
+                          className="select-none overflow-hidden"
+                          style={{ maxHeight: '3rem' }}
+                        >
+                          {(spaceEmbeddingModels.length > 0
+                            ? spaceEmbeddingModels.map((m) => m.name)
+                            : previewEmbeddingModelNames
+                          )
+                            .slice(3)
+                            .map((name) => (
+                              <div
+                                key={name}
+                                className="flex w-full items-center py-1.5 pl-8 pr-2 text-sm text-muted-foreground/40 blur-[2px]"
+                              >
+                                {name}
+                              </div>
+                            ))}
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent to-background/80">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs px-3 gap-1.5 shadow-sm"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSpaceLogin();
+                            }}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            {t('models.unlockModels')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </SelectGroup>
-                ),
-              )}
-            </SelectContent>
-          </Select>
+                ) : !systemInfo.disable_models_service ? (
+                  Object.entries(groupedSpaceEmbeddingModels).map(
+                    ([providerName, models]) => (
+                      <SelectGroup key={providerName}>
+                        <SelectLabel>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+                            {providerName}
+                          </span>
+                        </SelectLabel>
+                        {models.map((model) => (
+                          <SelectItem key={model.uuid} value={model.uuid}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ),
+                  )
+                ) : null}
+              </SelectContent>
+            </Select>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => {
+                  setSettingsSection('models');
+                  setModelsDialogOpen(true);
+                }}
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{t('models.title')}</TooltipContent>
+          </Tooltip>
+          <SettingsDialog
+            open={modelsDialogOpen}
+            onOpenChange={handleModelsDialogChange}
+            section={settingsSection}
+            onSectionChange={setSettingsSection}
+          />
         </div>
       );
+    }
 
     case DynamicFormItemType.RERANK_MODEL_SELECTOR:
       const groupedRerankModels = rerankModels.reduce(
@@ -652,10 +839,10 @@ export default function DynamicFormItemComponent({
     case DynamicFormItemType.MODEL_FALLBACK_SELECTOR: {
       // Separate space models from regular models
       const fbSpaceModels = llmModels.filter(
-        (m) => m.provider?.requester === 'space-chat-completions',
+        (m) => m.provider?.requester === LANGBOT_MODELS_PROVIDER_REQUESTER,
       );
       const fbRegularModels = llmModels.filter(
-        (m) => m.provider?.requester !== 'space-chat-completions',
+        (m) => m.provider?.requester !== LANGBOT_MODELS_PROVIDER_REQUESTER,
       );
 
       // Group regular models by provider
@@ -786,7 +973,7 @@ export default function DynamicFormItemComponent({
                       </div>
                     ))}
                   {/* Blurred remaining models with login overlay */}
-                  <div className="relative">
+                  <div className="relative min-h-10">
                     <div
                       className="select-none overflow-hidden"
                       style={{ maxHeight: '3rem' }}
@@ -999,7 +1186,8 @@ export default function DynamicFormItemComponent({
 
     case DynamicFormItemType.KNOWLEDGE_BASE_SELECTOR:
       // Group KBs by Knowledge Engine name
-      const kbsByEngine = knowledgeBases.reduce(
+      const validKnowledgeBases = knowledgeBases.filter(hasUsableUuid);
+      const kbsByEngine = validKnowledgeBases.reduce(
         (acc, kb) => {
           const engineName = kb.knowledge_engine?.name
             ? extractI18nObject(kb.knowledge_engine.name)
@@ -1010,7 +1198,7 @@ export default function DynamicFormItemComponent({
           acc[engineName].push(kb);
           return acc;
         },
-        {} as Record<string, typeof knowledgeBases>,
+        {} as Record<string, typeof validKnowledgeBases>,
       );
 
       return (
@@ -1018,7 +1206,7 @@ export default function DynamicFormItemComponent({
           <SelectTrigger className="min-w-0 bg-[#ffffff] dark:bg-[#2a2a2e]">
             {field.value && field.value !== '__none__' ? (
               (() => {
-                const selectedKb = knowledgeBases.find(
+                const selectedKb = validKnowledgeBases.find(
                   (kb) => kb.uuid === field.value,
                 );
                 return (
@@ -1047,7 +1235,7 @@ export default function DynamicFormItemComponent({
               <SelectGroup key={engineName}>
                 <SelectLabel>{engineName}</SelectLabel>
                 {kbs.map((base) => (
-                  <SelectItem key={base.uuid} value={base.uuid ?? ''}>
+                  <SelectItem key={base.uuid} value={base.uuid}>
                     <div className="flex items-center gap-2">
                       {base.emoji && (
                         <span className="text-sm shrink-0">{base.emoji}</span>
@@ -1064,7 +1252,8 @@ export default function DynamicFormItemComponent({
 
     case DynamicFormItemType.KNOWLEDGE_BASE_MULTI_SELECTOR:
       // Group KBs by Knowledge Engine name for multi-selector
-      const multiKbsByEngine = knowledgeBases.reduce(
+      const validMultiKnowledgeBases = knowledgeBases.filter(hasUsableUuid);
+      const multiKbsByEngine = validMultiKnowledgeBases.reduce(
         (acc, kb) => {
           const engineName = kb.knowledge_engine?.name
             ? extractI18nObject(kb.knowledge_engine.name)
@@ -1075,7 +1264,7 @@ export default function DynamicFormItemComponent({
           acc[engineName].push(kb);
           return acc;
         },
-        {} as Record<string, typeof knowledgeBases>,
+        {} as Record<string, typeof validMultiKnowledgeBases>,
       );
 
       return (
@@ -1084,7 +1273,7 @@ export default function DynamicFormItemComponent({
             {field.value && field.value.length > 0 ? (
               <div className="min-w-0 space-y-2">
                 {field.value.map((kbId: string) => {
-                  const currentKb = knowledgeBases.find(
+                  const currentKb = validMultiKnowledgeBases.find(
                     (base) => base.uuid === kbId,
                   );
                   if (!currentKb) return null;
@@ -1170,15 +1359,13 @@ export default function DynamicFormItemComponent({
                       {engineName}
                     </div>
                     {kbs.map((base) => {
-                      const isSelected = tempSelectedKBIds.includes(
-                        base.uuid ?? '',
-                      );
+                      const isSelected = tempSelectedKBIds.includes(base.uuid);
                       return (
                         <div
                           key={base.uuid}
                           className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent cursor-pointer"
                           onClick={() => {
-                            const kbId = base.uuid ?? '';
+                            const kbId = base.uuid;
                             setTempSelectedKBIds((prev) =>
                               prev.includes(kbId)
                                 ? prev.filter((id) => id !== kbId)
@@ -1240,8 +1427,8 @@ export default function DynamicFormItemComponent({
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {bots.map((bot) => (
-                <SelectItem key={bot.uuid} value={bot.uuid ?? ''}>
+              {bots.filter(hasUsableUuid).map((bot) => (
+                <SelectItem key={bot.uuid} value={bot.uuid}>
                   {bot.name}
                 </SelectItem>
               ))}
@@ -1381,6 +1568,32 @@ export default function DynamicFormItemComponent({
             </DialogContent>
           </Dialog>
         </>
+      );
+
+    case DynamicFormItemType.RICH_TOOLS_SELECTOR:
+      return (
+        <ToolResourceSelectors
+          mode="tools"
+          pipelineId={systemContext?.pipeline_id as string | undefined}
+          value={{
+            ...(formValues || {}),
+            [field.name]: field.value,
+          }}
+          onChange={handleCompositePatch}
+        />
+      );
+
+    case DynamicFormItemType.RESOURCES_SELECTOR:
+      return (
+        <ToolResourceSelectors
+          mode="resources"
+          pipelineId={systemContext?.pipeline_id as string | undefined}
+          value={{
+            ...(formValues || {}),
+            [field.name]: field.value,
+          }}
+          onChange={handleCompositePatch}
+        />
       );
 
     case DynamicFormItemType.PROMPT_EDITOR: {

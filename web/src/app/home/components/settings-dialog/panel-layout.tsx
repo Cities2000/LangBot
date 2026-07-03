@@ -21,7 +21,7 @@ export function PanelToolbar({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-between gap-3 border-b px-6 py-3',
+        'flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-3 sm:gap-3 sm:px-6',
         className,
       )}
     >
@@ -38,7 +38,12 @@ export function PanelBody({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn('min-h-0 flex-1 overflow-auto px-6 py-5', className)}>
+    <div
+      className={cn(
+        'min-h-0 flex-1 overflow-auto px-3 py-4 sm:px-6 sm:py-5',
+        className,
+      )}
+    >
       {children}
     </div>
   );

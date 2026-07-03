@@ -3,8 +3,8 @@ kind: LLMAPIRequester
 metadata:
   name: moonshot-chat-completions
   label:
-    en_US: Moonshot
-    zh_Hans: 月之暗面
+    en_US: Moonshot / Kimi (Global · api.moonshot.ai)
+    zh_Hans: 月之暗面 / Kimi（国际站 · api.moonshot.ai）
   icon: moonshot.png
 spec:
   litellm_provider: openai

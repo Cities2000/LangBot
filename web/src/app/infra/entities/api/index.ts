@@ -373,6 +373,8 @@ export interface ApiRespPluginSystemStatus {
 
 export interface ApiRespBoxStatus {
   available: boolean;
+  /** UI hint: hide the Box runtime status surface for this deployment. */
+  hidden?: boolean;
   /** Whether ``box.enabled`` is true in config. When false, the sandbox
    * is deliberately disabled — distinct from "configured but failed". */
   enabled?: boolean;
@@ -531,6 +533,15 @@ export interface MCPServerExtraArgsHttp {
   timeout: number;
 }
 
+// "remote" mode: the user only supplies a URL; the backend auto-detects the
+// transport (Streamable HTTP first, falling back to legacy SSE). headers /
+// timeout are optional advanced settings.
+export interface MCPServerExtraArgsRemote {
+  url: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+}
+
 export enum MCPSessionStatus {
   CONNECTING = 'connecting',
   CONNECTED = 'connected',
@@ -552,6 +563,11 @@ export interface MCPServerRuntimeInfo {
    *  server runs inside Box. Absent when Box is unavailable. */
   box_session_id?: string;
   box_enabled?: boolean;
+  resource_count: number;
+  resources: MCPResource[];
+  resource_template_count?: number;
+  resource_templates?: MCPResourceTemplate[];
+  resource_capabilities?: Record<string, unknown>;
 }
 
 export type MCPServer =
@@ -580,6 +596,17 @@ export type MCPServer =
   | {
       uuid?: string;
       name: string;
+      mode: 'remote';
+      enable: boolean;
+      extra_args: MCPServerExtraArgsRemote;
+      runtime_info?: MCPServerRuntimeInfo;
+      readme?: string;
+      created_at?: string;
+      updated_at?: string;
+    }
+  | {
+      uuid?: string;
+      name: string;
       mode: 'stdio';
       enable: boolean;
       extra_args: MCPServerExtraArgsStdio;
@@ -595,11 +622,67 @@ export interface MCPTool {
   parameters?: object;
 }
 
+export interface MCPResource {
+  uri: string;
+  name: string;
+  title?: string;
+  description: string;
+  mime_type: string;
+  size?: number;
+  icons?: object[];
+  annotations?: Record<string, unknown>;
+  _meta?: Record<string, unknown>;
+}
+
+export interface MCPResourceTemplate {
+  uri_template: string;
+  name: string;
+  title?: string;
+  description: string;
+  mime_type: string;
+  icons?: object[];
+  annotations?: Record<string, unknown>;
+  _meta?: Record<string, unknown>;
+}
+
+export interface MCPResourceContent {
+  uri: string;
+  mime_type: string;
+  type: 'text' | 'blob';
+  text?: string;
+  blob?: string | null;
+  bytes?: number;
+  truncated?: boolean;
+  binary_omitted?: boolean;
+  _meta?: Record<string, unknown>;
+}
+
+export interface ApiRespMCPResources {
+  resources: MCPResource[];
+  resource_templates?: MCPResourceTemplate[];
+  resource_capabilities?: Record<string, unknown>;
+}
+
+export interface ApiRespMCPResourceContents {
+  contents: MCPResourceContent[];
+  server_name?: string;
+  server_uuid?: string;
+  uri?: string;
+  source?: string;
+  bytes?: number;
+  truncated?: boolean;
+  cache_hit?: boolean;
+  warnings?: string[];
+}
+
 export interface PluginTool {
   name: string;
   description: string;
   human_desc: string;
   parameters: object;
+  source?: 'builtin' | 'plugin' | 'mcp' | 'skill';
+  source_name?: string;
+  source_id?: string;
 }
 
 export interface ApiRespTools {

@@ -17,7 +17,7 @@ export interface IExtensionCardVO {
   hasUpdate?: boolean;
   runtimeStatus?: 'connecting' | 'connected' | 'error' | 'disabled';
   tools?: number;
-  mode?: 'stdio' | 'sse' | 'http';
+  mode?: 'stdio' | 'sse' | 'http' | 'remote';
 }
 
 export class ExtensionCardVO implements IExtensionCardVO {
@@ -37,7 +37,7 @@ export class ExtensionCardVO implements IExtensionCardVO {
   hasUpdate?: boolean;
   runtimeStatus?: 'connecting' | 'connected' | 'error' | 'disabled';
   tools?: number;
-  mode?: 'stdio' | 'sse' | 'http';
+  mode?: 'stdio' | 'sse' | 'http' | 'remote';
 
   constructor(prop: IExtensionCardVO) {
     this.id = prop.id;

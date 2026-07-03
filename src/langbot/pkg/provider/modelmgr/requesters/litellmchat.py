@@ -216,11 +216,22 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
             content = msg_dict.get('content')
 
             if isinstance(content, list):
+                converted_parts = []
                 for part in content:
                     if isinstance(part, dict) and part.get('type') == 'image_base64':
                         part['image_url'] = {'url': part['image_base64']}
                         part['type'] = 'image_url'
                         del part['image_base64']
+                    # OpenAI-compatible chat models reject non-image file parts
+                    # (audio/document base64 or url). These originate from Voice /
+                    # File attachments — including ones replayed from conversation
+                    # history — and the agent already accesses their bytes via the
+                    # sandbox. Drop them from the model payload to avoid
+                    # "Invalid user message ... invalid content type=file_base64".
+                    if isinstance(part, dict) and part.get('type') in ('file_base64', 'file_url'):
+                        continue
+                    converted_parts.append(part)
+                msg_dict['content'] = converted_parts
 
             req_messages.append(msg_dict)
 
@@ -352,9 +363,13 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
     def _normalize_stream_tool_calls(
         self,
         raw_tool_calls: typing.Any,
-        tool_call_state: dict[int, dict[str, str]],
+        tool_call_state: dict[int, dict[str, typing.Any]],
     ) -> list[dict] | None:
-        """Fill OpenAI-style streaming tool-call deltas so MessageChunk can validate them."""
+        """Fill OpenAI-style streaming tool-call deltas so MessageChunk can validate them.
+
+        Also preserves provider_specific_fields (e.g., Gemini thought_signature) for
+        round-tripping to the next request.
+        """
         if not raw_tool_calls:
             return None
 
@@ -365,15 +380,37 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
             if not isinstance(index, int):
                 index = fallback_index
 
-            state = tool_call_state.setdefault(index, {'id': '', 'type': 'function', 'name': ''})
+            state = tool_call_state.setdefault(
+                index,
+                {
+                    'id': '',
+                    'type': 'function',
+                    'name': '',
+                    'provider_specific_fields': None,
+                },
+            )
             if tool_call.get('id'):
                 state['id'] = tool_call['id']
             if tool_call.get('type'):
                 state['type'] = tool_call['type']
 
+            # Preserve provider_specific_fields from the raw tool call
+            if 'provider_specific_fields' in tool_call:
+                state['provider_specific_fields'] = tool_call['provider_specific_fields']
+
             function = self._as_dict(tool_call.get('function'))
             if function.get('name'):
                 state['name'] = function['name']
+
+            # Also check function-level provider_specific_fields
+            if 'provider_specific_fields' in function:
+                # Merge function-level into tool-level, function-level takes precedence
+                func_psf = function['provider_specific_fields']
+                if state['provider_specific_fields']:
+                    merged = {**state['provider_specific_fields'], **func_psf}
+                    state['provider_specific_fields'] = merged
+                else:
+                    state['provider_specific_fields'] = func_psf
 
             arguments = function.get('arguments')
             if arguments is None:
@@ -381,19 +418,34 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
             elif not isinstance(arguments, str):
                 arguments = str(arguments)
 
+            # Some OpenAI-compatible providers (notably Ollama's
+            # /v1/chat/completions) stream a tool-call delta with an `index` and
+            # a `function` payload but never emit an OpenAI-style `id`. Without
+            # an id the call used to be dropped here, so the whole tool call
+            # silently vanished: a tool-only turn then yielded no content and no
+            # tool call, the stream "completed" with 0 chars, and the chat
+            # appeared stuck. Synthesize a stable per-index id so named-but-idless
+            # tool calls survive. Providers that do send ids keep theirs.
+            if not state['id'] and state['name']:
+                state['id'] = f'call_{index}'
+
             if not state['id'] or not state['name']:
                 continue
 
-            normalized.append(
-                {
-                    'id': state['id'],
-                    'type': state['type'] or 'function',
-                    'function': {
-                        'name': state['name'],
-                        'arguments': arguments,
-                    },
-                }
-            )
+            tool_call_dict: dict[str, typing.Any] = {
+                'id': state['id'],
+                'type': state['type'] or 'function',
+                'function': {
+                    'name': state['name'],
+                    'arguments': arguments,
+                },
+            }
+
+            # Include provider_specific_fields if present
+            if state['provider_specific_fields']:
+                tool_call_dict['provider_specific_fields'] = state['provider_specific_fields']
+
+            normalized.append(tool_call_dict)
 
         return normalized or None
 
@@ -517,7 +569,7 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
 
         chunk_idx = 0
         role = 'assistant'
-        tool_call_state: dict[int, dict[str, str]] = {}
+        tool_call_state: dict[int, dict[str, typing.Any]] = {}
 
         try:
             response = await acompletion(**args)
@@ -567,12 +619,16 @@ class LiteLLMRequester(requester.ProviderAPIRequester):
                     chunk_idx += 1
                     continue
 
-                chunk_data = {
+                chunk_data: dict[str, typing.Any] = {
                     'role': role,
                     'content': delta_content if delta_content else None,
                     'tool_calls': tool_calls,
                     'is_final': bool(finish_reason),
                 }
+
+                # Preserve provider_specific_fields from delta (e.g., Gemini thought_signatures)
+                if delta.get('provider_specific_fields'):
+                    chunk_data['provider_specific_fields'] = delta['provider_specific_fields']
 
                 chunk_data = {k: v for k, v in chunk_data.items() if v is not None}
                 yield provider_message.MessageChunk(**chunk_data)
