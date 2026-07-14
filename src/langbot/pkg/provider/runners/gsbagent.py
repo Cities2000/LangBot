@@ -263,6 +263,7 @@ class GsbAgentRunner(runner.RequestRunner):
         """
         stream_timeout = httpx.Timeout(self.timeout, read=600.0)
         msg_seq = 0
+        first_message = True
 
         async with httpx.AsyncClient(timeout=stream_timeout) as client:
             async with client.stream(
@@ -282,15 +283,19 @@ class GsbAgentRunner(runner.RequestRunner):
 
                     if event_type == 'agent_message':
                         msg_seq += 1
+                        msg_content = event.get('content', '')
+                        # 首条正文前插入分隔线，与 thought 进度区分开
+                        if first_message:
+                            msg_content = f'\n---\n{msg_content}'
+                            first_message = False
                         yield provider_message.MessageChunk(
-                            role='assistant', content=event.get('content', ''), is_final=False
+                            role='assistant', content=msg_content, is_final=False
                         )
-
                     elif event_type == 'agent_thought':
                         msg_seq += 1
                         yield provider_message.MessageChunk(
                             role='assistant',
-                            content=f'\U0001f4ad {event.get("content", "")}',
+                            content=f'\U0001f4ad {event.get("content", "")}\n',
                             is_final=False,
                         )
 
@@ -669,7 +674,7 @@ class GsbAgentRunner(runner.RequestRunner):
             msg_seq += 1
             yield provider_message.MessageChunk(
                 role='assistant',
-                content=stream_placeholder,
+                content=f'{stream_placeholder}\n',
                 is_final=False,
             )
             
