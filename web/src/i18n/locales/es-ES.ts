@@ -842,6 +842,12 @@ const esES = {
     tabTools: 'Herramientas',
     tabResources: 'Recursos',
     tabDocs: 'Documentación',
+    tabLogs: 'Registros',
+    logsLevelAll: 'Todos los niveles',
+    logsRefresh: 'Actualizar',
+    logsAutoRefresh: 'Actualización automática',
+    logsEmpty:
+      'Aún no hay registros. Los registros de ejecución del servidor MCP aparecerán aquí.',
     noReadme: 'No hay documentación disponible',
     parseResultFailed: 'Error al analizar el resultado de la prueba',
     noResultReturned: 'La prueba no devolvió resultados',
@@ -1733,6 +1739,20 @@ const esES = {
     retry: 'Reintentar',
     robotNameNote:
       'El nombre del robot no puede obtenerse automáticamente. Introdúcelo manualmente.',
+  },
+  qqofficial: {
+    createBinding: 'Vinculación QR con un clic para el bot oficial de QQ',
+    scanQRCode:
+      'Escanea el código QR siguiente con QQ móvil y autoriza la vinculación en «QQ Bot Assistant»',
+    waitingForScan: 'Esperando escaneo',
+    bindSuccess:
+      '¡Vinculación correcta! AppID y Secret se han rellenado automáticamente',
+    bindFailed: 'Error en la vinculación',
+    connecting: 'Conectando con el servicio de QQ...',
+    retry: 'Reintentar',
+    tokenNote:
+      'El campo Token no es utilizado por el adaptador actual; puedes dejarlo vacío.',
+    boundBy: 'Vinculado por el usuario QQ {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Selecciona una página de plugin en la barra lateral',

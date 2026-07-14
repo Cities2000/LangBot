@@ -839,6 +839,12 @@ const ruRU = {
     tabTools: 'Инструменты',
     tabResources: 'Ресурсы',
     tabDocs: 'Документация',
+    tabLogs: 'Журнал',
+    logsLevelAll: 'Все уровни',
+    logsRefresh: 'Обновить',
+    logsAutoRefresh: 'Автообновление',
+    logsEmpty:
+      'Журналов пока нет. Здесь будут отображаться журналы выполнения MCP-сервера.',
     noReadme: 'Документация отсутствует',
     parseResultFailed: 'Не удалось разобрать результат теста',
     noResultReturned: 'Тест не вернул результат',
@@ -1704,6 +1710,19 @@ const ruRU = {
     retry: 'Повторить',
     robotNameNote:
       'Имя бота нельзя получить автоматически. Пожалуйста, введите его вручную.',
+  },
+  qqofficial: {
+    createBinding: 'Привязка официального бота QQ по QR-коду',
+    scanQRCode:
+      'Отсканируйте QR-код ниже мобильным QQ и подтвердите привязку в «QQ Bot Assistant»',
+    waitingForScan: 'Ожидание сканирования',
+    bindSuccess: 'Привязка успешна! AppID и Secret заполнены автоматически',
+    bindFailed: 'Не удалось выполнить привязку',
+    connecting: 'Подключение к сервису QQ...',
+    retry: 'Повторить',
+    tokenNote:
+      'Поле Token не используется текущим адаптером — его можно оставить пустым.',
+    boundBy: 'Привязано пользователем QQ {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Выберите страницу плагина на боковой панели',

@@ -20,7 +20,19 @@ from typing import Any, Callable, Optional
 import aiohttp
 
 from langbot.libs.wecom_ai_bot_api import wecombotevent
-from langbot.libs.wecom_ai_bot_api.api import parse_wecom_bot_message, StreamSession
+from langbot.libs.wecom_ai_bot_api.api import (
+    parse_wecom_bot_message,
+    StreamSession,
+    build_human_input_template_card_payload,
+    build_human_input_text_prompt,
+    build_button_interaction_update_card,
+    build_multiple_interaction_update_card,
+    extract_template_card_action,
+    extract_template_card_event_payload,
+    extract_template_card_selections,
+    extract_wecom_event_type,
+    parse_select_button_action,
+)
 from langbot.pkg.platform.logger import EventLogger
 
 DEFAULT_WS_URL = 'wss://openws.work.weixin.qq.com'
@@ -41,6 +53,10 @@ def _generate_req_id(prefix: str) -> str:
     ts = int(time.time() * 1000)
     rand = secrets.token_hex(4)
     return f'{prefix}_{ts}_{rand}'
+
+
+def _frame_snippet(frame: dict, limit: int = 1000) -> str:
+    return json.dumps(frame, ensure_ascii=False, default=str)[:limit]
 
 
 class WecomBotWsClient:
@@ -102,6 +118,22 @@ class WecomBotWsClient:
         self._feedback_sessions: dict[str, dict] = {}  # feedback_id -> {msg_id, user_id, chat_id, stream_id, req_id}
         # msg_id -> feedback_id (for associating feedback with message)
         self._msg_feedback_ids: dict[str, str] = {}  # msg_id -> feedback_id
+
+        # Dify human-input pause state for ws mode. Keys are task_id (echoed
+        # back in template_card_event.TaskId so we can rebuild the session
+        # context on click).
+        # task_id -> {form_data, msg_id, user_id, chat_id, stream_id, req_id}
+        self._pending_forms_by_task: dict[str, dict] = {}
+        # Reverse: msg_id -> task_id (for cleanup when stream finishes).
+        self._task_id_by_msg: dict[str, str] = {}
+        # Optional card-action callback registered by the adapter.
+        # Signature mirrors the http-mode WecomBotClient:
+        #   async def callback(session, action_id, task_id, raw_event) -> None
+        self._card_action_callback: Optional[Callable] = None
+        # Optional `source` block injected into every interactive
+        # template_card the client builds via `push_form_pause`. Set via
+        # `set_card_source` from the adapter after reading config.
+        self.card_source: Optional[dict] = None
 
     # ── Public API ──────────────────────────────────────────────────
 
@@ -236,6 +268,132 @@ class WecomBotWsClient:
         }
         return await self._send_reply(req_id, body)
 
+    async def reply_template_card(self, req_id: str, card_payload: dict[str, Any]) -> Optional[dict]:
+        """Send a template_card (button_interaction etc.) reply.
+
+        Args:
+            req_id: The req_id from the original message frame.
+            card_payload: Body produced by ``build_button_interaction_payload``;
+                must contain ``msgtype`` and ``template_card`` keys.
+
+        Returns:
+            ACK frame dict, or None on failure.
+        """
+        return await self._send_reply(req_id, card_payload)
+
+    async def update_template_card(
+        self,
+        req_id: str,
+        template_card: dict[str, Any],
+    ) -> Optional[dict]:
+        """Update an existing template_card via WebSocket.
+
+        Uses the ``aibot_respond_update_msg`` command.  Must be called
+        within 5 seconds of receiving the ``template_card_event`` callback,
+        using the **same req_id** from that callback.
+
+        The ``template_card`` dict should contain ``card_type`` and the
+        new content fields (e.g. ``main_title``, ``button_list`` with
+        disabled buttons and ``replace_text``).
+
+        Returns:
+            ACK frame dict, or None on failure.
+        """
+        body: dict[str, Any] = {
+            'response_type': 'update_template_card',
+            'template_card': template_card,
+        }
+        return await self._send_reply(req_id, body, cmd=CMD_RESPOND_UPDATE)
+
+    def set_card_action_callback(self, callback: Callable) -> None:
+        """Register the button-click handler.
+
+        ``async def callback(session, action_id, task_id, raw_event) -> None``
+        — same signature as the http-mode WecomBotClient version so the
+        adapter can hand both off to the same coroutine.
+        """
+        self._card_action_callback = callback
+
+    def set_card_source(self, source: Optional[dict]) -> None:
+        """Set the `source` block injected into every interactive
+        template_card pushed via `push_form_pause`. Pass None to clear."""
+        self.card_source = source
+
+    async def push_form_pause(
+        self, msg_id: str, form_data: dict, task_id: Optional[str] = None
+    ) -> tuple[bool, Optional[str], Optional[str]]:
+        """Attach a Dify human-input pause to the active stream and send
+        the button_interaction card immediately.
+
+        ws mode has no notion of polled "followup" responses — each reply
+        is a one-shot frame send. So unlike the http path (which defers
+        card delivery to the next followup), here we just craft the card
+        and reply with it on the original req_id. The corresponding stream
+        session is then torn down so subsequent chunks don't re-send.
+
+        Returns:
+            ``(ok, stream_id, task_id)``. ``ok=False`` if no active stream
+            for this msg_id (e.g. message arrived in non-stream mode).
+        """
+        key = self._stream_ids.get(msg_id)
+        if not key:
+            return False, None, None
+        req_id, stream_id = key.split('|', 1)
+
+        if not task_id:
+            task_id = f'dify-{secrets.token_hex(12)}'
+
+        session_info = self._stream_sessions.get(msg_id) or {}
+        text_prompt = build_human_input_text_prompt(form_data)
+        if text_prompt:
+            try:
+                ack = await self.reply_text(req_id, text_prompt)
+                if ack is None:
+                    return False, stream_id, None
+            except Exception:
+                await self.logger.error(f'Failed to send human-input text prompt: {traceback.format_exc()}')
+                return False, stream_id, None
+
+            self._stream_ids.pop(msg_id, None)
+            self._stream_last_content.pop(msg_id, None)
+            self._stream_sessions.pop(msg_id, None)
+            return True, stream_id, None
+
+        self._pending_forms_by_task[task_id] = {
+            'form_data': form_data,
+            'msg_id': msg_id,
+            'user_id': session_info.get('user_id', ''),
+            'chat_id': session_info.get('chat_id', ''),
+            'stream_id': stream_id,
+            'req_id': req_id,
+        }
+        self._task_id_by_msg[msg_id] = task_id
+
+        card_payload = build_human_input_template_card_payload(
+            form_data,
+            task_id,
+            source=self.card_source,
+            select_as_buttons=True,
+        )
+        try:
+            await self.reply_template_card(req_id, card_payload)
+        except Exception:
+            await self.logger.error(f'Failed to send button_interaction card: {traceback.format_exc()}')
+            # Roll back the bookkeeping so the next attempt isn't blocked.
+            self._pending_forms_by_task.pop(task_id, None)
+            self._task_id_by_msg.pop(msg_id, None)
+            return False, stream_id, None
+
+        # Tear down the stream — WeCom expects either stream chunks OR a
+        # template_card, not both on the same req_id. Subsequent
+        # push_stream_chunk calls for this msg_id become no-ops.
+        self._stream_ids.pop(msg_id, None)
+        self._stream_last_content.pop(msg_id, None)
+        # Keep _stream_sessions so the button callback can still resolve
+        # user/chat context; it gets cleaned up when the click fires.
+
+        return True, stream_id, task_id
+
     async def send_message(self, chat_id: str, content: str, msgtype: str = 'markdown') -> Optional[dict]:
         """Proactively send a message to a specified chat.
 
@@ -258,6 +416,23 @@ class WecomBotWsClient:
             body['text'] = {'content': content}
         return await self._send_reply(req_id, body, cmd=CMD_SEND_MSG)
 
+    async def send_template_card(self, chat_id: str, card_payload: dict[str, Any]) -> Optional[dict]:
+        """Proactively push a template_card to a chat.
+
+        Used for the resumed-workflow path (button click → new query):
+        synthetic events have no inbound req_id to reply against, so we
+        fall back to proactive ``aibot_send_msg`` instead of reply mode.
+
+        Args:
+            chat_id: userid (single chat) or chatid (group chat).
+            card_payload: ``{"msgtype": "template_card", "template_card": {...}}``
+                as produced by :func:`build_button_interaction_payload`.
+        """
+        req_id = _generate_req_id(CMD_SEND_MSG)
+        body = dict(card_payload)
+        body['chatid'] = chat_id
+        return await self._send_reply(req_id, body, cmd=CMD_SEND_MSG)
+
     async def push_stream_chunk(self, msg_id: str, content: str, is_final: bool = False) -> bool:
         """Push a streaming chunk for a given message ID.
 
@@ -276,9 +451,30 @@ class WecomBotWsClient:
             return False
         req_id, stream_id = key.split('|', 1)
         try:
+            previous_content = self._stream_last_content.get(msg_id, '')
+            if previous_content and content.startswith(previous_content):
+                next_content = content
+            elif previous_content and not content:
+                next_content = previous_content
+            else:
+                next_content = previous_content + content if previous_content else content
+
             # Skip sending if content hasn't changed (e.g. during tool call argument streaming)
-            if not is_final and content == self._stream_last_content.get(msg_id):
+            if not is_final and next_content == previous_content:
                 return True
+
+            # Skip empty/whitespace-only snapshots — the runner injects a
+            # zero-width space ('​') as a pass-through when workflow_paused
+            # fires without any preceding LLM output.  WeCom renders that
+            # as an empty bubble that sits before the form card; skip it.
+            # NOTE: Python str.strip() does NOT strip ​, so we use
+            # a regex that treats any character with Unicode category Zs
+            # (separator space) or Cf (format char like ZWS) as blank.
+            if not is_final:
+                import re as _re
+
+                if not _re.sub(r'[\s​‌‍﻿]', '', next_content):
+                    return True
 
             # Generate feedback_id for final chunk
             feedback_id = ''
@@ -290,8 +486,10 @@ class WecomBotWsClient:
                 if session_info:
                     self._feedback_sessions[feedback_id] = session_info
 
-            await self.reply_stream(req_id, stream_id, content, finish=is_final, feedback_id=feedback_id)
-            self._stream_last_content[msg_id] = content
+            # WeCom replaces the displayed stream content on each refresh, so
+            # every frame must contain the complete snapshot, not only a delta.
+            await self.reply_stream(req_id, stream_id, next_content, finish=is_final, feedback_id=feedback_id)
+            self._stream_last_content[msg_id] = next_content
             if is_final:
                 self._stream_ids.pop(msg_id, None)
                 self._stream_last_content.pop(msg_id, None)
@@ -465,13 +663,20 @@ class WecomBotWsClient:
             return
 
         # Unknown frame
-        await self.logger.warning(f'Unknown frame: {json.dumps(frame, ensure_ascii=False)[:200]}')
+        await self.logger.warning(f'Unknown frame: {_frame_snippet(frame)}')
 
     async def _handle_message_callback(self, frame: dict):
         """Handle an incoming message callback frame."""
         try:
             body = frame.get('body', {})
             req_id = frame.get('headers', {}).get('req_id', '')
+
+            event_type = extract_wecom_event_type(body)
+            if event_type == 'template_card_event':
+                await self._handle_template_card_event_frame(frame, body)
+                return
+            if event_type:
+                await self.logger.debug(f'Received msg_callback event_type={event_type}: {_frame_snippet(frame)}')
 
             # Parse message using shared logic
             message_data = await parse_wecom_bot_message(body, self.encoding_aes_key, self.logger)
@@ -506,8 +711,12 @@ class WecomBotWsClient:
             body = frame.get('body', {})
             req_id = frame.get('headers', {}).get('req_id', '')
 
-            event_info = body.get('event', {})
-            event_type = event_info.get('eventtype', '')
+            event_info = body.get('event', {}) if isinstance(body.get('event'), dict) else body
+            event_type = extract_wecom_event_type(body)
+            if not event_type:
+                await self.logger.warning(f'Received event_callback without event_type: {_frame_snippet(frame)}')
+            else:
+                await self.logger.debug(f'Received event_callback event_type={event_type}')
 
             message_data = {
                 'msgtype': 'event',
@@ -568,6 +777,10 @@ class WecomBotWsClient:
                         await self.logger.error(f'Error in feedback handler: {traceback.format_exc()}')
                 return
 
+            if event_type == 'template_card_event':
+                await self._handle_template_card_event_frame(frame, body)
+                return
+
             event = wecombotevent.WecomBotEvent(message_data)
 
             if event_type in self._message_handlers:
@@ -580,6 +793,72 @@ class WecomBotWsClient:
 
         except Exception:
             await self.logger.error(f'Error in event callback: {traceback.format_exc()}')
+
+    async def _handle_template_card_event_frame(self, frame: dict, body: dict):
+        """Handle template_card_event frames from event_callback or msg_callback."""
+        tce = extract_template_card_event_payload(body)
+        task_id, event_key, card_type = extract_template_card_action(tce)
+        await self.logger.info(
+            f'Received template_card_event (ws): task_id={task_id} event_key={event_key!r} card_type={card_type}'
+        )
+
+        pending = self._pending_forms_by_task.get(task_id)
+        if pending is None:
+            await self.logger.warning(f'No pending_form found for task_id={task_id} (ws); card event ignored')
+            return
+
+        req_id_for_update = frame.get('headers', {}).get('req_id', '')
+        form_data = pending.get('form_data', {}) or {}
+        selections = extract_template_card_selections(tce, form_data)
+        if not selections:
+            selections = parse_select_button_action(event_key, form_data)
+        if card_type == 'multiple_interaction' and not selections:
+            await self.logger.warning(
+                f'multiple_interaction callback has no parseable selections (ws): raw={str(tce)[:1000]}'
+            )
+            self._drop_pending_form_task(task_id, pending)
+            return
+
+        update_card = build_button_interaction_update_card(
+            form_data,
+            task_id,
+            event_key,
+            source=self.card_source,
+        )
+        if card_type == 'multiple_interaction' or selections:
+            update_card = build_multiple_interaction_update_card(
+                form_data,
+                task_id,
+                selections,
+                source=self.card_source,
+            )
+        try:
+            await self.update_template_card(req_id_for_update, update_card)
+        except Exception:
+            await self.logger.warning(f'Failed to update template card (ws): {traceback.format_exc()}')
+
+        if self._card_action_callback is not None:
+            try:
+                session = StreamSession(
+                    stream_id=pending.get('stream_id', ''),
+                    msg_id=pending.get('msg_id', ''),
+                    chat_id=pending.get('chat_id') or None,
+                    user_id=pending.get('user_id') or None,
+                )
+                session.pending_form = pending.get('form_data')
+                session.pending_form_task_id = task_id
+                await self._card_action_callback(session, event_key, task_id, body)
+            except Exception:
+                await self.logger.error(f'card action callback raised (ws): {traceback.format_exc()}')
+
+        self._drop_pending_form_task(task_id, pending)
+
+    def _drop_pending_form_task(self, task_id: str, pending: dict) -> None:
+        self._pending_forms_by_task.pop(task_id, None)
+        msg_id = pending.get('msg_id', '')
+        if msg_id:
+            self._task_id_by_msg.pop(msg_id, None)
+            self._stream_sessions.pop(msg_id, None)
 
     async def _dispatch_event(self, event: wecombotevent.WecomBotEvent):
         """Dispatch a message event to registered handlers with deduplication."""

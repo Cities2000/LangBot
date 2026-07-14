@@ -828,6 +828,12 @@ const enUS = {
     tabTools: 'Tools',
     tabResources: 'Resources',
     tabDocs: 'Docs',
+    tabLogs: 'Logs',
+    logsLevelAll: 'All levels',
+    logsRefresh: 'Refresh',
+    logsAutoRefresh: 'Auto refresh',
+    logsEmpty:
+      'No logs yet. Runtime logs from the MCP server will appear here.',
     noReadme: 'No documentation available',
     parseResultFailed: 'Failed to parse test result',
     noResultReturned: 'Test returned no result',
@@ -1815,6 +1821,19 @@ const enUS = {
     retry: 'Retry',
     robotNameNote:
       'Robot Name cannot be obtained automatically. Please fill it in manually.',
+  },
+  qqofficial: {
+    createBinding: 'One-Click QR Binding for QQ Official Bot',
+    scanQRCode:
+      'Scan the QR code below with mobile QQ and authorize the binding in QQ Bot Assistant',
+    waitingForScan: 'Waiting for scan',
+    bindSuccess: 'Bound successfully! AppID and Secret have been filled in',
+    bindFailed: 'Binding failed',
+    connecting: 'Connecting to QQ service...',
+    retry: 'Retry',
+    tokenNote:
+      'The Token field is not used by the current adapter — you can leave it blank.',
+    boundBy: 'Bound by QQ user {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Select a plugin page from the sidebar',
