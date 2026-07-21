@@ -138,11 +138,12 @@ class TestMessageAggregatorSessionId:
 
         session_id = agg._get_session_id(
             bot_uuid='bot-123',
+            pipeline_uuid='test-pipeline',
             launcher_type=provider_session.LauncherTypes.PERSON,
             launcher_id=45678,
         )
 
-        assert session_id == 'bot-123:person:45678'
+        assert session_id == 'bot-123:test-pipeline:person:45678'
 
     def test_session_id_different_launchers(self):
         """Different launcher types should produce different IDs."""
@@ -153,17 +154,43 @@ class TestMessageAggregatorSessionId:
 
         person_id = agg._get_session_id(
             bot_uuid='bot',
+            pipeline_uuid='test-pipeline',
             launcher_type=provider_session.LauncherTypes.PERSON,
             launcher_id=123,
         )
 
         group_id = agg._get_session_id(
             bot_uuid='bot',
+            pipeline_uuid='test-pipeline',
             launcher_type=provider_session.LauncherTypes.GROUP,
             launcher_id=123,
         )
 
         assert person_id != group_id
+
+    def test_session_id_includes_pipeline_uuid(self):
+        """Session ID should include pipeline_uuid to isolate per-pipeline."""
+        aggregator = get_aggregator_module()
+
+        app = make_aggregator_app()
+        agg = aggregator.MessageAggregator(app)
+
+        first = agg._get_session_id(
+            bot_uuid='bot-a',
+            pipeline_uuid='pipeline-a',
+            launcher_type=provider_session.LauncherTypes.PERSON,
+            launcher_id='13800138000',
+        )
+
+        second = agg._get_session_id(
+            bot_uuid='bot-a',
+            pipeline_uuid='pipeline-b',
+            launcher_type=provider_session.LauncherTypes.PERSON,
+            launcher_id='13800138000',
+        )
+
+        assert first != second
+        assert first == 'bot-a:pipeline-a:person:13800138000'
 
 
 class TestMessageAggregatorConfig:
@@ -405,7 +432,7 @@ class TestMessageAggregatorAddMessage:
             )
 
         # Buffer should be flushed (empty or no buffer)
-        session_id = agg._get_session_id('test-bot', provider_session.LauncherTypes.PERSON, 12345)
+        session_id = agg._get_session_id('test-bot', 'test-pipeline', provider_session.LauncherTypes.PERSON, 12345)
         assert session_id not in agg.buffers or len(agg.buffers[session_id].messages) == 0
 
 

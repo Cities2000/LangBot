@@ -10,7 +10,7 @@ command:
     - ！
     privilege: {}
 concurrency:
-    pipeline: 20
+    pipeline: 40
     session: 1
 proxy:
     http: ''

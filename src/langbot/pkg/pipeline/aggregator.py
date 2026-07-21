@@ -76,11 +76,13 @@ class MessageAggregator:
     def _get_session_id(
         self,
         bot_uuid: str,
+        pipeline_uuid: typing.Optional[str],
         launcher_type: provider_session.LauncherTypes,
         launcher_id: typing.Union[int, str],
     ) -> str:
         """Generate a unique session ID"""
-        return f'{bot_uuid}:{launcher_type.value}:{launcher_id}'
+        pipeline_key = pipeline_uuid or '__unbound__'
+        return f'{bot_uuid}:{pipeline_key}:{launcher_type.value}:{launcher_id}'
 
     async def _get_aggregation_config(self, pipeline_uuid: typing.Optional[str]) -> tuple[bool, float]:
         """Get aggregation configuration for a pipeline
@@ -151,7 +153,7 @@ class MessageAggregator:
             )
             return
 
-        session_id = self._get_session_id(bot_uuid, launcher_type, launcher_id)
+        session_id = self._get_session_id(bot_uuid, pipeline_uuid, launcher_type, launcher_id)
 
         pending_msg = PendingMessage(
             bot_uuid=bot_uuid,
