@@ -1,4 +1,5 @@
 import {
+  DynamicFormItemType,
   IDynamicFormItemSchema,
   SYSTEM_FIELD_PREFIX,
 } from '@/app/infra/entities/form/dynamic';
@@ -23,7 +24,15 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Globe, Info, QrCode } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Globe,
+  Info,
+  QrCode,
+  Download,
+  ExternalLink,
+} from 'lucide-react';
 import { copyToClipboard } from '@/app/utils/clipboard';
 import {
   Tooltip,
@@ -32,6 +41,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { systemInfo } from '@/app/infra/http';
+import { getAdapterDocUrl } from '@/app/infra/entities/adapter-docs';
 
 /**
  * Resolve the value referenced by a `show_if.field` string.
@@ -55,6 +65,95 @@ function resolveShowIfValue(
     return watchedValues[field];
   }
   return externalDependentValues?.[field];
+}
+
+type DynamicFormValueSpec = Pick<
+  IDynamicFormItemSchema,
+  'default' | 'name' | 'required' | 'type'
+>;
+
+function getValueSpecs(item: IDynamicFormItemSchema): DynamicFormValueSpec[] {
+  if (item.type === DynamicFormItemType.RICH_TOOLS_SELECTOR) {
+    return [
+      item,
+      {
+        name: 'enable-all-tools',
+        type: DynamicFormItemType.BOOLEAN,
+        required: false,
+        default: true,
+      },
+    ];
+  }
+
+  if (item.type === DynamicFormItemType.RESOURCES_SELECTOR) {
+    return [
+      item,
+      {
+        name: 'mcp-resources',
+        type: DynamicFormItemType.UNKNOWN,
+        required: false,
+        default: [],
+      },
+      {
+        name: 'mcp-resource-agent-read-enabled',
+        type: DynamicFormItemType.BOOLEAN,
+        required: false,
+        default: true,
+      },
+    ];
+  }
+
+  return [item];
+}
+
+function getValueSchema(spec: DynamicFormValueSpec) {
+  if (spec.name === 'mcp-resources') {
+    return z.array(z.any());
+  }
+
+  switch (spec.type) {
+    case DynamicFormItemType.INT:
+      return z.number();
+    case DynamicFormItemType.FLOAT:
+      return z.number();
+    case DynamicFormItemType.BOOLEAN:
+      return z.boolean();
+    case DynamicFormItemType.STRING:
+      return z.string();
+    case DynamicFormItemType.STRING_ARRAY:
+      return z.array(z.string());
+    case DynamicFormItemType.SELECT:
+      return z.string();
+    case DynamicFormItemType.LLM_MODEL_SELECTOR:
+      return z.string();
+    case DynamicFormItemType.EMBEDDING_MODEL_SELECTOR:
+      return z.string();
+    case DynamicFormItemType.RERANK_MODEL_SELECTOR:
+      return z.string();
+    case DynamicFormItemType.KNOWLEDGE_BASE_SELECTOR:
+      return z.string();
+    case DynamicFormItemType.KNOWLEDGE_BASE_MULTI_SELECTOR:
+    case DynamicFormItemType.RESOURCES_SELECTOR:
+    case DynamicFormItemType.RICH_TOOLS_SELECTOR:
+    case DynamicFormItemType.TOOLS_SELECTOR:
+      return z.array(z.string());
+    case DynamicFormItemType.BOT_SELECTOR:
+      return z.string();
+    case DynamicFormItemType.MODEL_FALLBACK_SELECTOR:
+      return z.object({
+        primary: z.string(),
+        fallbacks: z.array(z.string()),
+      });
+    case DynamicFormItemType.PROMPT_EDITOR:
+      return z.array(
+        z.object({
+          content: z.string(),
+          role: z.string(),
+        }),
+      );
+    default:
+      return z.string();
+  }
 }
 
 /**
@@ -201,6 +300,52 @@ function WebhookUrlField({
   );
 }
 
+function DownloadLinkField({
+  label,
+  description,
+  url,
+  filename,
+  helpUrl,
+  helpLabel,
+}: {
+  label: string;
+  description?: string;
+  url: string;
+  filename?: string;
+  helpUrl?: string | null;
+  helpLabel: string;
+}) {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  const downloadUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
+
+  return (
+    <FormItem className="min-w-0">
+      <FormLabel className="break-words">{label}</FormLabel>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Button asChild variant="outline" size="sm">
+          <a href={downloadUrl} download={filename}>
+            <Download className="h-4 w-4" />
+            {label}
+          </a>
+        </Button>
+        {helpUrl && (
+          <Button asChild variant="ghost" size="sm">
+            <a href={helpUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+              {helpLabel}
+            </a>
+          </Button>
+        )}
+      </div>
+      {description && (
+        <p className="max-w-2xl text-sm break-words text-muted-foreground">
+          {description}
+        </p>
+      )}
+    </FormItem>
+  );
+}
+
 /**
  * Display-only component for `__system.*` fields (e.g. the deployment's
  * outbound IPs that the operator must add to a platform's trusted-IP list).
@@ -315,16 +460,23 @@ export default function DynamicFormComponent({
 }) {
   const isInitialMount = useRef(true);
   const previousInitialValues = useRef(initialValues);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Normalize a form value according to its field type.
   // This ensures legacy/malformed data (e.g. a plain string for
   // model-fallback-selector) is coerced to the expected shape
   // so that downstream components never crash.
   const normalizeFieldValue = (
-    item: IDynamicFormItemSchema,
+    item: DynamicFormValueSpec,
     value: unknown,
   ): unknown => {
+    if (
+      item.name === 'mcp-resources' ||
+      item.type === DynamicFormItemType.RESOURCES_SELECTOR ||
+      item.type === DynamicFormItemType.RICH_TOOLS_SELECTOR
+    ) {
+      return Array.isArray(value) ? value : [];
+    }
     if (item.type === 'model-fallback-selector') {
       if (value != null && typeof value === 'object' && !Array.isArray(value)) {
         const obj = value as Record<string, unknown>;
@@ -363,73 +515,22 @@ export default function DynamicFormComponent({
           item.type !== 'webhook-url' &&
           item.type !== 'embed-code' &&
           item.type !== 'qr-code-login' &&
+          item.type !== 'download-link' &&
           !item.name.startsWith(SYSTEM_FIELD_PREFIX),
       ),
     [itemConfigList],
   );
 
+  const editableValueSpecs = useMemo(
+    () => editableItems.flatMap(getValueSpecs),
+    [editableItems],
+  );
+
   // 根据 itemConfigList 动态生成 zod schema
   const formSchema = z.object(
-    editableItems.reduce(
+    editableValueSpecs.reduce(
       (acc, item) => {
-        let fieldSchema;
-        switch (item.type) {
-          case 'integer':
-            fieldSchema = z.number();
-            break;
-          case 'float':
-            fieldSchema = z.number();
-            break;
-          case 'boolean':
-            fieldSchema = z.boolean();
-            break;
-          case 'string':
-            fieldSchema = z.string();
-            break;
-          case 'array[string]':
-            fieldSchema = z.array(z.string());
-            break;
-          case 'select':
-            fieldSchema = z.string();
-            break;
-          case 'llm-model-selector':
-            fieldSchema = z.string();
-            break;
-          case 'embedding-model-selector':
-            fieldSchema = z.string();
-            break;
-          case 'rerank-model-selector':
-            fieldSchema = z.string();
-            break;
-          case 'knowledge-base-selector':
-            fieldSchema = z.string();
-            break;
-          case 'knowledge-base-multi-selector':
-            fieldSchema = z.array(z.string());
-            break;
-          case 'bot-selector':
-            fieldSchema = z.string();
-            break;
-          case 'tools-selector':
-            fieldSchema = z.array(z.string());
-            break;
-          case 'model-fallback-selector':
-            fieldSchema = z.object({
-              primary: z.string(),
-              fallbacks: z.array(z.string()),
-            });
-            break;
-          case 'prompt-editor':
-            fieldSchema = z.array(
-              z.object({
-                content: z.string(),
-                role: z.string(),
-              }),
-            );
-            break;
-          default:
-            fieldSchema = z.string();
-        }
+        let fieldSchema = getValueSchema(item);
 
         if (
           item.required &&
@@ -454,7 +555,7 @@ export default function DynamicFormComponent({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: editableItems.reduce((acc, item) => {
+    defaultValues: editableValueSpecs.reduce((acc, item) => {
       // 优先使用 initialValues，如果没有则使用默认值
       const rawValue = initialValues?.[item.name] ?? item.default;
       return {
@@ -493,7 +594,7 @@ export default function DynamicFormComponent({
 
     if (initialValues && hasRealChange) {
       // 合并默认值和初始值
-      const mergedValues = editableItems.reduce(
+      const mergedValues = editableValueSpecs.reduce(
         (acc, item) => {
           const rawValue = initialValues[item.name] ?? item.default;
           acc[item.name] = normalizeFieldValue(item, rawValue) as object;
@@ -508,10 +609,16 @@ export default function DynamicFormComponent({
 
       previousInitialValues.current = initialValues;
     }
-  }, [initialValues, form, editableItems]);
+  }, [initialValues, form, editableValueSpecs]);
 
   // Get reactive form values for conditional rendering
   const watchedValues = form.watch();
+  const setFormValue = (name: string, value: unknown) => {
+    form.setValue(name as keyof FormValues, value as never, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
 
   // Stable ref for onSubmit to avoid re-triggering the effect when the
   // parent passes a new closure on every render.
@@ -524,7 +631,7 @@ export default function DynamicFormComponent({
     // even if the user saves without modifying any field.
     // form.watch(callback) only fires on subsequent changes, not on mount.
     const formValues = form.getValues();
-    const initialFinalValues = editableItems.reduce(
+    const initialFinalValues = editableValueSpecs.reduce(
       (acc, item) => {
         acc[item.name] = formValues[item.name] ?? item.default;
         return acc;
@@ -544,7 +651,7 @@ export default function DynamicFormComponent({
 
     const subscription = form.watch(() => {
       const formValues = form.getValues();
-      const finalValues = editableItems.reduce(
+      const finalValues = editableValueSpecs.reduce(
         (acc, item) => {
           acc[item.name] = formValues[item.name] ?? item.default;
           return acc;
@@ -555,7 +662,7 @@ export default function DynamicFormComponent({
       previousInitialValues.current = finalValues as Record<string, object>;
     });
     return () => subscription.unsubscribe();
-  }, [form, editableItems]);
+  }, [form, editableValueSpecs]);
 
   // State for QR code login dialog
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -726,6 +833,30 @@ export default function DynamicFormComponent({
             );
           }
 
+          if (config.type === 'download-link') {
+            if (!config.url) return null;
+
+            return (
+              <DownloadLinkField
+                key={config.id}
+                label={extractI18nObject(config.label)}
+                description={
+                  config.description
+                    ? extractI18nObject(config.description)
+                    : undefined
+                }
+                url={config.url}
+                filename={config.download_filename}
+                helpUrl={getAdapterDocUrl(config.help_links, i18n.language)}
+                helpLabel={
+                  config.help_label
+                    ? extractI18nObject(config.help_label)
+                    : t('bots.viewAdapterDocs')
+                }
+              />
+            );
+          }
+
           // QR code login button (e.g. Feishu one-click create, WeChat scan login)
           if (config.type === 'qr-code-login') {
             return (
@@ -786,6 +917,41 @@ export default function DynamicFormComponent({
             );
           }
 
+          if (
+            config.type === DynamicFormItemType.RICH_TOOLS_SELECTOR ||
+            config.type === DynamicFormItemType.RESOURCES_SELECTOR
+          ) {
+            return (
+              <FormField
+                key={config.id}
+                control={form.control}
+                name={config.name as keyof FormValues}
+                render={({ field }) => (
+                  <FormItem className="min-w-0">
+                    <FormControl>
+                      <div
+                        className={cn(
+                          'min-w-0 max-w-full overflow-x-hidden',
+                          isFieldDisabled && 'pointer-events-none opacity-60',
+                        )}
+                      >
+                        <DynamicFormItemComponent
+                          config={config}
+                          field={field}
+                          formValues={watchedValues as Record<string, unknown>}
+                          onFileUploaded={onFileUploaded}
+                          setFormValue={setFormValue}
+                          systemContext={systemContext}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            );
+          }
+
           // Boolean fields use a special inline layout
           if (config.type === 'boolean') {
             return (
@@ -816,7 +982,10 @@ export default function DynamicFormComponent({
                         <DynamicFormItemComponent
                           config={config}
                           field={field}
+                          formValues={watchedValues as Record<string, unknown>}
                           onFileUploaded={onFileUploaded}
+                          setFormValue={setFormValue}
+                          systemContext={systemContext}
                         />
                       </FormControl>
                     </div>
@@ -853,7 +1022,10 @@ export default function DynamicFormComponent({
                       <DynamicFormItemComponent
                         config={config}
                         field={field}
+                        formValues={watchedValues as Record<string, unknown>}
                         onFileUploaded={onFileUploaded}
+                        setFormValue={setFormValue}
+                        systemContext={systemContext}
                       />
                     </div>
                   </FormControl>

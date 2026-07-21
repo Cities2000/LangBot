@@ -23,7 +23,21 @@ from langbot.pkg.persistence.alembic_runner import (
     run_alembic_upgrade,
     run_alembic_stamp,
     get_alembic_current,
+    _ALEMBIC_DIR,
 )
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+
+
+def _get_script_head() -> str:
+    """Resolve the current Alembic head revision from the script directory.
+
+    Avoids hardcoding a revision number in assertions so adding a new
+    migration doesn't require editing the migration tests.
+    """
+    cfg = Config()
+    cfg.set_main_option('script_location', _ALEMBIC_DIR)
+    return ScriptDirectory.from_config(cfg).get_current_head()
 
 
 pytestmark = [pytest.mark.integration, pytest.mark.slow]
@@ -144,8 +158,10 @@ class TestPostgreSQLMigrationUpgrade:
         # Verify revision
         rev = await get_alembic_current(postgres_engine)
         assert rev is not None, 'Expected a revision after upgrade'
-        # Head should be the latest migration (0005 for current state)
-        assert rev.startswith('0005'), f'Expected head to be 0005_*, got {rev}'
+        # Head should be the latest migration. Resolve the actual head from the
+        # Alembic script directory instead of hardcoding a revision number, so
+        # adding a new migration doesn't require editing this assertion.
+        assert rev == _get_script_head(), f'Expected head {_get_script_head()}, got {rev}'
 
     @pytest.mark.asyncio
     async def test_postgres_upgrade_idempotent(self, postgres_engine, clean_tables, clean_alembic_version):

@@ -140,6 +140,16 @@ const ruRU = {
     noApiKeys: 'API-ключи не настроены',
     apiKeyHint:
       'API-ключи позволяют внешним системам получать доступ к API сервисов LangBot',
+    mcpTab: 'MCP',
+    mcpHint:
+      'LangBot exposes an MCP (Model Context Protocol) server so AI agents can manage this instance. It uses the same API keys as the Service API.',
+    mcpEndpoint: 'MCP Endpoint',
+    mcpAuthTitle: 'Authentication',
+    mcpAuthDesc:
+      'Authenticate with any API key from the API Keys tab, sent as a header:',
+    mcpGlobalKeyNote:
+      'You can also set a global API key in config.yaml (api.global_api_key) to use without logging in.',
+    mcpClientConfigTitle: 'Example MCP client config',
     webhooks: 'Вебхуки',
     createWebhook: 'Создать вебхук',
     webhookName: 'Имя вебхука',
@@ -444,6 +454,26 @@ const ruRU = {
       userMessage: 'Пользователь',
       botMessage: 'Ассистент',
     },
+    admins: {
+      title: 'Admins',
+      description:
+        "Launchers (person/group IDs) that have admin privilege for this bot's commands",
+      addAdmin: 'Add Admin',
+      launcherType: 'Type',
+      launcherId: 'ID',
+      typePerson: 'Person',
+      typeGroup: 'Group',
+      placeholderId: 'User or group ID',
+      addSuccess: 'Admin added',
+      addError: 'Failed to add admin: ',
+      deleteSuccess: 'Admin removed',
+      deleteError: 'Failed to remove admin: ',
+      noAdmins: 'No admins configured',
+      setAdminTitle: 'Set as admin',
+      removeAdminTitle: 'Remove admin',
+      adminBadge: 'Admin',
+      configureAdmins: 'Manage Admins',
+    },
   },
   plugins: {
     title: 'Расширения',
@@ -594,8 +624,7 @@ const ruRU = {
     tabLogs: 'Журналы',
     logsLevelAll: 'Все уровни',
     logsRefresh: 'Обновить',
-    logsAutoRefreshOn: 'Автообновление: вкл.',
-    logsAutoRefreshOff: 'Автообновление: выкл.',
+    logsAutoRefresh: 'Автообновление',
     logsEmpty:
       'Журналов пока нет. Здесь появятся логи, выводимые плагином через logger.',
     fileUpload: {
@@ -675,6 +704,10 @@ const ruRU = {
     installFailed: 'Ошибка установки, попробуйте позже',
     loadFailed: 'Не удалось получить список плагинов, попробуйте позже',
     noDescription: 'Описание отсутствует',
+    recommendation: {
+      pause: 'Приостановить авто-прокрутку',
+      resume: 'Возобновить авто-прокрутку',
+    },
     notFound: 'Информация о плагине не найдена',
     sortBy: 'Сортировать по',
     sort: {
@@ -755,6 +788,15 @@ const ruRU = {
     stdio: 'Режим Stdio',
     sse: 'Режим SSE',
     http: 'Режим HTTP',
+    local: 'Локально (Stdio)',
+    remote: 'Удалённо',
+    localModeDescription:
+      'Запуск MCP-сервера локально как подпроцесса внутри песочницы Box.',
+    remoteModeDescription:
+      'Подключение к удалённому MCP-серверу по URL. Транспорт (Streamable HTTP или SSE) определяется автоматически.',
+    remoteUrlPlaceholder: 'https://example.com/mcp',
+    remoteUrlDescription:
+      'Вставьте URL MCP-сервера. Поддерживаются как Streamable HTTP, так и устаревшие SSE-эндпоинты.',
     noServerInstalled: 'MCP-серверы не настроены',
     serverNameRequired: 'Имя сервера не может быть пустым',
     commandRequired: 'Команда не может быть пустой',
@@ -793,8 +835,16 @@ const ruRU = {
     toolsFound: 'инструментов',
     unknownError: 'Неизвестная ошибка',
     noToolsFound: 'Инструменты не найдены',
+    noResourcesFound: 'Ресурсы не найдены',
     tabTools: 'Инструменты',
+    tabResources: 'Ресурсы',
     tabDocs: 'Документация',
+    tabLogs: 'Журнал',
+    logsLevelAll: 'Все уровни',
+    logsRefresh: 'Обновить',
+    logsAutoRefresh: 'Автообновление',
+    logsEmpty:
+      'Журналов пока нет. Здесь будут отображаться журналы выполнения MCP-сервера.',
     noReadme: 'Документация отсутствует',
     parseResultFailed: 'Не удалось разобрать результат теста',
     noResultReturned: 'Тест не вернул результат',
@@ -813,6 +863,12 @@ const ruRU = {
     toolCount: 'Инструменты: {{count}}',
     parameterCount: 'Параметры: {{count}}',
     noParameters: 'Нет параметров',
+    resourceCount: 'Ресурсы: {{count}}',
+    resourceBinaryContent: 'Двоичное содержимое (невозможно отобразить)',
+    resourceBinaryOmitted:
+      'Двоичное содержимое опущено согласно политике безопасности ресурсов',
+    resourceTruncated: 'Содержимое усечено по лимитам байтов или токенов',
+    resourceReadFailed: 'Не удалось прочитать содержимое ресурса',
     statusConnected: 'Подключён',
     statusDisconnected: 'Отключён',
     statusError: 'Ошибка подключения',
@@ -903,9 +959,12 @@ const ruRU = {
       selectPlugins: 'Выберите плагины',
       pluginsTitle: 'Плагины',
       mcpServersTitle: 'MCP-серверы',
+      mcpResourcesTitle: 'MCP-ресурсы',
       noMCPServersSelected: 'MCP-серверы не выбраны',
+      noMCPResourcesAvailable: 'Нет доступных MCP-ресурсов',
       addMCPServer: 'Добавить MCP-сервер',
       selectMCPServers: 'Выберите MCP-серверы',
+      enableMCPResourceAgentRead: 'Разрешить модели чтение',
       toolCount: '{{count}} инструментов',
       noPluginsInstalled: 'Нет установленных плагинов',
       noMCPServersConfigured: 'Нет настроенных MCP-серверов',
@@ -921,6 +980,42 @@ const ruRU = {
       addSkill: 'Добавить навык',
       selectSkills: 'Выбрать навыки',
       noSkillsAvailable: 'Нет доступных навыков',
+      mcpServersScopeTooltip:
+        'Здесь задаётся только привязка MCP-серверов к конвейеру. Конкретные MCP-инструменты и ресурсы выбираются в AI Feature > Local Agent.',
+      enableAllMCPServersTooltip:
+        'Если включено, все настроенные и включённые MCP-серверы станут кандидатами для инструментов и ресурсов MCP в AI Feature.',
+    },
+    localAgent: {
+      toolsTitle: 'Инструменты',
+      toolsDescription:
+        'Выберите инструменты плагинов, MCP и встроенные инструменты для этого Local Agent.',
+      toolsScopeTooltip:
+        'MCP-инструменты берутся только из MCP-серверов, привязанных в Расширениях. Чтобы добавить источник, сначала привяжите там сервер.',
+      enableAllTools: 'Включить все инструменты',
+      allToolsEnabled: 'Все доступные инструменты включены',
+      noToolsSelected: 'Инструменты не выбраны',
+      editTools: 'Редактировать инструменты',
+      builtinTools: 'Встроенные инструменты',
+      pluginTools: 'Инструменты плагинов',
+      skillTools: 'Инструменты навыков',
+      mcpTools: 'Инструменты MCP',
+      mcpToolsScopeTooltip:
+        'Здесь показаны только инструменты MCP-серверов, разрешённых сейчас в Расширениях.',
+      skillToolsScopeTooltip:
+        'Инструменты навыков доступны, когда сервис навыков LangBot и backend песочницы Box готовы. Они позволяют агенту активировать или регистрировать навыки.',
+      selectTools: 'Выбрать инструменты',
+      resourcesTitle: 'Ресурсы',
+      resourcesDescription:
+        'Выберите MCP-ресурсы и базы знаний для этого Local Agent.',
+      knowledgeBases: 'Базы знаний',
+      mcpResources: 'MCP-ресурсы',
+      mcpResourcesScopeTooltip:
+        'Здесь показаны только ресурсы MCP-серверов, разрешённых сейчас в Расширениях.',
+      enableMCPResourceRead: 'Разрешить модели читать MCP-ресурсы',
+      mcpResourceReadTooltip:
+        'Если выключено, выбранные MCP-ресурсы не будут добавляться в контекст модели.',
+      noMCPResourcesAvailable: 'Нет доступных MCP-ресурсов',
+      selectKnowledgeBases: 'Выбрать базы знаний',
     },
     debugDialog: {
       title: 'Чат конвейера',
@@ -1250,6 +1345,20 @@ const ruRU = {
       level: 'Уровень',
       runner: 'Обработчик',
       viewConversation: 'Просмотр диалога',
+      turns: '{{count}} диалоговых ходов',
+      userMessage: 'Пользователь',
+      noUserMessage: 'Ввод пользователя не записан',
+      assistantMessage: 'Ассистент',
+      assistantMessageCount: 'Ассистент +{{count}}',
+      noAssistantMessage: 'Ответ ассистента не записан',
+      messageCount: 'Сообщения',
+      conversationTrace: 'Ход диалога',
+      noLlmCalls: 'Вызовы модели не записаны',
+      roles: {
+        user: 'Пользователь',
+        assistant: 'Ассистент',
+        message: 'Сообщение',
+      },
     },
     llmCalls: {
       title: 'Вызовы LLM',
@@ -1263,6 +1372,15 @@ const ruRU = {
       totalTokens: 'Всего токенов',
       avgDuration: 'Средняя длительность',
       calls: 'Вызовы',
+    },
+    toolCalls: {
+      title: 'Вызовы инструментов',
+      totalCalls: 'Вызовы',
+      duration: 'Длительность инструментов',
+      errorCalls: 'Неудачные вызовы',
+      arguments: 'Аргументы',
+      result: 'Результат',
+      noToolCalls: 'Вызовы инструментов не записаны',
     },
     tokens: {
       totalTokens: 'Всего токенов',
@@ -1349,6 +1467,22 @@ const ruRU = {
       inaccurateReasons: 'Причины неточности',
       platform: 'Платформа',
       exportFeedback: 'Экспорт отзывов',
+      description:
+        'Tell us what went wrong or what could be better. Instance UUID and login account are included for diagnosis.',
+      placeholder: 'Describe your suggestion, issue, or reproduction steps...',
+      attachImage: 'Add image',
+      screenshot: 'Screenshot',
+      submit: 'Submit feedback',
+      privacyHint:
+        'Do not include secrets, passwords, or private chat content.',
+      contentRequired: 'Please enter feedback first',
+      imageOnly: 'Only image attachments are supported',
+      imageTooLarge: 'Each image must be under 1MB',
+      tooManyImages: 'You can attach up to 3 images',
+      screenshotFailed: 'Screenshot failed. Try pasting or uploading an image.',
+      submitSuccess: 'Feedback submitted. Thanks!',
+      submitFailed: 'Failed to submit feedback. Please try again later.',
+      removeImage: 'Remove image',
     },
     queries: {
       title: 'Запросы',
@@ -1576,6 +1710,19 @@ const ruRU = {
     retry: 'Повторить',
     robotNameNote:
       'Имя бота нельзя получить автоматически. Пожалуйста, введите его вручную.',
+  },
+  qqofficial: {
+    createBinding: 'Привязка официального бота QQ по QR-коду',
+    scanQRCode:
+      'Отсканируйте QR-код ниже мобильным QQ и подтвердите привязку в «QQ Bot Assistant»',
+    waitingForScan: 'Ожидание сканирования',
+    bindSuccess: 'Привязка успешна! AppID и Secret заполнены автоматически',
+    bindFailed: 'Не удалось выполнить привязку',
+    connecting: 'Подключение к сервису QQ...',
+    retry: 'Повторить',
+    tokenNote:
+      'Поле Token не используется текущим адаптером — его можно оставить пустым.',
+    boundBy: 'Привязано пользователем QQ {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Выберите страницу плагина на боковой панели',

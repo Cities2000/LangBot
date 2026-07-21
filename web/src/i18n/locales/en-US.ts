@@ -35,7 +35,7 @@ const enUS = {
     emptyPassword: 'Please enter your password',
     language: 'Language',
     helpDocs: 'Get Help',
-    featureRequest: 'Feature Request',
+    featureRequest: 'Feedback',
     starOnGitHub: 'Star on GitHub',
     joinDiscord: 'Join our Discord',
     create: 'Create',
@@ -140,6 +140,16 @@ const enUS = {
     noApiKeys: 'No API keys configured',
     apiKeyHint:
       'API keys allow external systems to access LangBot Service APIs',
+    mcpTab: 'MCP',
+    mcpHint:
+      'LangBot exposes an MCP (Model Context Protocol) server so AI agents can manage this instance. It uses the same API keys as the Service API.',
+    mcpEndpoint: 'MCP Endpoint',
+    mcpAuthTitle: 'Authentication',
+    mcpAuthDesc:
+      'Authenticate with any API key from the API Keys tab, sent as a header:',
+    mcpGlobalKeyNote:
+      'You can also set a global API key in config.yaml (api.global_api_key) to use without logging in.',
+    mcpClientConfigTitle: 'Example MCP client config',
     webhooks: 'Webhooks',
     createWebhook: 'Create Webhook',
     webhookName: 'Webhook Name',
@@ -434,6 +444,26 @@ const enUS = {
       userMessage: 'User',
       botMessage: 'Assistant',
     },
+    admins: {
+      title: 'Admins',
+      description:
+        "Launchers (person/group IDs) that have admin privilege for this bot's commands",
+      addAdmin: 'Add Admin',
+      launcherType: 'Type',
+      launcherId: 'ID',
+      typePerson: 'Person',
+      typeGroup: 'Group',
+      placeholderId: 'User or group ID',
+      addSuccess: 'Admin added',
+      addError: 'Failed to add admin: ',
+      deleteSuccess: 'Admin removed',
+      deleteError: 'Failed to remove admin: ',
+      noAdmins: 'No admins configured',
+      setAdminTitle: 'Set as admin',
+      adminBadge: 'Admin',
+      configureAdmins: 'Manage Admins',
+      removeAdminTitle: 'Remove admin',
+    },
   },
   plugins: {
     title: 'Extensions',
@@ -583,8 +613,7 @@ const enUS = {
     tabLogs: 'Logs',
     logsLevelAll: 'All levels',
     logsRefresh: 'Refresh',
-    logsAutoRefreshOn: 'Auto-refresh: On',
-    logsAutoRefreshOff: 'Auto-refresh: Off',
+    logsAutoRefresh: 'Auto-refresh',
     logsEmpty:
       'No logs yet. Logs printed by the plugin via logger will appear here.',
     fileUpload: {
@@ -664,6 +693,10 @@ const enUS = {
     installFailed: 'Installation failed, please try again later',
     loadFailed: 'Failed to get plugin list, please try again later',
     noDescription: 'No description available',
+    recommendation: {
+      pause: 'Pause auto-rotation',
+      resume: 'Resume auto-rotation',
+    },
     notFound: 'Plugin information not found',
     sortBy: 'Sort by',
     sort: {
@@ -744,6 +777,15 @@ const enUS = {
     stdio: 'Stdio Mode',
     sse: 'SSE Mode',
     http: 'HTTP Mode',
+    local: 'Local (Stdio)',
+    remote: 'Remote',
+    localModeDescription:
+      'Run an MCP server locally as a subprocess inside the Box sandbox.',
+    remoteModeDescription:
+      'Connect to a remote MCP server by URL. The transport (Streamable HTTP or SSE) is detected automatically.',
+    remoteUrlPlaceholder: 'https://example.com/mcp',
+    remoteUrlDescription:
+      'Paste the MCP server URL. Both Streamable HTTP and legacy SSE endpoints are supported.',
     noServerInstalled: 'No MCP servers configured',
     serverNameRequired: 'Server name cannot be empty',
     commandRequired: 'Command cannot be empty',
@@ -782,8 +824,16 @@ const enUS = {
     toolsFound: 'tools',
     unknownError: 'Unknown error',
     noToolsFound: 'No tools found',
+    noResourcesFound: 'No resources found',
     tabTools: 'Tools',
+    tabResources: 'Resources',
     tabDocs: 'Docs',
+    tabLogs: 'Logs',
+    logsLevelAll: 'All levels',
+    logsRefresh: 'Refresh',
+    logsAutoRefresh: 'Auto refresh',
+    logsEmpty:
+      'No logs yet. Runtime logs from the MCP server will appear here.',
     noReadme: 'No documentation available',
     parseResultFailed: 'Failed to parse test result',
     noResultReturned: 'Test returned no result',
@@ -802,6 +852,11 @@ const enUS = {
     toolCount: 'Tools: {{count}}',
     parameterCount: 'Parameters: {{count}}',
     noParameters: 'No parameters',
+    resourceCount: 'Resources: {{count}}',
+    resourceBinaryContent: 'Binary content (cannot be displayed)',
+    resourceBinaryOmitted: 'Binary content omitted by resource safety policy',
+    resourceTruncated: 'Content truncated by byte or token limits',
+    resourceReadFailed: 'Failed to read resource content',
     statusConnected: 'Connected',
     statusDisconnected: 'Disconnected',
     statusError: 'Connection Error',
@@ -893,9 +948,12 @@ const enUS = {
       selectPlugins: 'Select Plugins',
       pluginsTitle: 'Plugins',
       mcpServersTitle: 'MCP Servers',
+      mcpResourcesTitle: 'MCP Resources',
       noMCPServersSelected: 'No MCP servers selected',
+      noMCPResourcesAvailable: 'No MCP resources available',
       addMCPServer: 'Add MCP Server',
       selectMCPServers: 'Select MCP Servers',
+      enableMCPResourceAgentRead: 'Agent read',
       toolCount: '{{count}} tools',
       noPluginsInstalled: 'No installed plugins',
       noMCPServersConfigured: 'No configured MCP servers',
@@ -911,6 +969,42 @@ const enUS = {
       addSkill: 'Add Skill',
       selectSkills: 'Select Skills',
       noSkillsAvailable: 'No skills available',
+      mcpServersScopeTooltip:
+        'This only controls which MCP servers are bound to the pipeline. Choose exact MCP tools and resources in AI Feature > Local Agent.',
+      enableAllMCPServersTooltip:
+        'When enabled, all configured and enabled MCP servers become candidates for MCP tools and resources in AI Feature.',
+    },
+    localAgent: {
+      toolsTitle: 'Tools',
+      toolsDescription:
+        'Select plugin, MCP, skill, and built-in tools available to this Local Agent.',
+      toolsScopeTooltip:
+        'MCP tools only come from MCP servers bound in Extensions. Bind another MCP server there to make its tools selectable here.',
+      enableAllTools: 'Enable all tools',
+      allToolsEnabled: 'All available tools are enabled',
+      noToolsSelected: 'No tools selected',
+      editTools: 'Edit tools',
+      builtinTools: 'Built-in tools',
+      pluginTools: 'Plugin tools',
+      skillTools: 'Skill tools',
+      mcpTools: 'MCP tools',
+      mcpToolsScopeTooltip:
+        'Only tools from MCP servers currently allowed in Extensions are shown here.',
+      skillToolsScopeTooltip:
+        'Skill tools are available when LangBot skill service and the Box sandbox backend are ready. They let the agent activate or register skills.',
+      selectTools: 'Select tools',
+      resourcesTitle: 'Resources',
+      resourcesDescription:
+        'Select MCP resources and knowledge bases available to this Local Agent.',
+      knowledgeBases: 'Knowledge bases',
+      mcpResources: 'MCP resources',
+      mcpResourcesScopeTooltip:
+        'Only resources exposed by MCP servers currently allowed in Extensions are shown here.',
+      enableMCPResourceRead: 'Allow model to read MCP resources',
+      mcpResourceReadTooltip:
+        'When disabled, selected MCP resources are not injected into model context.',
+      noMCPResourcesAvailable: 'No MCP resources available',
+      selectKnowledgeBases: 'Select knowledge bases',
     },
     debugDialog: {
       title: 'Pipeline Chat',
@@ -1241,6 +1335,20 @@ const enUS = {
       level: 'Level',
       runner: 'Runner',
       viewConversation: 'View Conversation',
+      turns: '{{count}} conversation turns',
+      userMessage: 'User',
+      noUserMessage: 'No user input recorded',
+      assistantMessage: 'Assistant',
+      assistantMessageCount: 'Assistant +{{count}}',
+      noAssistantMessage: 'No assistant reply recorded',
+      messageCount: 'Messages',
+      conversationTrace: 'Conversation Trace',
+      noLlmCalls: 'No model calls recorded',
+      roles: {
+        user: 'User',
+        assistant: 'Assistant',
+        message: 'Message',
+      },
     },
     llmCalls: {
       title: 'LLM Calls',
@@ -1254,6 +1362,15 @@ const enUS = {
       totalTokens: 'Total Tokens',
       avgDuration: 'Avg Duration',
       calls: 'Calls',
+    },
+    toolCalls: {
+      title: 'Tool Calls',
+      totalCalls: 'Calls',
+      duration: 'Tool Duration',
+      errorCalls: 'Failed Calls',
+      arguments: 'Arguments',
+      result: 'Result',
+      noToolCalls: 'No tool calls recorded',
     },
     tokens: {
       totalTokens: 'Total Tokens',
@@ -1340,6 +1457,22 @@ const enUS = {
       inaccurateReasons: 'Inaccurate Reasons',
       platform: 'Platform',
       exportFeedback: 'Export Feedback',
+      description:
+        'Tell us what went wrong or what could be better. Instance UUID and login account are included for diagnosis.',
+      placeholder: 'Describe your suggestion, issue, or reproduction steps...',
+      attachImage: 'Add image',
+      screenshot: 'Screenshot',
+      submit: 'Submit feedback',
+      privacyHint:
+        'Do not include secrets, passwords, or private chat content.',
+      contentRequired: 'Please enter feedback first',
+      imageOnly: 'Only image attachments are supported',
+      imageTooLarge: 'Each image must be under 1MB',
+      tooManyImages: 'You can attach up to 3 images',
+      screenshotFailed: 'Screenshot failed. Try pasting or uploading an image.',
+      submitSuccess: 'Feedback submitted. Thanks!',
+      submitFailed: 'Failed to submit feedback. Please try again later.',
+      removeImage: 'Remove image',
     },
     queries: {
       title: 'Queries',
@@ -1688,6 +1821,19 @@ const enUS = {
     retry: 'Retry',
     robotNameNote:
       'Robot Name cannot be obtained automatically. Please fill it in manually.',
+  },
+  qqofficial: {
+    createBinding: 'One-Click QR Binding for QQ Official Bot',
+    scanQRCode:
+      'Scan the QR code below with mobile QQ and authorize the binding in QQ Bot Assistant',
+    waitingForScan: 'Waiting for scan',
+    bindSuccess: 'Bound successfully! AppID and Secret have been filled in',
+    bindFailed: 'Binding failed',
+    connecting: 'Connecting to QQ service...',
+    retry: 'Retry',
+    tokenNote:
+      'The Token field is not used by the current adapter — you can leave it blank.',
+    boundBy: 'Bound by QQ user {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Select a plugin page from the sidebar',

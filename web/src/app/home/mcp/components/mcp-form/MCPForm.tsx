@@ -41,14 +41,16 @@ import {
 } from '@/components/ui/card';
 import { httpClient } from '@/app/infra/http/HttpClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MCPLogs from '@/app/home/mcp/components/mcp-form/MCPLogs';
 import MCPReadme from '@/app/home/mcp/components/mcp-form/MCPReadme';
 import {
   MCPServerRuntimeInfo,
   MCPTool,
+  MCPResource,
+  MCPResourceContent,
   MCPServer,
   MCPSessionStatus,
-  MCPServerExtraArgsSSE,
-  MCPServerExtraArgsHttp,
+  MCPServerExtraArgsRemote,
   MCPServerExtraArgsStdio,
 } from '@/app/infra/entities/api';
 import { CustomApiError } from '@/app/infra/entities/common';
@@ -245,21 +247,132 @@ function ToolsList({ tools, t }: { tools: MCPTool[]; t: TFunction }) {
   );
 }
 
-function RuntimePanel({
-  isEditMode,
-  mcpTesting,
-  runtimeInfo,
+function ResourcesList({
+  resources,
+  serverName,
   t,
 }: {
-  isEditMode: boolean;
+  resources: MCPResource[];
+  serverName: string;
+  t: (key: string) => string;
+}) {
+  const [expandedUri, setExpandedUri] = React.useState<string | null>(null);
+  const [resourceContent, setResourceContent] =
+    React.useState<MCPResourceContent | null>(null);
+  const [loadingContent, setLoadingContent] = React.useState(false);
+
+  const handleToggleResource = async (uri: string) => {
+    if (expandedUri === uri) {
+      setExpandedUri(null);
+      setResourceContent(null);
+      return;
+    }
+
+    setExpandedUri(uri);
+    setResourceContent(null);
+    setLoadingContent(true);
+
+    try {
+      const resp = await httpClient.readMCPServerResource(
+        serverName,
+        uri,
+        65536,
+      );
+      if (resp.contents && resp.contents.length > 0) {
+        setResourceContent(resp.contents[0]);
+      }
+    } catch {
+      setResourceContent(null);
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 pb-6">
+      {resources.map((resource, index) => (
+        <Card key={index} className="py-3 shadow-none">
+          <CardHeader
+            className="cursor-pointer"
+            onClick={() => handleToggleResource(resource.uri)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">{resource.name}</CardTitle>
+              {resource.mime_type && (
+                <span className="text-xs text-muted-foreground font-mono">
+                  {resource.mime_type}
+                </span>
+              )}
+            </div>
+            {resource.description && (
+              <CardDescription className="text-xs">
+                {resource.description}
+              </CardDescription>
+            )}
+            <div className="text-xs text-muted-foreground font-mono break-all">
+              {resource.uri}
+            </div>
+          </CardHeader>
+          {expandedUri === resource.uri && (
+            <CardContent>
+              {loadingContent ? (
+                <div className="text-xs text-muted-foreground">
+                  {t('mcp.loading')}
+                </div>
+              ) : resourceContent?.type === 'text' && resourceContent.text ? (
+                <div className="space-y-2">
+                  <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-[200px] whitespace-pre-wrap break-all">
+                    {resourceContent.text}
+                  </pre>
+                  {resourceContent.truncated && (
+                    <div className="text-xs text-muted-foreground">
+                      {t('mcp.resourceTruncated')}
+                    </div>
+                  )}
+                </div>
+              ) : resourceContent?.type === 'blob' ? (
+                <div className="text-xs text-muted-foreground">
+                  {resourceContent.binary_omitted
+                    ? t('mcp.resourceBinaryOmitted')
+                    : t('mcp.resourceBinaryContent')}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  {t('mcp.resourceReadFailed')}
+                </div>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+type RuntimePanelContent = 'all' | 'tools' | 'resources';
+
+function RuntimePanel({
+  mcpTesting,
+  runtimeInfo,
+  serverName,
+  content = 'all',
+  t,
+}: {
   mcpTesting: boolean;
   runtimeInfo: MCPServerRuntimeInfo | null;
+  serverName: string;
+  content?: RuntimePanelContent;
   t: TFunction;
 }) {
-  if (!isEditMode || !runtimeInfo) {
+  // Show tools whenever we have runtime info — either an edit-mode server or a
+  // create-mode test result captured from the transient session. Only fall back
+  // to the placeholder when there is genuinely nothing to show.
+  if (!runtimeInfo) {
     return (
       <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-        {t('mcp.noToolsFound')}
+        {content === 'resources'
+          ? t('mcp.noResourcesFound')
+          : t('mcp.noToolsFound')}
       </div>
     );
   }
@@ -267,6 +380,15 @@ function RuntimePanel({
   const isConnected =
     !mcpTesting && runtimeInfo.status === MCPSessionStatus.CONNECTED;
   const tools = runtimeInfo.tools || [];
+  const resources = runtimeInfo.resources || [];
+  const showTools = content === 'all' || content === 'tools';
+  const showResources = content === 'all' || content === 'resources';
+  const empty =
+    content === 'tools'
+      ? tools.length === 0
+      : content === 'resources'
+        ? resources.length === 0
+        : tools.length === 0 && resources.length === 0;
 
   return (
     <section className="space-y-4">
@@ -276,11 +398,26 @@ function RuntimePanel({
         </div>
       )}
 
-      {isConnected && tools.length > 0 && <ToolsList tools={tools} t={t} />}
+      {isConnected && showTools && tools.length > 0 && (
+        <ToolsList tools={tools} t={t} />
+      )}
 
-      {isConnected && tools.length === 0 && (
+      {isConnected && showResources && resources.length > 0 && (
+        <div className="space-y-2">
+          {content === 'all' && (
+            <div className="text-sm font-medium">
+              {t('mcp.resourceCount', { count: resources.length })}
+            </div>
+          )}
+          <ResourcesList resources={resources} serverName={serverName} t={t} />
+        </div>
+      )}
+
+      {isConnected && empty && (
         <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-          {t('mcp.noToolsFound')}
+          {content === 'resources'
+            ? t('mcp.noResourcesFound')
+            : t('mcp.noToolsFound')}
         </div>
       )}
     </section>
@@ -293,7 +430,7 @@ const getFormSchema = (t: TFunction) =>
       name: z
         .string({ required_error: t('mcp.nameRequired') })
         .min(1, { message: t('mcp.nameRequired') }),
-      mode: z.enum(['sse', 'stdio', 'http']),
+      mode: z.enum(['stdio', 'remote']),
       timeout: z
         .number({ invalid_type_error: t('mcp.timeoutMustBeNumber') })
         .positive({ message: t('mcp.timeoutMustBePositive') })
@@ -316,7 +453,7 @@ const getFormSchema = (t: TFunction) =>
         .optional(),
     })
     .superRefine((data, ctx) => {
-      if (data.mode === 'sse' || data.mode === 'http') {
+      if (data.mode === 'remote') {
         if (!data.url || data.url.length === 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -351,6 +488,7 @@ interface MCPFormProps {
   onDirtyChange?: (dirty: boolean) => void;
   onTestingChange?: (testing: boolean) => void;
   onRuntimeInfoChange?: (runtimeInfo: MCPServerRuntimeInfo | null) => void;
+  onPersistedTestComplete?: (serverName: string) => void | Promise<void>;
   /** Reported when the form cannot be saved because the current mode is
    * ``stdio`` and the Box sandbox is disabled/unavailable. Parents that
    * render the Save button outside this component should disable it. */
@@ -375,6 +513,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     onDirtyChange,
     onTestingChange,
     onRuntimeInfoChange,
+    onPersistedTestComplete,
     onSaveBlockedChange,
     layout = 'stacked',
     sideHeader,
@@ -391,7 +530,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     resolver: zodResolver(formSchema) as unknown as Resolver<FormValues>,
     defaultValues: {
       name: '',
-      mode: 'sse',
+      mode: 'remote',
       url: '',
       command: '',
       args: [],
@@ -465,7 +604,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     } else {
       form.reset({
         name: '',
-        mode: 'sse',
+        mode: 'remote',
         url: '',
         command: '',
         args: [],
@@ -535,9 +674,15 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
       const resp = await httpClient.getMCPServer(serverName);
       const server = resp.server ?? resp;
 
+      // Transport selection collapsed to two modes: 'stdio' (local) and
+      // 'remote' (URL, auto-detected transport). Servers persisted under the
+      // legacy 'sse'/'http' modes are surfaced as 'remote' so they remain
+      // editable; saving rewrites them to 'remote'.
+      const isRemote = server.mode !== 'stdio';
+
       const formValues: FormValues = {
         name: server.name.replace(/__/g, '/'),
-        mode: server.mode,
+        mode: isRemote ? 'remote' : 'stdio',
         url: '',
         command: '',
         args: [],
@@ -553,12 +698,10 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
       }[] = [];
       let newStdioArgs: { value: string }[] = [];
 
-      if (server.mode === 'sse' || server.mode === 'http') {
+      if (isRemote) {
         formValues.url = server.extra_args.url;
-        formValues.timeout = server.extra_args.timeout;
-
-        if (server.mode === 'sse') {
-          formValues.ssereadtimeout = server.extra_args.ssereadtimeout;
+        if (typeof server.extra_args.timeout === 'number') {
+          formValues.timeout = server.extra_args.timeout;
         }
 
         if (server.extra_args.headers) {
@@ -571,7 +714,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
           );
           formValues.extra_args = newExtraArgs;
         }
-      } else if (server.mode === 'stdio') {
+      } else {
         formValues.command = server.extra_args.command;
         newStdioArgs = (server.extra_args.args || []).map((arg: string) => ({
           value: arg,
@@ -610,37 +753,25 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     }
     try {
       let serverConfig: MCPServer;
+      const serverName =
+        isEditMode && initServerName ? initServerName : value.name;
 
-      if (value.mode === 'sse' || value.mode === 'http') {
+      if (value.mode === 'remote') {
         const headers: Record<string, string> = {};
         value.extra_args?.forEach((arg) => {
           headers[arg.key] = String(arg.value);
         });
 
-        if (value.mode === 'sse') {
-          serverConfig = {
-            name: value.name,
-            mode: 'sse',
-            enable: true,
-            extra_args: {
-              url: value.url!,
-              headers,
-              timeout: value.timeout,
-              ssereadtimeout: value.ssereadtimeout,
-            },
-          };
-        } else {
-          serverConfig = {
-            name: value.name,
-            mode: 'http',
-            enable: true,
-            extra_args: {
-              url: value.url!,
-              headers,
-              timeout: value.timeout,
-            },
-          };
-        }
+        serverConfig = {
+          name: serverName,
+          mode: 'remote',
+          enable: true,
+          extra_args: {
+            url: value.url!,
+            headers,
+            timeout: value.timeout,
+          },
+        };
       } else {
         const env: Record<string, string> = {};
         value.extra_args?.forEach((arg) => {
@@ -648,7 +779,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         });
 
         serverConfig = {
-          name: value.name,
+          name: serverName,
           mode: 'stdio',
           enable: true,
           extra_args: {
@@ -692,23 +823,15 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
       // `uvx` with no package (exit 2 / "Connection closed", no detail).
       // The form values are kept in sync on every edit and on load, so they
       // are always current.
+      const serverName =
+        isEditMode && initServerName ? initServerName : form.getValues('name');
+      const shouldTestPersistedServer =
+        isEditMode && !!initServerName && !form.formState.isDirty;
       const formExtraArgs = form.getValues('extra_args') ?? [];
       const formStdioArgs = form.getValues('args') ?? [];
-      let extraArgsData:
-        | MCPServerExtraArgsSSE
-        | MCPServerExtraArgsHttp
-        | MCPServerExtraArgsStdio;
+      let extraArgsData: MCPServerExtraArgsRemote | MCPServerExtraArgsStdio;
 
-      if (mode === 'sse') {
-        extraArgsData = {
-          url: form.getValues('url')!,
-          timeout: form.getValues('timeout'),
-          headers: Object.fromEntries(
-            formExtraArgs.map((arg) => [arg.key, arg.value]),
-          ),
-          ssereadtimeout: form.getValues('ssereadtimeout'),
-        };
-      } else if (mode === 'http') {
+      if (mode === 'remote') {
         extraArgsData = {
           url: form.getValues('url')!,
           timeout: form.getValues('timeout'),
@@ -726,12 +849,20 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         };
       }
 
-      const { task_id } = await httpClient.testMCPServer('_', {
-        name: form.getValues('name'),
-        mode,
-        enable: true,
-        extra_args: extraArgsData,
-      } as MCPServer);
+      const testTarget = shouldTestPersistedServer ? serverName : '_';
+      const testPayload = shouldTestPersistedServer
+        ? {}
+        : ({
+            name: serverName,
+            mode,
+            enable: true,
+            extra_args: extraArgsData,
+          } as MCPServer);
+
+      const { task_id } = await httpClient.testMCPServer(
+        testTarget,
+        testPayload,
+      );
 
       if (!task_id) {
         throw new Error(t('mcp.noTaskId'));
@@ -754,10 +885,27 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                 error_message: errorMsg,
                 tool_count: 0,
                 tools: [],
+                resource_count: 0,
+                resources: [],
               });
+              if (shouldTestPersistedServer) {
+                await onPersistedTestComplete?.(serverName);
+              }
             } else {
-              if (isEditMode) {
-                await loadServerForEdit(form.getValues('name'));
+              if (shouldTestPersistedServer) {
+                await loadServerForEdit(serverName);
+                await onPersistedTestComplete?.(serverName);
+              } else {
+                // Transient tests have no persisted server to reload tools from.
+                // The backend stashes the discovered runtime info (status +
+                // tools) in the task metadata before tearing the transient
+                // session down — surface it so a successful test
+                // shows the tool list instead of "no tools found".
+                const runtimeInfoFromTest = taskResp.task_context?.metadata
+                  ?.runtime_info as MCPServerRuntimeInfo | undefined;
+                if (runtimeInfoFromTest) {
+                  setRuntimeInfo(runtimeInfoFromTest);
+                }
               }
               toast.success(t('mcp.testSuccess'));
             }
@@ -871,18 +1019,22 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="http">{t('mcp.http')}</SelectItem>
+                  <SelectItem value="remote">{t('mcp.remote')}</SelectItem>
                   <SelectItem value="stdio" disabled={!boxAvailable}>
-                    {t('mcp.stdio')}
+                    {t('mcp.local')}
                     {!boxAvailable && (
                       <span className="ml-2 text-xs text-muted-foreground">
                         ({t('mcp.boxRequired')})
                       </span>
                     )}
                   </SelectItem>
-                  <SelectItem value="sse">{t('mcp.sse')}</SelectItem>
                 </SelectContent>
               </Select>
+              <FormDescription>
+                {watchMode === 'stdio'
+                  ? t('mcp.localModeDescription')
+                  : t('mcp.remoteModeDescription')}
+              </FormDescription>
               {stdioBlockedByBox && (
                 <BoxUnavailableNotice
                   hint={boxHint}
@@ -895,7 +1047,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
           )}
         />
 
-        {(watchMode === 'sse' || watchMode === 'http') && (
+        {watchMode === 'remote' && (
           <>
             <FormField
               control={form.control}
@@ -907,8 +1059,14 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                     <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input
+                      {...field}
+                      placeholder={t('mcp.remoteUrlPlaceholder')}
+                    />
                   </FormControl>
+                  <FormDescription>
+                    {t('mcp.remoteUrlDescription')}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -932,27 +1090,6 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                 </FormItem>
               )}
             />
-
-            {watchMode === 'sse' && (
-              <FormField
-                control={form.control}
-                name="ssereadtimeout"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('mcp.sseTimeout')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder={t('mcp.sseTimeoutDescription')}
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
           </>
         )}
 
@@ -1006,9 +1143,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
 
         <FormItem>
           <FormLabel>
-            {watchMode === 'sse' || watchMode === 'http'
-              ? t('mcp.headers')
-              : t('mcp.env')}
+            {watchMode === 'remote' ? t('mcp.headers') : t('mcp.env')}
           </FormLabel>
           <div className="space-y-2">
             {extraArgs.map((arg, index) => (
@@ -1037,9 +1172,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
               </div>
             ))}
             <Button type="button" variant="outline" onClick={addExtraArg}>
-              {watchMode === 'sse' || watchMode === 'http'
-                ? t('mcp.addHeader')
-                : t('mcp.addEnvVar')}
+              {watchMode === 'remote' ? t('mcp.addHeader') : t('mcp.addEnvVar')}
             </Button>
           </div>
           <FormDescription>
@@ -1051,26 +1184,33 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     </Card>
   );
 
+  const persistedServerName =
+    isEditMode && initServerName ? initServerName : form.getValues('name');
+
   const runtimePanel = (
     <RuntimePanel
-      isEditMode={isEditMode}
       mcpTesting={mcpTesting}
       runtimeInfo={runtimeInfo}
+      serverName={persistedServerName}
       t={t}
     />
   );
 
   // In edit mode the right side shows a tablist switching between the live
-  // Tools list and the Docs (README captured from LangBot Space at install).
+  // Tools/resources lists and the Docs (README captured from LangBot Space at install).
   // Create mode has neither, so it falls back to the bare runtime placeholder.
-  // The tool count lives in the tab label (only when connected); the panel
+  // Counts live in the tab labels (only when connected); the panel
   // body itself no longer repeats a title/subtitle.
-  const toolsConnected =
+  const runtimeConnected =
     !mcpTesting && runtimeInfo?.status === MCPSessionStatus.CONNECTED;
   const toolsCount = runtimeInfo?.tools?.length ?? 0;
-  const toolsTabLabel = toolsConnected
+  const resourcesCount = runtimeInfo?.resources?.length ?? 0;
+  const toolsTabLabel = runtimeConnected
     ? `${t('mcp.tabTools')} ${toolsCount}`
     : t('mcp.tabTools');
+  const resourcesTabLabel = runtimeConnected
+    ? `${t('mcp.tabResources')} ${resourcesCount}`
+    : t('mcp.tabResources');
 
   const detailPanel = isEditMode ? (
     <Tabs defaultValue="tools" className="flex h-full min-h-0 flex-col">
@@ -1081,6 +1221,12 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         <TabsTrigger value="tools" className="flex-none px-4">
           {toolsTabLabel}
         </TabsTrigger>
+        <TabsTrigger value="resources" className="flex-none px-4">
+          {resourcesTabLabel}
+        </TabsTrigger>
+        <TabsTrigger value="logs" className="flex-none px-4">
+          {t('mcp.tabLogs')}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="docs" className="mt-4 min-h-0 flex-1 overflow-y-auto">
         <MCPReadme readme={readme} />
@@ -1089,7 +1235,28 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         value="tools"
         className="mt-4 min-h-0 flex-1 overflow-y-auto"
       >
-        {runtimePanel}
+        <RuntimePanel
+          mcpTesting={mcpTesting}
+          runtimeInfo={runtimeInfo}
+          serverName={persistedServerName}
+          content="tools"
+          t={t}
+        />
+      </TabsContent>
+      <TabsContent
+        value="resources"
+        className="mt-4 min-h-0 flex-1 overflow-y-auto"
+      >
+        <RuntimePanel
+          mcpTesting={mcpTesting}
+          runtimeInfo={runtimeInfo}
+          serverName={persistedServerName}
+          content="resources"
+          t={t}
+        />
+      </TabsContent>
+      <TabsContent value="logs" className="mt-4 min-h-0 flex-1 overflow-y-auto">
+        {persistedServerName && <MCPLogs serverName={persistedServerName} />}
       </TabsContent>
     </Tabs>
   ) : (

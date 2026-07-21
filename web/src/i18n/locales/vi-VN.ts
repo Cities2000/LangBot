@@ -141,6 +141,16 @@ const viVN = {
     noApiKeys: 'Chưa cấu hình khóa API nào',
     apiKeyHint:
       'Khóa API cho phép các hệ thống bên ngoài truy cập API dịch vụ LangBot',
+    mcpTab: 'MCP',
+    mcpHint:
+      'LangBot exposes an MCP (Model Context Protocol) server so AI agents can manage this instance. It uses the same API keys as the Service API.',
+    mcpEndpoint: 'MCP Endpoint',
+    mcpAuthTitle: 'Authentication',
+    mcpAuthDesc:
+      'Authenticate with any API key from the API Keys tab, sent as a header:',
+    mcpGlobalKeyNote:
+      'You can also set a global API key in config.yaml (api.global_api_key) to use without logging in.',
+    mcpClientConfigTitle: 'Example MCP client config',
     webhooks: 'Webhooks',
     createWebhook: 'Tạo Webhook',
     webhookName: 'Tên Webhook',
@@ -440,6 +450,26 @@ const viVN = {
       userMessage: 'Người dùng',
       botMessage: 'Trợ lý',
     },
+    admins: {
+      title: 'Admins',
+      description:
+        "Launchers (person/group IDs) that have admin privilege for this bot's commands",
+      addAdmin: 'Add Admin',
+      launcherType: 'Type',
+      launcherId: 'ID',
+      typePerson: 'Person',
+      typeGroup: 'Group',
+      placeholderId: 'User or group ID',
+      addSuccess: 'Admin added',
+      addError: 'Failed to add admin: ',
+      deleteSuccess: 'Admin removed',
+      deleteError: 'Failed to remove admin: ',
+      noAdmins: 'No admins configured',
+      setAdminTitle: 'Set as admin',
+      removeAdminTitle: 'Remove admin',
+      adminBadge: 'Admin',
+      configureAdmins: 'Manage Admins',
+    },
   },
   plugins: {
     title: 'Tiện ích mở rộng',
@@ -589,8 +619,7 @@ const viVN = {
     tabLogs: 'Nhật ký',
     logsLevelAll: 'Tất cả cấp độ',
     logsRefresh: 'Làm mới',
-    logsAutoRefreshOn: 'Tự động làm mới: Bật',
-    logsAutoRefreshOff: 'Tự động làm mới: Tắt',
+    logsAutoRefresh: 'Tự động làm mới',
     logsEmpty:
       'Chưa có nhật ký. Nhật ký do plugin in qua logger sẽ hiển thị ở đây.',
     fileUpload: {
@@ -669,6 +698,10 @@ const viVN = {
     installFailed: 'Cài đặt thất bại, vui lòng thử lại sau',
     loadFailed: 'Lấy danh sách plugin thất bại, vui lòng thử lại sau',
     noDescription: 'Không có mô tả',
+    recommendation: {
+      pause: 'Tạm dừng tự động xoay',
+      resume: 'Tiếp tục tự động xoay',
+    },
     notFound: 'Không tìm thấy thông tin plugin',
     sortBy: 'Sắp xếp theo',
     sort: {
@@ -748,6 +781,15 @@ const viVN = {
     stdio: 'Chế độ Stdio',
     sse: 'Chế độ SSE',
     http: 'Chế độ HTTP',
+    local: 'Cục bộ (Stdio)',
+    remote: 'Từ xa',
+    localModeDescription:
+      'Chạy máy chủ MCP cục bộ dưới dạng tiến trình con bên trong sandbox Box.',
+    remoteModeDescription:
+      'Kết nối đến máy chủ MCP từ xa bằng URL. Phương thức truyền tải (Streamable HTTP hoặc SSE) được phát hiện tự động.',
+    remoteUrlPlaceholder: 'https://example.com/mcp',
+    remoteUrlDescription:
+      'Dán URL của máy chủ MCP. Hỗ trợ cả endpoint Streamable HTTP và SSE cũ.',
     noServerInstalled: 'Chưa cấu hình máy chủ MCP nào',
     serverNameRequired: 'Tên máy chủ không được để trống',
     commandRequired: 'Lệnh không được để trống',
@@ -786,8 +828,16 @@ const viVN = {
     toolsFound: 'công cụ',
     unknownError: 'Lỗi không xác định',
     noToolsFound: 'Không tìm thấy công cụ nào',
+    noResourcesFound: 'Không tìm thấy tài nguyên nào',
     tabTools: 'Công cụ',
+    tabResources: 'Tài nguyên',
     tabDocs: 'Tài liệu',
+    tabLogs: 'Nhật ký',
+    logsLevelAll: 'Tất cả cấp độ',
+    logsRefresh: 'Làm mới',
+    logsAutoRefresh: 'Tự động làm mới',
+    logsEmpty:
+      'Chưa có nhật ký. Nhật ký chạy của MCP Server sẽ hiển thị ở đây.',
     noReadme: 'Không có tài liệu',
     parseResultFailed: 'Phân tích kết quả kiểm tra thất bại',
     noResultReturned: 'Kiểm tra không trả về kết quả',
@@ -806,6 +856,12 @@ const viVN = {
     toolCount: 'Công cụ: {{count}}',
     parameterCount: 'Tham số: {{count}}',
     noParameters: 'Không có tham số',
+    resourceCount: 'Tài nguyên: {{count}}',
+    resourceBinaryContent: 'Nội dung nhị phân (không thể hiển thị)',
+    resourceBinaryOmitted:
+      'Nội dung nhị phân đã bị lược bỏ theo chính sách an toàn tài nguyên',
+    resourceTruncated: 'Nội dung đã bị cắt theo giới hạn byte hoặc token',
+    resourceReadFailed: 'Không thể đọc nội dung tài nguyên',
     statusConnected: 'Đã kết nối',
     statusDisconnected: 'Đã ngắt kết nối',
     statusError: 'Lỗi kết nối',
@@ -895,9 +951,12 @@ const viVN = {
       selectPlugins: 'Chọn Plugin',
       pluginsTitle: 'Plugin',
       mcpServersTitle: 'Máy chủ MCP',
+      mcpResourcesTitle: 'Tài nguyên MCP',
       noMCPServersSelected: 'Chưa chọn máy chủ MCP nào',
+      noMCPResourcesAvailable: 'Không có tài nguyên MCP nào',
       addMCPServer: 'Thêm máy chủ MCP',
       selectMCPServers: 'Chọn máy chủ MCP',
+      enableMCPResourceAgentRead: 'Cho phép mô hình đọc',
       toolCount: '{{count}} công cụ',
       noPluginsInstalled: 'Chưa cài đặt plugin nào',
       noMCPServersConfigured: 'Chưa cấu hình máy chủ MCP nào',
@@ -913,6 +972,42 @@ const viVN = {
       addSkill: 'Thêm kỹ năng',
       selectSkills: 'Chọn kỹ năng',
       noSkillsAvailable: 'Không có kỹ năng khả dụng',
+      mcpServersScopeTooltip:
+        'Tại đây chỉ kiểm soát máy chủ MCP được liên kết với Pipeline. Công cụ và tài nguyên MCP cụ thể được chọn trong AI Feature > Local Agent.',
+      enableAllMCPServersTooltip:
+        'Khi bật, mọi máy chủ MCP đã cấu hình và bật sẽ trở thành ứng viên cho công cụ và tài nguyên MCP trong AI Feature.',
+    },
+    localAgent: {
+      toolsTitle: 'Công cụ',
+      toolsDescription:
+        'Chọn công cụ plugin, MCP và công cụ tích hợp sẵn cho Local Agent này.',
+      toolsScopeTooltip:
+        'Công cụ MCP chỉ đến từ máy chủ MCP đã liên kết trong Tiện ích mở rộng. Hãy liên kết máy chủ tại đó trước nếu muốn chọn thêm tại đây.',
+      enableAllTools: 'Bật tất cả công cụ',
+      allToolsEnabled: 'Tất cả công cụ khả dụng đã được bật',
+      noToolsSelected: 'Chưa chọn công cụ nào',
+      editTools: 'Sửa công cụ',
+      builtinTools: 'Công cụ tích hợp sẵn',
+      pluginTools: 'Công cụ plugin',
+      skillTools: 'Công cụ kỹ năng',
+      mcpTools: 'Công cụ MCP',
+      mcpToolsScopeTooltip:
+        'Tại đây chỉ hiển thị công cụ từ máy chủ MCP hiện được cho phép trong Tiện ích mở rộng.',
+      skillToolsScopeTooltip:
+        'Công cụ kỹ năng khả dụng khi dịch vụ kỹ năng LangBot và backend sandbox Box đã sẵn sàng. Chúng cho phép Agent kích hoạt hoặc đăng ký kỹ năng.',
+      selectTools: 'Chọn công cụ',
+      resourcesTitle: 'Tài nguyên',
+      resourcesDescription:
+        'Chọn tài nguyên MCP và kho tri thức cho Local Agent này.',
+      knowledgeBases: 'Kho tri thức',
+      mcpResources: 'Tài nguyên MCP',
+      mcpResourcesScopeTooltip:
+        'Tại đây chỉ hiển thị tài nguyên từ máy chủ MCP hiện được cho phép trong Tiện ích mở rộng.',
+      enableMCPResourceRead: 'Cho phép mô hình đọc tài nguyên MCP',
+      mcpResourceReadTooltip:
+        'Khi tắt, tài nguyên MCP đã chọn sẽ không được đưa vào ngữ cảnh mô hình.',
+      noMCPResourcesAvailable: 'Không có tài nguyên MCP nào',
+      selectKnowledgeBases: 'Chọn kho tri thức',
     },
     debugDialog: {
       title: 'Trò chuyện Pipeline',
@@ -1243,6 +1338,20 @@ const viVN = {
       level: 'Mức',
       runner: 'Trình chạy',
       viewConversation: 'Xem cuộc trò chuyện',
+      turns: '{{count}} lượt hội thoại',
+      userMessage: 'Người dùng',
+      noUserMessage: 'Chưa ghi nhận đầu vào người dùng',
+      assistantMessage: 'Trợ lý',
+      assistantMessageCount: 'Trợ lý +{{count}}',
+      noAssistantMessage: 'Chưa ghi nhận phản hồi của trợ lý',
+      messageCount: 'Số tin nhắn',
+      conversationTrace: 'Luồng hội thoại',
+      noLlmCalls: 'Chưa ghi nhận lệnh gọi mô hình',
+      roles: {
+        user: 'Người dùng',
+        assistant: 'Trợ lý',
+        message: 'Tin nhắn',
+      },
     },
     llmCalls: {
       title: 'Cuộc gọi LLM',
@@ -1256,6 +1365,15 @@ const viVN = {
       totalTokens: 'Tổng Token',
       avgDuration: 'Thời lượng trung bình',
       calls: 'Cuộc gọi',
+    },
+    toolCalls: {
+      title: 'Lượt gọi công cụ',
+      totalCalls: 'Lượt gọi',
+      duration: 'Thời lượng công cụ',
+      errorCalls: 'Lượt gọi thất bại',
+      arguments: 'Tham số',
+      result: 'Kết quả',
+      noToolCalls: 'Chưa ghi nhận lượt gọi công cụ',
     },
     tokens: {
       totalTokens: 'Tổng số Token',
@@ -1342,6 +1460,22 @@ const viVN = {
       inaccurateReasons: 'Lý do không chính xác',
       platform: 'Nền tảng',
       exportFeedback: 'Xuất phản hồi',
+      description:
+        'Tell us what went wrong or what could be better. Instance UUID and login account are included for diagnosis.',
+      placeholder: 'Describe your suggestion, issue, or reproduction steps...',
+      attachImage: 'Add image',
+      screenshot: 'Screenshot',
+      submit: 'Submit feedback',
+      privacyHint:
+        'Do not include secrets, passwords, or private chat content.',
+      contentRequired: 'Please enter feedback first',
+      imageOnly: 'Only image attachments are supported',
+      imageTooLarge: 'Each image must be under 1MB',
+      tooManyImages: 'You can attach up to 3 images',
+      screenshotFailed: 'Screenshot failed. Try pasting or uploading an image.',
+      submitSuccess: 'Feedback submitted. Thanks!',
+      submitFailed: 'Failed to submit feedback. Please try again later.',
+      removeImage: 'Remove image',
     },
     queries: {
       title: 'Truy vấn',
@@ -1566,6 +1700,19 @@ const viVN = {
     connecting: 'Đang kết nối tới dịch vụ WeCom...',
     retry: 'Thử lại',
     robotNameNote: 'Không thể tự động lấy tên bot. Vui lòng điền thủ công.',
+  },
+  qqofficial: {
+    createBinding: 'Liên kết bot QQ Official bằng QR một chạm',
+    scanQRCode:
+      'Quét mã QR bên dưới bằng QQ trên di động và xác nhận liên kết trong «QQ Bot Assistant»',
+    waitingForScan: 'Đang chờ quét',
+    bindSuccess: 'Liên kết thành công! AppID và Secret đã được điền tự động',
+    bindFailed: 'Liên kết thất bại',
+    connecting: 'Đang kết nối tới dịch vụ QQ...',
+    retry: 'Thử lại',
+    tokenNote:
+      'Bộ chuyển đổi hiện tại không dùng trường Token; có thể để trống.',
+    boundBy: 'Được liên kết bởi người dùng QQ {{openid}}',
   },
   pluginPages: {
     selectFromSidebar: 'Chọn một trang plugin từ thanh bên',

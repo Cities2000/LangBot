@@ -26,6 +26,15 @@ from ..core import app
 from ..utils import constants
 
 
+class _RawAction:
+    def __init__(self, value: str):
+        self.value = value
+
+
+def _langbot_to_runtime_action(enum_name: str, fallback_value: str) -> Any:
+    return getattr(LangBotToRuntimeAction, enum_name, _RawAction(fallback_value))
+
+
 def _make_rag_error_response(error: Exception, error_type: str, **extra_context) -> handler.ActionResponse:
     """Create a clean error response for RAG operations.
 
@@ -514,6 +523,35 @@ class RuntimeConnectionHandler(handler.Handler):
             except Exception as e:
                 return _make_rag_error_response(e, 'EmbeddingError', embedding_model_uuid=embedding_model_uuid)
 
+        @self.action(PluginToRuntimeAction.INVOKE_RERANK)
+        async def invoke_rerank(data: dict[str, Any]) -> handler.ActionResponse:
+            rerank_model_uuid = data['rerank_model_uuid']
+            query = data['query']
+            documents = data['documents']
+            top_k = data.get('top_k')
+            extra_args = data.get('extra_args', {})
+
+            try:
+                rerank_model = await self.ap.model_mgr.get_rerank_model_by_uuid(rerank_model_uuid)
+            except ValueError:
+                return handler.ActionResponse.error(
+                    message=f'Rerank model with rerank_model_uuid {rerank_model_uuid} not found',
+                )
+
+            try:
+                scores = await rerank_model.provider.invoke_rerank(
+                    model=rerank_model,
+                    query=query,
+                    documents=documents[:64],
+                    extra_args=extra_args,
+                )
+                scored = sorted(scores, key=lambda x: x.get('relevance_score', 0), reverse=True)
+                if top_k is not None:
+                    scored = scored[: int(top_k)]
+                return handler.ActionResponse.success(data={'results': scored})
+            except Exception as e:
+                return _make_rag_error_response(e, 'RerankError', rerank_model_uuid=rerank_model_uuid)
+
         @self.action(PluginToRuntimeAction.VECTOR_UPSERT)
         async def vector_upsert(data: dict[str, Any]) -> handler.ActionResponse:
             collection_id = data['collection_id']
@@ -893,6 +931,18 @@ class RuntimeConnectionHandler(handler.Handler):
         )
 
         return result
+
+    async def notify_plugin_diagnostic(self, diagnostic: dict[str, Any]) -> dict[str, Any]:
+        """Notify the plugin runtime about a best-effort plugin diagnostic.
+
+        This intentionally uses the raw protocol string instead of a SDK enum so
+        LangBot can keep running with older langbot-plugin versions.
+        """
+        return await self.call_action(
+            _langbot_to_runtime_action('PLUGIN_DIAGNOSTIC', 'plugin_diagnostic'),
+            diagnostic,
+            timeout=5,
+        )
 
     async def list_tools(self, include_plugins: list[str] | None = None) -> list[dict[str, Any]]:
         """List tools"""

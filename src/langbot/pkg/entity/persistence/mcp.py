@@ -9,7 +9,7 @@ class MCPServer(Base):
     uuid = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True, unique=True)
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     enable = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False, default=False)
-    mode = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)  # stdio, sse, http
+    mode = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)  # stdio, remote (legacy: sse, http)
     extra_args = sqlalchemy.Column(sqlalchemy.JSON, nullable=False, default={})
     # Markdown documentation captured from LangBot Space at install time so the
     # detail page can show docs even when the server is offline / has no tools.

@@ -90,6 +90,56 @@ class TestMCPServiceGetRuntimeInfo:
         assert result is None
 
 
+class TestMCPServiceResources:
+    """Tests for MCP resource helpers."""
+
+    async def test_get_resource_templates_delegates_to_loader(self):
+        ap = SimpleNamespace()
+        ap.tool_mgr = SimpleNamespace()
+        ap.tool_mgr.mcp_tool_loader = SimpleNamespace()
+        ap.tool_mgr.mcp_tool_loader.get_resource_templates = AsyncMock(
+            return_value=[{'uri_template': 'file:///{path}', 'name': 'files'}]
+        )
+
+        service = MCPService(ap)
+
+        result = await service.get_mcp_server_resource_templates('docs')
+
+        assert result == [{'uri_template': 'file:///{path}', 'name': 'files'}]
+        ap.tool_mgr.mcp_tool_loader.get_resource_templates.assert_awaited_once_with('docs')
+
+    async def test_read_resource_envelope_uses_ui_preview_source(self):
+        ap = SimpleNamespace()
+        ap.tool_mgr = SimpleNamespace()
+        ap.tool_mgr.mcp_tool_loader = SimpleNamespace()
+        ap.tool_mgr.mcp_tool_loader.read_resource_envelope = AsyncMock(
+            return_value={
+                'server_name': 'docs',
+                'uri': 'file:///README.md',
+                'contents': [],
+                'source': 'ui_preview',
+            }
+        )
+
+        service = MCPService(ap)
+
+        result = await service.read_mcp_server_resource_envelope(
+            'docs',
+            'file:///README.md',
+            max_bytes=4096,
+            include_blob=True,
+        )
+
+        assert result['source'] == 'ui_preview'
+        ap.tool_mgr.mcp_tool_loader.read_resource_envelope.assert_awaited_once_with(
+            'docs',
+            'file:///README.md',
+            include_blob=True,
+            source='ui_preview',
+            max_bytes=4096,
+        )
+
+
 class TestMCPServiceGetMCPServers:
     """Tests for get_mcp_servers method."""
 
@@ -230,6 +280,25 @@ class TestMCPServiceCreateMCPServer:
         assert server_uuid is not None
         assert len(server_uuid) == 36  # UUID format
 
+    async def test_create_mcp_server_duplicate_name_raises(self):
+        """Rejects duplicate MCP server names."""
+        # Setup
+        ap = SimpleNamespace()
+        ap.persistence_mgr = SimpleNamespace()
+        ap.instance_config = SimpleNamespace()
+        ap.instance_config.data = {'system': {'limitation': {'max_extensions': -1}}}
+        ap.tool_mgr = None
+
+        existing_server = _create_mock_mcp_server(name='Existing Server')
+        ap.persistence_mgr.execute_async = AsyncMock(return_value=_create_mock_result(first_item=existing_server))
+        ap.persistence_mgr.serialize_model = Mock(return_value={})
+
+        service = MCPService(ap)
+
+        # Execute & Verify
+        with pytest.raises(ValueError, match='MCP server already exists: Existing Server'):
+            await service.create_mcp_server({'name': 'Existing Server'})
+
     async def test_create_mcp_server_loads_server(self):
         """Loads server into tool_mgr when enabled."""
         # Setup
@@ -251,7 +320,7 @@ class TestMCPServiceCreateMCPServer:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                return _create_mock_result([])  # Empty list for limit check
+                return _create_mock_result([])  # Empty result for duplicate-name check
             elif call_count == 2:
                 return Mock()  # Insert
             return _create_mock_result(first_item=server_entity)  # Select created

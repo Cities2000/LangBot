@@ -180,7 +180,7 @@ class TestMCPServerBoxConfig:
         assert cfg.host_path is None
         assert cfg.host_path_mode == 'ro'
         assert cfg.env == {}
-        assert cfg.startup_timeout_sec == 120
+        assert cfg.startup_timeout_sec == 300
         assert cfg.cpus is None
         assert cfg.memory_mb is None
         assert cfg.pids_limit is None
@@ -417,7 +417,7 @@ class TestBuildBoxSessionPayload:
         payload = s._build_box_session_payload('session-123')
         assert payload['image'] == 'node:20'
         assert payload['cpus'] == 2.0
-        assert payload['memory_mb'] == 1024
+        assert payload["memory_mb"] == 1024
         assert payload['pids_limit'] == 256
 
     def test_none_fields_excluded(self, mcp_module):
@@ -494,6 +494,84 @@ class TestBuildBoxProcessPayload:
         assert payload['args'] == ['/opt/other/server.py', '--flag']
 
 
+# ── Python Workspace Preparation ────────────────────────────────────
+
+
+class TestPythonWorkspacePreparation:
+    def test_requirements_workspace_uses_venv_bootstrap(self, mcp_module, tmp_path):
+        host_path = tmp_path / 'mcp-source'
+        host_path.mkdir()
+        (host_path / 'requirements.txt').write_text('mcp==1.26.0\n', encoding='utf-8')
+
+        command = mcp_module.BoxStdioSessionRuntime.detect_install_command(
+            str(host_path),
+            '/workspace/.mcp/u1/workspace',
+        )
+
+        assert command is not None
+        assert '_LB_SYSTEM_PYTHON="$(command -v python3 || command -v python || true)"' in command
+        assert '"$_LB_SYSTEM_PYTHON" -m venv "$_LB_VENV_DIR"' in command
+        assert 'python -m pip install -r "/workspace/.mcp/u1/workspace/requirements.txt"' in command
+        assert 'pip install --no-cache-dir -r' not in command
+
+    def test_staging_refresh_removes_stale_source_files_but_preserves_runtime_dirs(self, mcp_module, tmp_path):
+        source = tmp_path / 'source'
+        source.mkdir()
+        (source / 'server.py').write_text('print("new")\n', encoding='utf-8')
+        (source / 'requirements.txt').write_text('mcp==1.26.0\n', encoding='utf-8')
+        (source / '.env').write_text('TOKEN=new\n', encoding='utf-8')
+
+        process_root = tmp_path / 'shared' / '.mcp' / 'u1'
+        workspace = process_root / 'workspace'
+        (workspace / '.venv' / 'bin').mkdir(parents=True)
+        (workspace / '.venv' / 'bin' / 'python').write_text('', encoding='utf-8')
+        (workspace / '.langbot').mkdir()
+        (workspace / '.langbot' / 'python-env.lock').mkdir()
+        (workspace / '.env').write_text('TOKEN=old\n', encoding='utf-8')
+        (workspace / 'server.py').write_text('print("old")\n', encoding='utf-8')
+        (workspace / 'removed.py').write_text('stale\n', encoding='utf-8')
+        (workspace / 'removed_dir').mkdir()
+        (workspace / 'removed_dir' / 'old.txt').write_text('stale\n', encoding='utf-8')
+
+        mcp_module.BoxStdioSessionRuntime._copy_workspace_tree(str(source), str(process_root), str(workspace))
+
+        assert (workspace / 'server.py').read_text(encoding='utf-8') == 'print("new")\n'
+        assert (workspace / 'requirements.txt').read_text(encoding='utf-8') == 'mcp==1.26.0\n'
+        assert (workspace / '.env').read_text(encoding='utf-8') == 'TOKEN=new\n'
+        assert not (workspace / 'removed.py').exists()
+        assert not (workspace / 'removed_dir').exists()
+        assert (workspace / '.venv' / 'bin' / 'python').exists()
+        assert (workspace / '.langbot' / 'python-env.lock').is_dir()
+
+    def test_staging_refresh_ignores_unlink_race(self, mcp_module, tmp_path, monkeypatch):
+        mcp_stdio_module = sys.modules['langbot.pkg.provider.tools.loaders.mcp_stdio']
+
+        source = tmp_path / 'source'
+        source.mkdir()
+        (source / 'server.py').write_text('print("new")\n', encoding='utf-8')
+
+        process_root = tmp_path / 'shared' / '.mcp' / 'u1'
+        workspace = process_root / 'workspace'
+        workspace.mkdir(parents=True)
+        stale_file = workspace / 'removed.py'
+        stale_file.write_text('stale\n', encoding='utf-8')
+
+        real_unlink = os.unlink
+
+        def unlink_with_race(path):
+            if os.fspath(path) == str(stale_file):
+                real_unlink(path)
+                raise FileNotFoundError(path)
+            real_unlink(path)
+
+        monkeypatch.setattr(mcp_stdio_module.os, 'unlink', unlink_with_race)
+
+        mcp_module.BoxStdioSessionRuntime._copy_workspace_tree(str(source), str(process_root), str(workspace))
+
+        assert not stale_file.exists()
+        assert (workspace / 'server.py').read_text(encoding='utf-8') == 'print("new")\n'
+
+
 # ── get_runtime_info_dict ───────────────────────────────────────────
 
 
@@ -561,10 +639,13 @@ class TestGetRuntimeInfoDict:
         assert info['box_session_id'] == 'mcp-shared'
         assert info['box_enabled'] is True
 
-    def test_transient_test_session_is_isolated_from_shared(self, mcp_module):
-        """A transient test session (config-page "test", no persisted UUID)
-        must NOT share the live "mcp-shared" Box session. Regression: a failing
-        test churned the shared session and tore down healthy live servers."""
+    def test_transient_test_shares_session_but_isolated_by_process(self, mcp_module):
+        """A transient config-page "test" now shares the same 'mcp-shared' Box
+        session as live servers (so a test reuses the running container / live
+        process instead of a cold per-test session bootstrap). Isolation is at
+        the PROCESS level: the test runs under its own process_id and only ever
+        stops that process_id, so it cannot disturb another server's live
+        process or the shared session itself."""
         ap = _make_ap()
         ap.box_service.available = True
         transient = _make_session(
@@ -592,10 +673,12 @@ class TestGetRuntimeInfoDict:
         )
         assert transient.is_transient is True
         assert live.is_transient is False
-        # Isolated session id for the test, shared for the live server.
-        assert transient._build_box_session_id() == 'mcp-test-gen-uuid-123'
+        # Both share ONE Box session ...
+        assert transient._build_box_session_id() == 'mcp-shared'
         assert live._build_box_session_id() == 'mcp-shared'
-        assert transient._build_box_session_id() != live._build_box_session_id()
+        assert transient._build_box_session_id() == live._build_box_session_id()
+        # ... but are isolated by distinct process_ids within that session.
+        assert transient._box_stdio_runtime.process_id != live._box_stdio_runtime.process_id
 
     def test_stdio_session_refuses_when_box_unavailable(self, mcp_module):
         """Policy: when Box is configured but unavailable (disabled in config
@@ -746,3 +829,129 @@ async def test_init_box_stdio_server_stages_host_path_in_shared_workspace(mcp_mo
     assert process_payload['command'] == 'python'
     assert process_payload['args'] == ['/workspace/.mcp/u1/workspace/server.py']
     assert process_payload['cwd'] == '/workspace/.mcp/u1/workspace'
+
+
+@pytest.mark.asyncio
+async def test_stdio_handshake_raises_coldstart_retry_while_process_alive(mcp_module, tmp_path, monkeypatch):
+    """During a slow (npx) cold start the handshake fails while the managed
+    process is still alive. initialize() must raise _ColdStartRetry (so the
+    outer lifecycle loop reuses the live process and retries without stopping it
+    or consuming the fatal budget), NOT a fatal error."""
+    from contextlib import asynccontextmanager
+
+    mcp_stdio_module = sys.modules['langbot.pkg.provider.tools.loaders.mcp_stdio']
+
+    class ColdClientSession:
+        def __init__(self, *_args):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def initialize(self):
+            # Process still cold-starting: handshake fails.
+            raise Exception('Connection closed')
+
+    @asynccontextmanager
+    async def fake_websocket_client(_url: str):
+        yield ('read-stream', 'write-stream')
+
+    monkeypatch.setattr(mcp_stdio_module, 'ClientSession', ColdClientSession)
+    monkeypatch.setattr(mcp_stdio_module, 'websocket_client', fake_websocket_client)
+    monkeypatch.setattr(mcp_stdio_module, '_HANDSHAKE_ATTEMPT_TIMEOUT_SEC', 1.0, raising=False)
+
+    ap = _make_ap()
+    ap.box_service.available = True
+    ap.box_service.create_session = AsyncMock(return_value={})
+    ap.box_service.start_managed_process = AsyncMock(return_value={})
+    ap.box_service.get_managed_process_websocket_url = Mock(return_value='ws://box/p')
+
+    session = _make_session(
+        mcp_module,
+        {
+            'name': 'slow',
+            'uuid': 'slow-uuid',
+            'mode': 'stdio',
+            'command': 'npx',
+            'args': ['-y', 'some-mcp'],
+        },
+        ap=ap,
+    )
+
+    # Process is NOT exited (still cold-starting) and not yet running for reuse.
+    async def _not_exited():
+        return False
+
+    session._box_stdio_runtime._managed_process_has_exited = _not_exited
+
+    async def _not_running():
+        return False
+
+    session._box_stdio_runtime._managed_process_is_running = _not_running
+
+    with pytest.raises(mcp_stdio_module._ColdStartRetry):
+        await session._init_box_stdio_server()
+
+    # Process was started exactly once (the retry will reuse it, not rebuild).
+    assert ap.box_service.start_managed_process.await_count == 1
+    await session.exit_stack.aclose()
+
+
+@pytest.mark.asyncio
+async def test_stdio_handshake_raises_fatal_when_process_exited(mcp_module, tmp_path, monkeypatch):
+    """If the handshake fails AND the process has definitively exited, that is a
+    real failure — initialize() must NOT swallow it as a cold-start retry."""
+    from contextlib import asynccontextmanager
+
+    mcp_stdio_module = sys.modules['langbot.pkg.provider.tools.loaders.mcp_stdio']
+
+    class DeadClientSession:
+        def __init__(self, *_args):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def initialize(self):
+            raise Exception('Connection closed')
+
+    @asynccontextmanager
+    async def fake_websocket_client(_url: str):
+        yield ('read-stream', 'write-stream')
+
+    monkeypatch.setattr(mcp_stdio_module, 'ClientSession', DeadClientSession)
+    monkeypatch.setattr(mcp_stdio_module, 'websocket_client', fake_websocket_client)
+    monkeypatch.setattr(mcp_stdio_module, '_HANDSHAKE_ATTEMPT_TIMEOUT_SEC', 1.0, raising=False)
+
+    ap = _make_ap()
+    ap.box_service.available = True
+    ap.box_service.create_session = AsyncMock(return_value={})
+    ap.box_service.start_managed_process = AsyncMock(return_value={})
+    ap.box_service.get_managed_process_websocket_url = Mock(return_value='ws://box/p')
+
+    session = _make_session(
+        mcp_module,
+        {'name': 'dead', 'uuid': 'dead-uuid', 'mode': 'stdio', 'command': 'npx', 'args': ['-y', 'x']},
+        ap=ap,
+    )
+
+    async def _exited():
+        return True
+
+    session._box_stdio_runtime._managed_process_has_exited = _exited
+
+    async def _not_running():
+        return False
+
+    session._box_stdio_runtime._managed_process_is_running = _not_running
+
+    with pytest.raises(Exception) as ei:
+        await session._init_box_stdio_server()
+    assert not isinstance(ei.value, mcp_stdio_module._ColdStartRetry)
+    await session.exit_stack.aclose()

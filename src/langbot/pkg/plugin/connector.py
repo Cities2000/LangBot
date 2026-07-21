@@ -248,6 +248,15 @@ class PluginRuntimeConnector(ManagedRuntimeConnector):
 
         mode = mcp_data.get('mode') or 'stdio'
         extra_args = mcp_data.get('extra_args') or {}
+        # The MCP transport selection was simplified to two modes: 'stdio'
+        # (local, Box-sandboxed) and 'remote' (the runtime auto-detects
+        # Streamable HTTP vs. legacy SSE from the URL). Marketplace records may
+        # still carry the older 'http'/'sse' modes — normalize them to 'remote'
+        # so the installed server shows up correctly in the two-option UI. The
+        # connection args (url/headers/timeout/ssereadtimeout) are preserved and
+        # consumed by the auto-detecting remote transport regardless.
+        if mode in ('http', 'sse'):
+            mode = 'remote'
         # Marketplace records carry the rendered README markdown; persist it so
         # the detail page Docs tab works offline and without a marketplace round-trip.
         readme = mcp_data.get('readme') or ''
@@ -728,6 +737,8 @@ class PluginRuntimeConnector(ManagedRuntimeConnector):
         event_ctx = context.EventContext.from_event(event)
 
         if not self.is_enable_plugin:
+            event_ctx._emitted_plugins = []
+            event_ctx._response_sources = []
             return event_ctx
 
         # Pass include_plugins to runtime for filtering
@@ -736,8 +747,20 @@ class PluginRuntimeConnector(ManagedRuntimeConnector):
         )
 
         event_ctx = context.EventContext.model_validate(event_ctx_result['event_context'])
+        event_ctx._emitted_plugins = event_ctx_result.get('emitted_plugins', [])
+        if 'response_sources' in event_ctx_result:
+            event_ctx._response_sources = event_ctx_result['response_sources']
 
         return event_ctx
+
+    async def notify_plugin_diagnostic(self, diagnostic: dict[str, Any]) -> None:
+        """Best-effort diagnostic forwarding to the plugin runtime."""
+        if not self.is_enable_plugin:
+            return
+        try:
+            await self.handler.notify_plugin_diagnostic(diagnostic)
+        except Exception as e:
+            self.ap.logger.debug(f'Plugin diagnostic forwarding skipped: {e}')
 
     async def list_tools(self, bound_plugins: list[str] | None = None) -> list[ComponentManifest]:
         if not self.is_enable_plugin:
