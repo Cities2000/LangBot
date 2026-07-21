@@ -6,7 +6,7 @@ import os
 
 from . import app
 from . import stage
-from ..utils import constants, importutil
+from ..utils import constants, httpclient, importutil
 
 # Import startup stage implementation to register
 from . import stages
@@ -54,7 +54,7 @@ async def main(loop: asyncio.AbstractEventLoop):
             if app_inst is not None:
                 app_inst.dispose()
             print('[Signal] Program exit.')
-            os._exit(0)
+            raise SystemExit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
 
@@ -64,3 +64,5 @@ async def main(loop: asyncio.AbstractEventLoop):
         if app_inst is not None:
             app_inst.dispose()
         traceback.print_exc()
+    finally:
+        await httpclient.close_all()

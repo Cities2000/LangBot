@@ -6,12 +6,13 @@ from __future__ import annotations
 import base64
 import json
 import typing
+import uuid
 
-import httpx
+import aiohttp
 
 from .. import runner
 from ...core import app
-from ...utils import image
+from ...utils import httpclient, image
 import langbot_plugin.api.entities.builtin.pipeline.query as pipeline_query
 import langbot_plugin.api.entities.builtin.provider.message as provider_message
 
@@ -23,6 +24,11 @@ class GsbAgentRunner(runner.RequestRunner):
     Calls GsbAgent's unified /api endpoints and maps AgentEvent streams
     to LangBot Message/MessageChunk objects.
     """
+
+    _PROTECTED_PARAMS = {
+        "conversation_id", "sender_id", "launcher_type", "launcher_id",
+        "bot_uuid", "pipeline_uuid", "request_id", "extra",
+    }
 
     def __init__(self, ap: app.Application, pipeline_config: dict):
         self.ap = ap
@@ -41,15 +47,30 @@ class GsbAgentRunner(runner.RequestRunner):
             headers['Authorization'] = f'Bearer {self.api_key}'
         return headers
 
+    @staticmethod
+    def _resolve_request_id(wecom_vars: dict) -> str:
+        """Resolve a stable request_id from WeCom platform variables.
+
+        Priority: message_id > msgid > req_id > random UUID.
+        """
+        stable = wecom_vars.get("message_id") or wecom_vars.get("msgid") or wecom_vars.get("req_id")
+        return str(stable) if stable else uuid.uuid4().hex
+
+    @classmethod
+    def _filter_inline_params(cls, params: dict[str, str]) -> dict[str, str]:
+        """Remove protected keys from inline key=value parameters."""
+        return {key: value for key, value in params.items() if key not in cls._PROTECTED_PARAMS}
+
     async def _get_agent_info(self, agent_id: str) -> dict:
         """获取 Agent 信息，包含解析后的 stream_placeholder。"""
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f'{self.base_url}/api/agents/{agent_id}',
-                headers=self._get_headers(),
-            )
+        session = httpclient.get_session()
+        async with session.get(
+            f'{self.base_url}/api/agents/{agent_id}',
+            headers=self._get_headers(),
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
             resp.raise_for_status()
-            data = resp.json()
+            data = await resp.json()
             return data.get('data', data)
 
     async def _get_encoding_aes_key(self, query: pipeline_query.Query) -> str:
@@ -131,10 +152,10 @@ class GsbAgentRunner(runner.RequestRunner):
                             headers = {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                             }
-                            async with httpx.AsyncClient(follow_redirects=True, timeout=60) as client:
-                                resp = await client.get(download_url, headers=headers)
+                            session = httpclient.get_session()
+                            async with session.get(download_url, headers=headers, timeout=aiohttp.ClientTimeout(total=60)) as resp:
                                 resp.raise_for_status()
-                                data = resp.content
+                                data = await resp.read()
 
                             # 如果 Runner 拿到的文件名没有扩展名，尝试从 Content-Disposition 提取
                             if '.' not in file_name or file_name == 'file':
@@ -174,22 +195,25 @@ class GsbAgentRunner(runner.RequestRunner):
             headers = {}
             if self.api_key:
                 headers['Authorization'] = f'Bearer {self.api_key}'
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.post(
-                    f'{self.base_url}/api/files/upload',
-                    headers=headers,
-                    files={'file': (filename, data, content_type)},
-                    data={'user': user},
-                )
+            session = httpclient.get_session()
+            form_data = aiohttp.FormData()
+            form_data.add_field('file', data, filename=filename, content_type=content_type)
+            form_data.add_field('user', user)
+            async with session.post(
+                f'{self.base_url}/api/files/upload',
+                headers=headers,
+                data=form_data,
+                timeout=aiohttp.ClientTimeout(total=self.timeout),
+            ) as resp:
                 resp.raise_for_status()
-                result = resp.json()
+                result = await resp.json()
                 return result.get('data', result).get('file_id')
         except Exception as e:
             self.ap.logger.warning(f'GsbAgent: file upload failed: {e}')
             return None
 
     async def _execute_blocking(
-        self, query: pipeline_query.Query, agent_id: str, payload: dict
+        self, query: pipeline_query.Query, agent_id: str, payload: dict, headers: dict
     ) -> typing.AsyncGenerator[provider_message.Message, None]:
         """Blocking mode: wait for the complete result and yield Messages.
 
@@ -197,14 +221,15 @@ class GsbAgentRunner(runner.RequestRunner):
         are present, image files are yielded first (as image content
         elements) followed by any text result.
         """
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(
-                f'{self.base_url}/api/agents/{agent_id}/execute',
-                headers=self._get_headers(),
-                json=payload,
-            )
+        session = httpclient.get_session()
+        async with session.post(
+            f'{self.base_url}/api/agents/{agent_id}/execute',
+            headers=headers,
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=self.timeout),
+        ) as resp:
             resp.raise_for_status()
-            data = resp.json()
+            data = await resp.json()
 
         result = data.get('data', data)
 
@@ -248,7 +273,7 @@ class GsbAgentRunner(runner.RequestRunner):
             query.session.using_conversation.uuid = conv_id
 
     async def _execute_streaming(
-        self, query: pipeline_query.Query, agent_id: str, payload: dict
+        self, query: pipeline_query.Query, agent_id: str, payload: dict, headers: dict
     ) -> typing.AsyncGenerator[provider_message.MessageChunk, None]:
         """Streaming mode: consume SSE AgentEvent stream and yield MessageChunks.
 
@@ -261,19 +286,25 @@ class GsbAgentRunner(runner.RequestRunner):
           agent_end      -> is_final=True sentinel
           agent_error    -> error text with is_final=True
         """
-        stream_timeout = httpx.Timeout(self.timeout, read=600.0)
+        stream_timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=600.0)
         msg_seq = 0
+        first_message = True
 
-        async with httpx.AsyncClient(timeout=stream_timeout) as client:
-            async with client.stream(
-                'POST',
-                f'{self.base_url}/api/agents/{agent_id}/execute',
-                headers=self._get_headers(),
-                json=payload,
-            ) as resp:
-                resp.raise_for_status()
+        session = httpclient.get_session()
+        async with session.post(
+            f'{self.base_url}/api/agents/{agent_id}/execute',
+            headers=headers,
+            json=payload,
+            timeout=stream_timeout,
+        ) as resp:
+            resp.raise_for_status()
 
-                async for line in resp.aiter_lines():
+            buffer = b""
+            async for chunk in resp.content.iter_chunked(8192):
+                buffer += chunk
+                while b'\n' in buffer:
+                    line_bytes, buffer = buffer.split(b'\n', 1)
+                    line = line_bytes.decode('utf-8').strip()
                     if not line.startswith('data:'):
                         continue
 
@@ -282,15 +313,19 @@ class GsbAgentRunner(runner.RequestRunner):
 
                     if event_type == 'agent_message':
                         msg_seq += 1
+                        msg_content = event.get('content', '')
+                        # 首条正文前插入分隔线，与 thought 进度区分开
+                        if first_message:
+                            msg_content = f'\n---\n{msg_content}'
+                            first_message = False
                         yield provider_message.MessageChunk(
-                            role='assistant', content=event.get('content', ''), is_final=False
+                            role='assistant', content=msg_content, is_final=False
                         )
-
                     elif event_type == 'agent_thought':
                         msg_seq += 1
                         yield provider_message.MessageChunk(
                             role='assistant',
-                            content=f'\U0001f4ad {event.get("content", "")}',
+                            content=f'\U0001f4ad {event.get("content", "")}\n',
                             is_final=False,
                         )
 
@@ -591,12 +626,14 @@ class GsbAgentRunner(runner.RequestRunner):
             # 通知 GsbAgent 清空旧 session（非关键，失败时 TTL 自动清理）
             if old_conv_id:
                 try:
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        await client.post(
-                            f'{self.base_url}/api/admin/session/clear',
-                            headers=self._get_headers(),
-                            json={'conversation_id': old_conv_id},
-                        )
+                    session = httpclient.get_session()
+                    async with session.post(
+                        f'{self.base_url}/api/admin/session/clear',
+                        headers=self._get_headers(),
+                        json={'conversation_id': old_conv_id},
+                        timeout=aiohttp.ClientTimeout(total=10),
+                    ) as resp:
+                        resp.raise_for_status()
                 except Exception:
                     pass
             yield _cmd_reply('✨ 已开启新对话，历史记录已清空。')
@@ -617,15 +654,15 @@ class GsbAgentRunner(runner.RequestRunner):
 
         # 从消息中解析 key=value 结构化参数（禁止覆盖内部字段）
         task_text, inline_params_raw = self._parse_inline_params(plain_text)
-        inline_params = {
-            k: v for k, v in inline_params_raw.items()
-            if k not in ('conversation_id', 'sender_id', 'launcher_type', 'launcher_id', 'extra')
-        }
+        inline_params = self._filter_inline_params(inline_params_raw)
 
         # task_text 为空时回退到原文
         task_text = task_text or plain_text
 
+        request_id = self._resolve_request_id(wecom_vars)
+
         payload = {
+            'request_id': request_id,
             'task': task_text,
             'params': {
                 'conversation_id': cov_id,
@@ -649,12 +686,16 @@ class GsbAgentRunner(runner.RequestRunner):
 
         # Build extra dict: WeCom vars + existing query.variables (excluding internal keys)
         extra_vars = dict(wecom_vars)
+        extra_vars['bot_uuid'] = str(query.bot_uuid or '')
+        extra_vars['pipeline_uuid'] = str(query.pipeline_uuid or '')
         for k, v in query.variables.items():
             if k not in ('_pipeline_bound_plugins', 'gsb_agent_id',
                          'conversation_id', 'session_id', 'msg_create_time'):
                 extra_vars[k] = v
         if extra_vars:
             payload['params']['extra'] = extra_vars
+
+        headers = {**self._get_headers(), "X-Request-Id": request_id}
 
         msg_seq = 0
         if is_stream:
@@ -669,16 +710,16 @@ class GsbAgentRunner(runner.RequestRunner):
             msg_seq += 1
             yield provider_message.MessageChunk(
                 role='assistant',
-                content=stream_placeholder,
+                content=f'{stream_placeholder}\n',
                 is_final=False,
             )
             
-            async for msg in self._execute_streaming(query, agent_id, payload):
+            async for msg in self._execute_streaming(query, agent_id, payload, headers):
                 msg_seq += 1
                 msg.msg_sequence = msg_seq
                 yield msg
         else:
             payload['stream'] = False
-            async for msg in self._execute_blocking(query, agent_id, payload):
+            async for msg in self._execute_blocking(query, agent_id, payload, headers):
                 msg.msg_sequence = 1
                 yield msg
