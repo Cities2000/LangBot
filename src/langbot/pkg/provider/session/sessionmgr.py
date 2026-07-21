@@ -15,29 +15,59 @@ class SessionManager:
 
     session_list: list[provider_session.Session]
 
+    _session_index: dict[tuple[str, str, str, str], provider_session.Session]
+    """索引字典，key = (bot_uuid, pipeline_uuid, launcher_type, launcher_id)"""
+
+    _session_lock: asyncio.Lock
+    """并发创建会话时的锁"""
+
     def __init__(self, ap: app.Application):
         self.ap = ap
         self.session_list = []
+        self._session_index = {}
+        self._session_lock = asyncio.Lock()
 
     async def initialize(self):
         pass
 
+    @staticmethod
+    def _get_session_key(query: pipeline_query.Query) -> tuple[str, str, str, str]:
+        """根据查询生成会话的唯一键"""
+        launcher_type = getattr(query.launcher_type, "value", str(query.launcher_type))
+        return (
+            str(getattr(query, "bot_uuid", "") or ""),
+            str(getattr(query, "pipeline_uuid", "") or ""),
+            str(launcher_type),
+            str(query.launcher_id),
+        )
+
     async def get_session(self, query: pipeline_query.Query) -> provider_session.Session:
         """获取会话"""
-        for session in self.session_list:
-            if query.launcher_type == session.launcher_type and query.launcher_id == session.launcher_id:
-                return session
+        key = self._get_session_key(query)
 
-        session_concurrency = self.ap.instance_config.data['concurrency']['session']
+        # 快速路径：无需锁
+        existing = self._session_index.get(key)
+        if existing is not None:
+            return existing
 
-        session = provider_session.Session(
-            launcher_type=query.launcher_type,
-            launcher_id=query.launcher_id,
-            sender_id=query.sender_id,
-        )
-        session._semaphore = asyncio.Semaphore(session_concurrency)
-        self.session_list.append(session)
-        return session
+        # 慢路径：需要创建新会话（需锁保护）
+        async with self._session_lock:
+            # 双重检查
+            existing = self._session_index.get(key)
+            if existing is not None:
+                return existing
+
+            session_concurrency = self.ap.instance_config.data['concurrency']['session']
+
+            session = provider_session.Session(
+                launcher_type=query.launcher_type,
+                launcher_id=query.launcher_id,
+                sender_id=query.sender_id,
+            )
+            session._semaphore = asyncio.Semaphore(session_concurrency)
+            self.session_list.append(session)
+            self._session_index[key] = session
+            return session
 
     async def get_conversation(
         self,

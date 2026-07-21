@@ -161,6 +161,57 @@ class TestSessionManagerGetSession:
         assert session1 is not session2
         assert len(manager.session_list) == 2
 
+    @pytest.mark.asyncio
+    async def test_same_launcher_different_pipeline_gets_different_session(self, mock_app_with_config):
+        """Different pipeline_uuid with same launcher gets different sessions."""
+        sessionmgr = get_session_module()
+
+        manager = sessionmgr.SessionManager(mock_app_with_config)
+
+        query1 = Mock(spec=pipeline_query.Query)
+        query1.bot_uuid = 'bot-1'
+        query1.pipeline_uuid = 'pipeline-1'
+        query1.launcher_type = provider_session.LauncherTypes.PERSON
+        query1.launcher_id = 'user1'
+        query1.sender_id = 'user1'
+
+        query2 = Mock(spec=pipeline_query.Query)
+        query2.bot_uuid = 'bot-1'
+        query2.pipeline_uuid = 'pipeline-2'
+        query2.launcher_type = provider_session.LauncherTypes.PERSON
+        query2.launcher_id = 'user1'
+        query2.sender_id = 'user1'
+
+        session1 = await manager.get_session(query1)
+        session2 = await manager.get_session(query2)
+
+        assert session1 is not session2
+        assert len(manager.session_list) == 2
+
+    @pytest.mark.asyncio
+    async def test_same_session_key_is_created_once_under_concurrency(self, mock_app_with_config):
+        """20 concurrent get_session calls with same query create exactly one session."""
+        sessionmgr = get_session_module()
+
+        manager = sessionmgr.SessionManager(mock_app_with_config)
+
+        query = Mock(spec=pipeline_query.Query)
+        query.bot_uuid = 'bot-1'
+        query.pipeline_uuid = 'pipeline-1'
+        query.launcher_type = provider_session.LauncherTypes.PERSON
+        query.launcher_id = 'user1'
+        query.sender_id = 'user1'
+
+        async def get_session():
+            return await manager.get_session(query)
+
+        sessions = await asyncio.gather(*[get_session() for _ in range(20)])
+
+        first = sessions[0]
+        for s in sessions:
+            assert s is first
+        assert len(manager.session_list) == 1
+
 
 class TestSessionManagerGetConversation:
     """Tests for get_conversation method."""
