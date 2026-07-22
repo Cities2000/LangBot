@@ -60,3 +60,13 @@ def test_inline_params_passes_through_non_protected(runner):
     params = {"period": "本月", "region": "东北", "limit": "10"}
     filtered = runner._filter_inline_params(params)
     assert filtered == params
+
+
+def test_stream_timeout_limits_connect_but_not_total_duration(runner):
+    runner.timeout = 120
+
+    timeout = runner._stream_timeout()
+
+    assert timeout.total is None
+    assert timeout.sock_connect == 120
+    assert timeout.sock_read == 600.0

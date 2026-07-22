@@ -272,6 +272,14 @@ class GsbAgentRunner(runner.RequestRunner):
         if conv_id and not query.session.using_conversation.uuid:
             query.session.using_conversation.uuid = conv_id
 
+    def _stream_timeout(self) -> aiohttp.ClientTimeout:
+        """SSE 仅限制建连和两次读取间隔，不限制整条响应总时长。"""
+        return aiohttp.ClientTimeout(
+            total=None,
+            sock_connect=self.timeout,
+            sock_read=600.0,
+        )
+
     async def _execute_streaming(
         self, query: pipeline_query.Query, agent_id: str, payload: dict, headers: dict
     ) -> typing.AsyncGenerator[provider_message.MessageChunk, None]:
@@ -286,7 +294,7 @@ class GsbAgentRunner(runner.RequestRunner):
           agent_end      -> is_final=True sentinel
           agent_error    -> error text with is_final=True
         """
-        stream_timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=600.0)
+        stream_timeout = self._stream_timeout()
         msg_seq = 0
         first_message = True
 
