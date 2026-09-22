@@ -12,6 +12,7 @@ import {
   Package,
   Server,
   Sparkles,
+  Rocket,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -38,6 +39,11 @@ const STAGES: {
     key: InstallStage.INSTALLING_DEPS,
     icon: Package,
     i18nKey: 'plugins.installProgress.installingDeps',
+  },
+  {
+    key: InstallStage.LAUNCHING,
+    icon: Rocket,
+    i18nKey: 'plugins.installProgress.launching',
   },
 ];
 
@@ -219,53 +225,9 @@ function TaskProgressContent({ task }: { task: PluginInstallTask }) {
     }
 
     if (stageKey === InstallStage.INSTALLING_DEPS) {
-      const total = task.depsTotal;
-      const installed = task.depsInstalled;
-      const remaining = task.depsRemaining;
-      const currentDep = task.currentDep;
-      const dlSize = task.depsDownloadedSize;
-      const speed = task.depsSpeed;
-
-      if (isCompletedView && total != null) {
-        const parts: string[] = [];
-        parts.push(t('plugins.installProgress.depsInfo', { count: total }));
-        if (dlSize && dlSize > 0) {
-          parts.push(formatFileSize(dlSize));
-        }
-        return parts.join('  ·  ');
-      }
-
-      if (total != null && installed != null) {
-        const parts: string[] = [];
-        parts.push(
-          t('plugins.installProgress.depsProgress', {
-            installed,
-            total,
-            remaining: remaining ?? total - installed,
-          }),
-        );
-        if (dlSize && dlSize > 0) {
-          parts.push(formatFileSize(dlSize));
-        }
-        if (speed && speed > 0) {
-          parts.push(formatSpeed(speed));
-        }
-        if (currentDep) {
-          return (
-            <>
-              <span>{parts.join('  ·  ')}</span>
-              <br />
-              <span className="opacity-70 break-words">{currentDep}</span>
-            </>
-          );
-        }
-        return parts.join('  ·  ');
-      }
-
-      if (total != null) {
-        return t('plugins.installProgress.depsInfo', { count: total });
-      }
-
+      // The runtime installs dependencies and starts the plugin in one step
+      // and does not report per-dependency progress, so this stage has no
+      // detail to show beyond its label.
       return undefined;
     }
 

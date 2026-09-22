@@ -19,8 +19,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState } from 'react';
-import { httpClient, initializeUserInfo } from '@/app/infra/http';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  beginAuthenticatedSession,
+  bootstrapWorkspaceSession,
+  clearPendingInvitationToken,
+  getPendingInvitationToken,
+  httpClient,
+} from '@/app/infra/http';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail,
@@ -29,7 +35,9 @@ import {
   AlertCircle,
   RefreshCw,
   Layers,
+  Fingerprint,
 } from 'lucide-react';
+import { startAuthentication } from '@simplewebauthn/browser';
 import langbotIcon from '@/app/assets/langbot-logo.webp';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -43,17 +51,26 @@ const formSchema = (t: (key: string) => string) =>
     password: z.string().min(1, t('common.emptyPassword')),
   });
 
-type AccountType = 'local' | 'space';
+const TERMINAL_INVITATION_ERROR_CODES = new Set([
+  'invitation_invalid',
+  'invitation_expired',
+  'invitation_revoked',
+  'invitation_used',
+  'invitation_email_mismatch',
+]);
 
 export default function Login() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [spaceLoading, setSpaceLoading] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
-  const [hasPassword, setHasPassword] = useState(false);
+  const [showLocalLogin, setShowLocalLogin] = useState(false);
+  const [showSpaceLogin, setShowSpaceLogin] = useState(false);
+  const [showPasskeyLogin, setShowPasskeyLogin] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const autoSpaceLoginStarted = useRef(false);
 
   const form = useForm<z.infer<ReturnType<typeof formSchema>>>({
     resolver: zodResolver(formSchema(t)),
@@ -75,8 +92,11 @@ export default function Login() {
         navigate('/register');
         return;
       }
-      setAccountType(res.account_type || 'local');
-      setHasPassword(res.has_password || false);
+      setShowLocalLogin(res.password_login_enabled !== false);
+      setShowSpaceLogin(res.space_login_enabled !== false);
+      setShowPasskeyLogin(
+        res.passkey_login_enabled !== false || Boolean(res.passkey_supported),
+      );
       setLoading(false);
 
       // Also check if already logged in
@@ -109,35 +129,106 @@ export default function Login() {
   function checkIfAlreadyLoggedIn() {
     httpClient
       .checkUserToken()
-      .then((res) => {
+      .then(async (res) => {
         if (res.token) {
-          localStorage.setItem('token', res.token);
-          navigate('/home');
+          await finishLogin(res.token);
         }
       })
       .catch(() => {});
+  }
+
+  async function finishLogin(
+    token: string,
+    username?: string,
+  ): Promise<boolean> {
+    beginAuthenticatedSession(token, username);
+
+    const invitationToken = getPendingInvitationToken();
+    let preferredWorkspaceUuid: string | undefined;
+    if (invitationToken) {
+      try {
+        const response =
+          await httpClient.acceptWorkspaceInvitation(invitationToken);
+        beginAuthenticatedSession(response.token, username);
+        preferredWorkspaceUuid = response.workspace_uuid;
+        clearPendingInvitationToken();
+      } catch (error) {
+        const apiError = error as { code?: string };
+        const errorCode =
+          typeof apiError.code === 'string'
+            ? apiError.code
+            : 'invitation_accept_failed';
+        const invitationPath = TERMINAL_INVITATION_ERROR_CODES.has(errorCode)
+          ? `/invitations/accept?error=${encodeURIComponent(errorCode)}`
+          : '/invitations/accept';
+        navigate(invitationPath, { replace: true });
+        toast.error(
+          t(
+            errorCode === 'invitation_email_mismatch'
+              ? 'workspace.invitationEmailMismatch'
+              : 'workspace.invitationAcceptFailed',
+          ),
+        );
+        return false;
+      }
+    }
+
+    const result = await bootstrapWorkspaceSession({
+      preferredWorkspaceUuid,
+    });
+    if (result.status === 'selection-required') {
+      navigate('/workspaces/select?returnTo=%2Fhome', { replace: true });
+      return true;
+    }
+    if (result.status === 'unavailable') {
+      throw new Error('No Workspace is available for this Account');
+    }
+    navigate('/home');
+    return true;
   }
 
   function onSubmit(values: z.infer<ReturnType<typeof formSchema>>) {
     handleLogin(values.email, values.password);
   }
 
+  async function handlePasskeyLogin() {
+    setPasskeyLoading(true);
+    try {
+      const { options, challenge_token } =
+        await httpClient.getPasskeyAuthOptions(
+          undefined,
+          window.location.origin,
+        );
+      const authResp = await startAuthentication({ optionsJSON: options });
+      const res = await httpClient.verifyPasskeyAuth(challenge_token, authResp);
+      if (await finishLogin(res.token, res.user)) {
+        toast.success(t('common.passkeyLoginSuccess'));
+      }
+    } catch (error: any) {
+      if (error?.name === 'NotAllowedError') {
+        // User cancelled the biometric prompt
+      } else {
+        toast.error(error?.message || t('common.passkeyLoginFailed'));
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }
+
   function handleLogin(username: string, password: string) {
     httpClient
       .authUser(username, password)
       .then(async (res) => {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('userEmail', username);
-        await initializeUserInfo();
-        navigate('/home');
-        toast.success(t('common.loginSuccess'));
+        if (await finishLogin(res.token, username)) {
+          toast.success(t('common.loginSuccess'));
+        }
       })
       .catch(() => {
         toast.error(t('common.loginFailed'));
       });
   }
 
-  const handleSpaceLoginClick = async () => {
+  const handleSpaceLoginClick = useCallback(async () => {
     setSpaceLoading(true);
     try {
       const currentOrigin = window.location.origin;
@@ -148,7 +239,20 @@ export default function Login() {
       toast.error(t('common.spaceLoginFailed'));
       setSpaceLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !showSpaceLogin ||
+      autoSpaceLoginStarted.current ||
+      new URLSearchParams(window.location.search).get('auto') !== 'space'
+    ) {
+      return;
+    }
+    autoSpaceLoginStarted.current = true;
+    void handleSpaceLoginClick();
+  }, [handleSpaceLoginClick, loading, showSpaceLogin]);
 
   if (loading) {
     return (
@@ -211,11 +315,6 @@ export default function Login() {
     );
   }
 
-  // Determine what to show based on account type
-  const showLocalLogin =
-    accountType === 'local' || (accountType === 'space' && hasPassword);
-  const showSpaceLogin = accountType === 'space';
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:dark:bg-neutral-900">
       <Card className="w-[375px] shadow-lg dark:shadow-white/10">
@@ -237,7 +336,7 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Space Login - only show for space accounts */}
+          {/* Space and password login are per-account capabilities. */}
           {showSpaceLogin && (
             <div className="space-y-3">
               <Button
@@ -256,8 +355,27 @@ export default function Login() {
             </div>
           )}
 
+          {showPasskeyLogin && (
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full cursor-pointer"
+                onClick={handlePasskeyLogin}
+                disabled={passkeyLoading}
+              >
+                {passkeyLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Fingerprint className="mr-2 h-4 w-4" />
+                )}
+                {t('common.loginWithPasskey')}
+              </Button>
+            </div>
+          )}
+
           {/* Divider - only show if both login methods are available */}
-          {showSpaceLogin && showLocalLogin && (
+          {(showSpaceLogin || showPasskeyLogin) && showLocalLogin && (
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -270,7 +388,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* Local Account Login - show for local accounts or space accounts with password */}
+          {/* Password login remains available to every account with a password. */}
           {showLocalLogin && (
             <Form {...form}>
               <form

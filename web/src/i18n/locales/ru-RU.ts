@@ -44,6 +44,7 @@ const ruRU = {
     delete: 'Удалить',
     add: 'Добавить',
     select: 'Выбрать',
+    clear: 'Очистить',
     skill: 'Навык',
     cancel: 'Отмена',
     submit: 'Отправить',
@@ -76,27 +77,33 @@ const ruRU = {
     privacyPolicy: 'Политикой конфиденциальности',
     and: 'и',
     dataCollectionPolicy: 'Политикой сбора данных',
-    dataCollectionPolicyUrl: 'https://link.langbot.app/en/docs/data-policy',
+    dataCollectionPolicyUrl:
+      'https://langbot.app/docs/en/insight/data-collection-policy',
     loading: 'Загрузка...',
     fieldRequired: 'Это поле обязательно для заполнения',
     or: 'или',
-    loginWithSpace: 'Войти через Space',
+    loginWithSpace: 'Войти с аккаунтом LangBot',
     spaceLoginRecommended:
       'Рекомендуется: Используйте официальные стабильные API моделей и облачные сервисы',
     loginLocal: 'Войти с локальной учётной записью',
     loginWithPassword: 'Войти с паролем',
-    spaceLoginTitle: 'Войти через Space',
+    loginWithPasskey: 'Войти с помощью Passkey',
+    passkeyLoginSuccess: 'Passkey успешно подтверждён, вход...',
+    passkeyLoginFailed: 'Не удалось войти с помощью Passkey',
+    passkeyNotSupported:
+      'Passkey не поддерживается в этом браузере или на устройстве',
+    spaceLoginTitle: 'Войти с аккаунтом LangBot',
     spaceLoginDescription:
       'Отсканируйте QR-код или перейдите по ссылке ниже для авторизации',
     spaceLoginUserCode: 'Ваш код',
     spaceLoginExpires: 'Код истекает через {{seconds}} секунд',
     spaceLoginWaiting: 'Ожидание авторизации...',
     spaceLoginSuccess: 'Авторизация успешна',
-    spaceLoginFailed: 'Ошибка входа через Space',
+    spaceLoginFailed: 'Ошибка входа с аккаунтом LangBot',
     spaceLoginExpired: 'Код авторизации истёк, попробуйте снова',
     spaceLoginCancel: 'Отмена',
     spaceLoginVisitLink: 'Перейти по ссылке',
-    spaceLoginProcessing: 'Вход через Space',
+    spaceLoginProcessing: 'Вход с аккаунтом LangBot',
     spaceLoginProcessingDescription:
       'Пожалуйста, подождите, пока мы завершим вход...',
     spaceLoginSuccessDescription: 'Перенаправление в LangBot...',
@@ -105,7 +112,7 @@ const ruRU = {
     backToLogin: 'Вернуться к входу',
     backToHome: 'На главную',
     spaceAccountCannotChangePassword:
-      'Для аккаунтов Space невозможно изменить пароль здесь',
+      'Для аккаунтов LangBot невозможно изменить пароль здесь',
     theme: 'Тема',
     changePassword: 'Изменить пароль',
     currentPassword: 'Текущий пароль',
@@ -172,6 +179,8 @@ const ruRU = {
     less: 'Свернуть',
     noItems: 'Нет элементов',
     termsOfService: 'Условия обслуживания',
+
+    apiKeyStoredSecurely: 'Secret shown only when created',
   },
   notFound: {
     title: 'Страница не найдена',
@@ -181,6 +190,37 @@ const ruRU = {
     help: 'Помощь',
   },
   models: {
+    codex: {
+      account: 'Подписка ChatGPT',
+      description:
+        'Войдите в аккаунт ChatGPT. Подписка не связана с оплатой API OpenAI; доступные модели и лимиты зависят от тарифа.',
+      disconnected: 'Не подключено',
+      loading: 'Проверка подключения…',
+      starting: 'Начало входа…',
+      pending: 'Ожидание авторизации',
+      connected: 'Подключено',
+      expired: 'Срок входа истёк. Получите новый код.',
+      error: 'Не удалось войти. Проверьте подключение и повторите попытку.',
+      canceling: 'Отмена входа…',
+      saveAndSignIn: 'Сохранить и войти',
+      done: 'Готово',
+      instructions:
+        'Введите этот код на странице OpenAI. Не закрывайте это окно до завершения входа.',
+      copyCode: 'Копировать код',
+      copied: 'Скопировано',
+      copyManually: 'Выделите и скопируйте код вручную.',
+      continueAtOpenAI: 'Продолжить в OpenAI',
+      expiresAt: 'Код действителен до {{time}}.',
+      retrying: 'Соединение прервано. Автоматическая повторная попытка…',
+      cancelSignIn: 'Отменить вход',
+      tryAgain: 'Повторить',
+      signIn: 'Войти',
+      reconnect: 'Переподключить',
+      disconnect: 'Отключить',
+      disconnectConfirm:
+        'Отключить этого провайдера? Его модели перестанут работать до повторного входа. Подписка ChatGPT не будет отменена.',
+      confirmDisconnect: 'Подтвердить отключение',
+    },
     title: 'Модели',
     description: 'Настройка и управление моделями, используемыми в конвейерах',
     createModel: 'Создать модель',
@@ -215,6 +255,19 @@ const ruRU = {
     selectModelAbilities: 'Выберите возможности модели',
     visionAbility: 'Распознавание изображений',
     functionCallAbility: 'Вызов функций',
+    reasoningAbility: 'Рассуждение',
+    reasoningLevel: 'Уровень рассуждений',
+    reasoningLevels: {
+      providerDefault: 'По умолчанию провайдера',
+      disabled: 'Выключено',
+      enabled: 'Включено',
+      minimal: 'Минимальный',
+      low: 'Низкий',
+      medium: 'Средний',
+      high: 'Высокий',
+      xhigh: 'Очень высокий',
+      max: 'Максимальный',
+    },
     contextLength: 'Контекстное окно',
     contextLengthPlaceholder: 'Неизвестно',
     contextLengthInvalid:
@@ -244,9 +297,9 @@ const ruRU = {
     localProvider: 'Локальный',
     localProviderDescription: 'Модели, настроенные и управляемые локально',
     spaceProviderDescription:
-      'Модели, синхронизированные из вашего аккаунта Space',
+      'Модели, синхронизированные из вашего аккаунта LangBot',
     spaceDisabledForLocalAccount:
-      'Войдите через Space, чтобы использовать облачные модели',
+      'Войдите с аккаунтом LangBot, чтобы использовать облачные модели',
     syncModels: 'Синхронизировать',
     syncSuccess:
       'Синхронизация завершена: {{created}} создано, {{updated}} обновлено',
@@ -284,12 +337,13 @@ const ruRU = {
     searchProviders: 'Поиск провайдеров...',
     langbotModelsDescription: 'Облачные модели на базе LangBot Space',
     credits: 'Кредиты',
-    loginWithSpace: 'Войти через Space',
-    loginToUseModels: 'Войдите через Space, чтобы использовать облачные модели',
+    loginWithSpace: 'Войти с аккаунтом LangBot',
+    loginToUseModels:
+      'Войдите с аккаунтом LangBot, чтобы использовать облачные модели',
     noModels: 'Модели не настроены',
     langbotModels: 'Модели LangBot',
     spaceTrialTooltip:
-      'Доступны бесплатные пробные кредиты! Войдите через Space, чтобы получить доступ к облачным моделям без настройки.',
+      'Доступны бесплатные пробные кредиты! Войдите с аккаунтом LangBot, чтобы получить доступ к облачным моделям без настройки.',
     unlockModels: 'Войдите для использования',
     editProvider: 'Редактировать провайдера',
     addProvider: 'Добавить провайдера',
@@ -305,6 +359,8 @@ const ruRU = {
     providerSaveError: 'Ошибка сохранения провайдера: ',
     providerDeleted: 'Провайдер удалён',
     providerDeleteError: 'Ошибка удаления провайдера: ',
+    deleteProviderCascadeConfirmation:
+      'Удалить этого провайдера и ВСЕ содержащиеся в нём модели? Это действие необратимо, его нельзя отменить.',
     deleteProviderConfirmation:
       'Вы уверены, что хотите удалить этого провайдера?',
     loadError: 'Не удалось загрузить данные',
@@ -323,6 +379,11 @@ const ruRU = {
       fallbackList: 'Резервные модели',
       addFallback: 'Добавить резервную модель',
     },
+
+    ownerMustBindSpace:
+      'The Workspace owner must connect a LangBot Account for LangBot Models.',
+    usesOwnerSpaceBilling:
+      "Uses the Workspace owner's LangBot Account billing and credits.",
   },
   bots: {
     title: 'Боты',
@@ -503,6 +564,8 @@ const ruRU = {
     getPluginListError: 'Не удалось получить список плагинов:',
     noPluginInstalled: 'Плагины не установлены',
     noExtensionInstalled: 'Расширения не установлены',
+    searchInstalled: 'Поиск установленных расширений',
+    noMatchingExtensions: 'Нет расширений, соответствующих «{{query}}»',
     loadingExtensions: 'Загрузка расширений...',
     groupByType: 'Группировать по формату',
     pluginConfig: 'Настройка плагина',
@@ -527,9 +590,9 @@ const ruRU = {
     debugInfoTitle: 'Отладочная информация плагина',
     debugUrl: 'URL для отладки',
     debugKey: 'Ключ отладки',
+    debugKeyExpires: 'Смена в {{time}}; у каждого Workspace свой ключ',
     noDebugKey: '(Не задан)',
-    debugKeyDisabled:
-      'Ключ отладки не задан, аутентификация при отладке плагина не требуется',
+    debugKeyDisabled: 'Учетные данные отладки временно недоступны',
     boxStatusTitle: 'Box Runtime',
     boxStatus: 'Статус',
     boxConnected: 'Подключено',
@@ -711,6 +774,7 @@ const ruRU = {
     notFound: 'Информация о плагине не найдена',
     sortBy: 'Сортировать по',
     sort: {
+      hottest: 'По популярности',
       recentlyAdded: 'Недавно добавленные',
       recentlyUpdated: 'Недавно обновлённые',
       mostDownloads: 'Больше всего загрузок',
@@ -718,6 +782,9 @@ const ruRU = {
     },
     downloads: 'загрузок',
     download: 'Скачать',
+    like: 'Нравится',
+    unlike: 'Убрать отметку',
+    likeFailed: 'Не удалось обновить отметку. Повторите попытку.',
     repository: 'Репозиторий',
     downloadFailed: 'Ошибка загрузки',
     noReadme: 'Этот плагин не предоставляет документацию README',
@@ -772,6 +839,9 @@ const ruRU = {
       noTags: 'Нет доступных тегов',
     },
     installCard: 'Установить {{name}}',
+    installedCard: '{{name}} установлен',
+    installed: 'Установлено',
+    updateAvailable: 'Доступно обновление',
   },
   mcp: {
     title: 'MCP',
@@ -808,6 +878,9 @@ const ruRU = {
     url: 'URL',
     headers: 'Заголовки',
     timeout: 'Таймаут',
+    toolCallTimeout: 'Таймаут вызова инструмента (секунды)',
+    toolCallTimeoutDescription:
+      'Максимальное ожидание одного вызова. 0 отключает ограничение. По умолчанию 300 секунд.',
     addArgument: 'Добавить аргумент',
     addEnvVar: 'Добавить переменную окружения',
     addHeader: 'Добавить заголовок',
@@ -823,6 +896,15 @@ const ruRU = {
     connectionSuccess: 'Подключение успешно',
     connectionFailed: 'Не удалось подключиться, проверьте URL',
     connectionFailedStatus: 'Ошибка подключения',
+    connectionUnreachable:
+      'Сервер MCP недоступен. Проверьте, запущен ли он и доступен ли по сети.',
+    connectionTimeout:
+      'Время ожидания ответа MCP истекло. Проверьте сервис или увеличьте тайм-аут.',
+    connectionHttpError:
+      'Сервер MCP вернул HTTP {{status}}. Проверьте требования доступа и журналы сервера.',
+    oauthAuthorizationRequired: 'Требуется авторизация OAuth',
+    oauthAuthorizationRequiredSuggestion:
+      'Для этого MCP-сервера требуется вход через OAuth. OAuth-вход пока не поддерживается; если сервер это позволяет, добавьте заголовок Authorization вручную.',
     boxDisabledStdioRefused:
       'MCP-серверы в режиме stdio требуют песочницу Box, которая отключена в конфигурации (box.enabled = false).',
     boxUnavailableStdioRefused:
@@ -830,6 +912,9 @@ const ruRU = {
     boxStdioRefusedSuggestion:
       'Включите Box (box.enabled = true) и убедитесь, что среда работает, либо переключите этот сервер в режим http/sse.',
     boxRequired: 'требуется Box',
+    disabledByPolicy: 'отключено политикой',
+    stdioDisabledByPolicy:
+      'Stdio MCP отключён в этом развёртывании. Используйте удалённый MCP-сервер.',
     stdioBlockedByBoxToast:
       'Сохранить MCP в режиме stdio нельзя: песочница Box отключена или недоступна. Включите Box либо выберите режим http/sse.',
     toolsFound: 'инструментов',
@@ -1199,13 +1284,13 @@ const ruRU = {
     adminAccountNote:
       'Указанная учётная запись будет настроена как администратор',
     register: 'Регистрация',
-    initWithSpace: 'Инициализация через Space',
+    initWithSpace: 'Инициализация с аккаунтом LangBot',
     spaceRecommended:
       'Рекомендуется: Используйте официальные стабильные API моделей и облачные сервисы',
     spaceInfoTip1:
       'Space предоставляет единую службу аутентификации без загрузки конфиденциальной информации.',
     spaceInfoTip2:
-      'Вход через Space даёт доступ к моделям LangBot и облачным сервисам, включая бесплатные кредиты для быстрого старта.',
+      'Вход с аккаунтом LangBot даёт доступ к моделям LangBot и облачным сервисам, включая бесплатные кредиты для быстрого старта.',
     spaceInfoTip3:
       'Способ входа не влияет на другие функции. Вы можете настроить модели из других источников в любое время.',
     registerLocal: 'Зарегистрировать локальную учётную запись',
@@ -1261,27 +1346,48 @@ const ruRU = {
     passwordNotSet: 'Не установлен',
     passwordSetDescription:
       'Пароль установлен, вы можете входить с email и паролем',
-    spaceStatus: 'Аккаунт Space',
+    spaceStatus: 'Аккаунт LangBot',
     spaceBound: 'Привязан',
     spaceNotBound: 'Не привязан',
     spaceBoundDescription:
-      'Аккаунт Space привязан, доступны официальные API моделей и облачные сервисы',
-    bindSpace: 'Привязать аккаунт Space',
+      'Аккаунт LangBot привязан, доступны официальные API моделей и облачные сервисы',
+    bindSpace: 'Привязать аккаунт LangBot',
     bindSpaceDescription:
       'Привяжите для использования официальных API моделей и облачных сервисов',
     bindSpaceButton: 'Привязать',
     bindSpaceConfirmTitle: 'Подтверждение привязки',
     bindSpaceConfirmDescription:
-      'Вы собираетесь привязать локальный экземпляр к аккаунту Space',
+      'Вы собираетесь привязать локальный экземпляр к аккаунту LangBot',
     bindSpaceWarning:
-      'После привязки ваш email для входа будет изменён с {{localEmail}} на email аккаунта Space.',
-    bindSpaceSuccess: 'Аккаунт Space успешно привязан',
-    bindSpaceFailed: 'Не удалось привязать аккаунт Space',
+      'После привязки ваш email для входа будет изменён с {{localEmail}} на email аккаунта LangBot.',
+    bindSpaceSuccess: 'Аккаунт LangBot успешно привязан',
+    passkeySectionTitle: 'Ключи доступа (Passkey)',
+    passkeySectionDesc:
+      'Безопасный вход без пароля с помощью биометрии или аппаратного ключа',
+    addPasskey: 'Добавить ключ доступа',
+    passkeyName: 'Название ключа',
+    passkeyNamePlaceholder: 'например, MacBook Touch ID, YubiKey',
+    passkeyCreated: 'Создан {{date}}',
+    passkeyLastUsed: 'Последнее использование: {{date}}',
+    noPasskeys: 'Нет зарегистрированных ключей доступа',
+    deletePasskeyConfirm:
+      'Вы уверены, что хотите удалить этот ключ доступа? Вы больше не сможете использовать его для входа.',
+    passkeyAddedSuccess: 'Ключ доступа успешно добавлен',
+    passkeyDeleteSuccess: 'Ключ доступа удален',
+    passkeyRenameSuccess: 'Ключ доступа успешно переименован',
+    bindSpaceFailed: 'Не удалось привязать аккаунт LangBot',
     bindSpaceInvalidState:
       'Недействительный запрос привязки. Повторите попытку из настроек аккаунта.',
     setPasswordHint: 'Установите пароль для входа с email и паролем',
     spaceEmailMismatch:
-      'Email входа через Space не совпадает с email локальной учётной записи',
+      'Email входа с аккаунтом LangBot не совпадает с email локальной учётной записи',
+
+    space_account_not_registeredTitle: 'Account not registered',
+    space_account_not_registered:
+      'No local account is registered for this LangBot Account email. Ask the Workspace owner for an invitation.',
+    space_account_binding_requiredTitle: 'LangBot Account connection required',
+    space_account_binding_required:
+      'This local account must connect a LangBot Account from Account settings before using LangBot Account login.',
   },
   monitoring: {
     title: 'Мониторинг',
@@ -1493,7 +1599,16 @@ const ruRU = {
     queryVariables: {
       title: 'Переменные запроса',
     },
+    loadError: 'Не удалось загрузить данные мониторинга',
+    partialMessages:
+      'Показано {{shown}} из {{total}} сообщений. Трассировки диалогов могут быть неполными.',
+    partialModelCalls: 'Показано {{shown}} из {{total}} вызовов модели.',
+    partialToolCalls:
+      'Показано {{shown}} из {{total}} вызовов инструментов. Трассировки диалогов могут быть неполными.',
+    partialErrors: 'Показано {{shown}} из {{total}} ошибок.',
     trafficChart: {
+      unavailable: 'Агрегированные данные трафика недоступны',
+      truncated: 'Диапазон трафика обрезан. Выберите более короткий период.',
       title: 'Обзор трафика',
       messages: 'Сообщения',
       llmCalls: 'Вызовы LLM',
@@ -1539,6 +1654,8 @@ const ruRU = {
       api: 'API',
       storage: 'Хранилище',
       account: 'Аккаунт',
+
+      workspace: 'Workspace',
     },
   },
   storageAnalysis: {
@@ -1583,6 +1700,12 @@ const ruRU = {
       'Достигнуто максимальное количество конвейеров ({{max}}). Удалите существующий конвейер перед созданием нового.',
     maxExtensionsReached:
       'Достигнуто максимальное количество расширений ({{max}}). Удалите существующий MCP-сервер или плагин перед добавлением нового.',
+    quotaLoadingTooltip:
+      'Данные об использовании рабочего пространства загружаются. Подождите перед созданием ресурса.',
+    quotaCheckFailed:
+      'Не удалось проверить текущую квоту рабочего пространства. Повторите попытку.',
+    createDisabledTooltip:
+      'Достигнут лимит {{resource}} ({{max}}) для этого рабочего пространства. Удалите существующий ресурс перед созданием нового.',
   },
   wizard: {
     sidebarDescription: 'Создать бота с пошаговым руководством',
@@ -1600,7 +1723,6 @@ const ruRU = {
     botCreateSuccess: 'Бот успешно создан!',
     botSaveSuccess: 'Конфигурация бота сохранена и включена!',
     createError: 'Не удалось создать ресурсы',
-    spaceAuthError: 'Не удалось инициировать авторизацию через Space',
     skipSaveError: 'Не удалось сохранить статус пропуска. Повторите попытку.',
     completeSaveError:
       'Не удалось сохранить статус завершения. Повторите попытку.',
@@ -1621,19 +1743,81 @@ const ruRU = {
       resaveBot: 'Пересохранить конфигурацию',
       botSaved:
         'Конфигурация бота сохранена и включена. Проверьте журналы для подтверждения подключения.',
+      waitingForMessage:
+        'Бот включён. Отправьте ему сообщение из мессенджера, чтобы продолжить.',
+      messageReceived:
+        'Бот получил сообщение. Можно перейти к следующему шагу.',
+      messageReceivedLocalAccountWarning:
+        'Подключение бота настроено правильно, и сообщение получено. Поскольку вход выполнен не через аккаунт LangBot, вызовы модели могут завершаться ошибкой; перейдите к следующему шагу, чтобы добавить собственную модель.',
+      pageBotTestPrompt:
+        'Бот для веб-страницы включён. Нажмите на значок чата в правом нижнем углу и отправьте сообщение, чтобы проверить полный сценарий диалога.',
+      pageBotTestNotice:
+        'Только для тестирования. Встройте код в настоящую внешнюю веб-страницу.',
+      webhookTestPrompt:
+        'URL обратного вызова готов. Настройте его на внешней платформе, затем отправьте боту настоящее сообщение.',
+      httpTestPrompt:
+        'HTTP-бот включён. Отправьте сюда настоящее входящее сообщение, чтобы проверить подключение.',
+      httpTestDefaultMessage:
+        'Здравствуйте, это тестовое сообщение подключения.',
+      sendHttpTest: 'Отправить тестовое сообщение',
+      httpTestAccepted:
+        'Тестовое сообщение принято. Оно скоро появится в журнале.',
+      httpTestMissingSecret:
+        'Введите секрет подписи входящих запросов и сначала сохраните конфигурацию.',
+      httpTestFailed: 'Не удалось отправить тестовое сообщение: {{error}}',
       logsTitle: 'Журналы бота',
       logsDescription:
         'Отслеживайте активность бота для проверки подключения к платформе.',
     },
     aiEngine: {
-      title: 'Выберите ИИ-движок',
+      title: 'Настройте ИИ-движок',
       description:
         'Выберите ИИ-движок, который будет управлять интеллектом вашего бота.',
-    },
-    spaceBanner: {
-      message:
-        'Подключитесь к LangBot Space для бесплатных пробных кредитов и мгновенной настройки!',
-      action: 'Авторизация через Space',
+      optionalDescription:
+        'Этот шаг необязателен. Выберите, как продолжить настройку текущего Agent.',
+      externalTitle: 'Подключить Agent внешней платформы',
+      externalDescription:
+        'Подключите Dify, n8n, Coze или другую платформу и замените Pipeline бота.',
+      ownModelTitle: 'Использовать собственную модель',
+      ownModelDescription:
+        'Добавьте провайдера, затем найдите модель автоматически или укажите её вручную, чтобы завершить настройку.',
+      ownModelSetupTitle: 'Добавьте собственную модель',
+      ownModelSetupDescription:
+        'Добавьте провайдера моделей. Модели чата будут найдены автоматически, либо можно вручную указать ID модели.',
+      addProviderTitle: 'Добавить провайдера',
+      addProviderDescription:
+        'Введите данные провайдера и API-ключ для подключения и поиска моделей.',
+      selectModelTitle: 'Выберите модель',
+      selectScannedModelTitle: 'Выберите модель',
+      selectScannedModelDescription:
+        'Выбранная модель станет основной моделью нового Pipeline, и бот переключится на неё.',
+      scanModelMode: 'Найти модели',
+      manualModelMode: 'Добавить вручную',
+      scanningModels: 'Поиск доступных моделей…',
+      noScannedModels:
+        'Доступные модели чата не найдены. Проверьте конфигурацию провайдера.',
+      scanModelsFailed:
+        'Не удалось найти модели. Проверьте URL и API-ключ, затем повторите попытку.',
+      manualFallbackFailed:
+        'Автоматический поиск не удался. Введите ID модели, поддерживаемой провайдером.',
+      manualFallbackEmpty:
+        'Модели не найдены. Введите ID модели, поддерживаемой провайдером.',
+      manualModelId: 'ID модели',
+      manualModelIdPlaceholder: 'Например: gpt-4o',
+      manualModelIdDescription:
+        'Введите параметр модели, используемый в запросах к модели.',
+      manualModelOptions: 'Дополнительные возможности модели',
+      editProvider: 'Изменить провайдера',
+      rescanModels: 'Повторить поиск моделей',
+      moreFeaturesTitle: 'Добавить возможности Agent',
+      moreFeaturesDescription:
+        'Откройте рабочую панель, чтобы добавить инструменты, базы знаний и другие возможности только что автоматически созданному Agent.',
+      runnerDescription:
+        'Выберите Runner для внешнего Agent и настройте подключение.',
+      backToChoices: 'Вернуться к вариантам',
+      createExternal: 'Создать и привязать',
+      finishWithModel: 'Использовать выбранную модель и завершить',
+      openWorkbench: 'Открыть рабочую панель',
     },
     config: {
       botInfo: 'Информация о боте',
@@ -1685,6 +1869,9 @@ const ruRU = {
       'Отсканируйте QR-код ниже в WeChat, чтобы авторизоваться и автоматически заполнить токен',
     loginSuccess: 'Вход выполнен успешно! Токен заполнен автоматически',
     loginFailed: 'Не удалось выполнить вход',
+    connecting: 'Подключение к сервису WeChat...',
+    waitingForScan: 'Ожидание сканирования',
+    retry: 'Повторить',
   },
   dingtalk: {
     createApp: 'Создать приложение DingTalk в один клик',
@@ -1851,6 +2038,90 @@ const ruRU = {
     createSkillHint: 'Импортировать из локального каталога или создать вручную',
     unsupportedFileType:
       'Неподдерживаемый тип файла. Поддерживаются только файлы .zip и .lbpkg',
+  },
+
+  workspace: {
+    title: 'Workspace',
+    description: 'Manage members, roles, and invitation links',
+    selectTitle: 'Choose a Workspace',
+    selectDescription: 'Select where you want to continue in LangBot.',
+    selectionLoadFailed:
+      'Your Workspaces could not be loaded. Please try again.',
+    switchWorkspace: 'Switch Workspace',
+    settings: 'Workspace Settings',
+    currentPlan: 'Current plan',
+    planUnavailable: 'Unavailable',
+    upgradePlan: 'Change or upgrade plan',
+    ossSingletonDescription:
+      'This self-hosted instance has one Workspace and can include multiple users.',
+    cloudManagedDescription:
+      'This Workspace is hosted by LangBot Cloud. Manage members here; billing opens in Cloud.',
+    loadFailed: 'Failed to load Workspace information',
+    members: 'Members',
+    you: 'You',
+    inviteMember: 'Invite a member',
+    inviteDescription:
+      'Create a one-time link to add another user to this Workspace.',
+    emailPlaceholder: 'member@example.com',
+    createInvitation: 'Create invitation',
+    invitationCreated: 'Invitation created',
+    delivery: {
+      sent: 'Invitation sent',
+      link_only: 'Invitation link created',
+      failed: 'Invitation link created, but email could not be sent',
+    },
+    invitationCreateFailed: 'Failed to create invitation',
+    oneTimeLinkWarning: 'Copy this link now. It is shown only once.',
+    copyInvitation: 'Copy invitation link',
+    invitationCopied: 'Invitation link copied',
+    pendingInvitations: 'Pending invitations',
+    expiresAt: 'Expires {{date}}',
+    revokeInvitation: 'Revoke invitation',
+    invitationRevoked: 'Invitation revoked',
+    invitationRevokeFailed: 'Failed to revoke invitation',
+    acceptInvitation: 'Accept invitation',
+    invitedToWorkspace: 'You were invited to {{workspace}}',
+    checkingInvitation: 'Checking this invitation...',
+    invitationMissing: 'This invitation link is missing required information.',
+    invitationExpired: 'This invitation has expired.',
+    invitationAlreadyRevoked: 'This invitation was revoked.',
+    invitationAlreadyUsed: 'This invitation was already used.',
+    invitationInvalid: 'This invitation is invalid or no longer available.',
+    invitationAccepted: 'Invitation accepted',
+    invitationAcceptFailed: 'Failed to accept invitation',
+    invitationEmailMismatch:
+      'This invitation belongs to a different email address.',
+    existingAccountLoginRequired:
+      'An account already exists for this email. Sign in to continue.',
+    acceptAsCurrentAccount: 'Accept with current account',
+    authenticatedInvitationNotice:
+      'Sign out first, then sign in with the invited account. Your invitation will be preserved.',
+    logoutAndReturn: 'Sign out and return to this invitation',
+    switchAccount: 'Switch account',
+    registerAndAccept: 'Create account and accept',
+    alreadyHaveAccount: 'I already have an account',
+    confirmPassword: 'Confirm password',
+    passwordMinimum: 'Password must contain at least 8 characters.',
+    passwordMismatch: 'The passwords do not match.',
+    backToLogin: 'Back to sign in',
+    memberUpdated: 'Member role updated',
+    memberUpdateFailed: 'Failed to update member role',
+    removeMember: 'Remove member',
+    removeMemberConfirm: 'Remove this member from the Workspace?',
+    memberRemoved: 'Member removed',
+    memberRemoveFailed: 'Failed to remove member',
+    transferOwnership: 'Transfer ownership',
+    types: {
+      personal: 'Personal',
+      team: 'Team',
+    },
+    roles: {
+      owner: 'Owner',
+      admin: 'Admin',
+      developer: 'Developer',
+      operator: 'Operator',
+      viewer: 'Viewer',
+    },
   },
 };
 

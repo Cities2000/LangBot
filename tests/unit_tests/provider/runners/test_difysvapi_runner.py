@@ -6,6 +6,7 @@ Tests the helper methods that don't require real Dify API calls.
 from __future__ import annotations
 
 import pytest
+import time
 from unittest.mock import AsyncMock, MagicMock
 
 import langbot_plugin.api.entities.builtin.platform.message as platform_message
@@ -18,13 +19,12 @@ class TestDifyWorkflowSubmitClient:
 
         class FakeResponse:
             status_code = 503
+            headers = {}
 
-            async def aread(self):
-                return b''
-
-            async def aiter_lines(self):
-                raise AssertionError('error responses must not enter the SSE loop')
-                yield
+            async def aiter_bytes(self, chunk_size=None):
+                del chunk_size
+                if False:
+                    yield b''
 
         class FakeStreamContext:
             async def __aenter__(self):
@@ -65,6 +65,115 @@ class TestDifyWorkflowSubmitClient:
                     user='person_user-1',
                 )
             )
+
+    @pytest.mark.asyncio
+    async def test_sse_parser_rejects_an_unbounded_line(self):
+        from langbot.libs.dify_service_api.v1 import client, errors
+
+        class FakeResponse:
+            async def aiter_bytes(self, chunk_size=None):
+                del chunk_size
+                for _ in range(129):
+                    yield b'x' * 8192
+
+        with pytest.raises(errors.DifyAPIError, match='SSE event exceeds'):
+            await anext(client._iter_sse_json(FakeResponse()))
+
+    @pytest.mark.asyncio
+    async def test_sse_parser_skips_empty_data_and_done_lines(self):
+        from langbot.libs.dify_service_api.v1 import client
+
+        class FakeResponse:
+            async def aiter_bytes(self, chunk_size=None):
+                del chunk_size
+                yield b'data:\n\ndata: {"event":"message",'
+                yield b'"answer":"ok"}\n\ndata: [DONE]\n'
+
+        events = [event async for event in client._iter_sse_json(FakeResponse())]
+
+        assert events == [{'event': 'message', 'answer': 'ok'}]
+
+    @pytest.mark.asyncio
+    async def test_sse_parser_rejects_malformed_nonempty_data(self):
+        from langbot.libs.dify_service_api.v1 import client, errors
+
+        class FakeResponse:
+            async def aiter_bytes(self, chunk_size=None):
+                del chunk_size
+                yield b'data: not-json\n'
+
+        with pytest.raises(errors.DifyAPIError, match='not valid JSON'):
+            await anext(client._iter_sse_json(FakeResponse()))
+
+    @pytest.mark.asyncio
+    async def test_upload_rejects_oversized_local_file(self, tmp_path):
+        from langbot.libs.dify_service_api.v1 import client
+
+        file_path = tmp_path / 'large.bin'
+        file_path.write_bytes(b'x' * (client._MAX_DIFY_UPLOAD_BYTES + 1))
+        dify_client = client.AsyncDifyServiceClient(
+            'test-key',
+            'https://dify.example/v1',
+        )
+
+        with pytest.raises(ValueError, match='exceeds the size limit'):
+            await dify_client.upload_file(file_path, 'person_user-1')
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ('status_code', 'body', 'expected_id'),
+        [
+            (200, b'{"data":{"id":"wrapped-id"}}', 'wrapped-id'),
+            (201, b'{"id":"flat-id"}', 'flat-id'),
+        ],
+    )
+    async def test_upload_accepts_supported_success_responses(self, status_code, body, expected_id):
+        from langbot.libs.dify_service_api.v1 import client
+
+        class FakeResponse:
+            headers = {}
+
+            def __init__(self):
+                self.status_code = status_code
+
+            async def aiter_bytes(self, chunk_size=None):
+                del chunk_size
+                yield body
+
+        class FakeStreamContext:
+            async def __aenter__(self):
+                return FakeResponse()
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                del exc_type, exc, traceback
+                return False
+
+        class FakeClient:
+            def stream(self, *args, **kwargs):
+                del args, kwargs
+                return FakeStreamContext()
+
+        dify_client = client.AsyncDifyServiceClient('test-key', 'https://dify.example/v1')
+        dify_client._client = FakeClient()
+
+        response = await dify_client.upload_file(('hello.txt', b'hello', 'text/plain'), 'person_user-1')
+
+        assert response['id'] == expected_id
+
+    @pytest.mark.parametrize(
+        'body',
+        [
+            b'not-json',
+            b'[]',
+            b'{"data":null}',
+            b'{"data":{}}',
+        ],
+    )
+    def test_upload_rejects_invalid_success_payload(self, body):
+        from langbot.libs.dify_service_api.v1 import client, errors
+
+        with pytest.raises(errors.DifyAPIError):
+            client._decode_upload_response(body)
 
 
 class TestDifyExtractTextOutput:
@@ -252,42 +361,65 @@ class TestDifyHumanInputForms:
         runner.dify_client.upload_file = AsyncMock(return_value={'id': 'upload-1'})
         return runner
 
-    def test_pending_forms_are_isolated_by_bot_and_pipeline(self):
+    def test_pending_forms_are_isolated_by_workspace_generation_bot_and_pipeline(self):
         from langbot.pkg.provider.runners import difysvapi
 
         query_a = MagicMock()
+        query_a.instance_uuid = 'instance-a'
+        query_a.workspace_uuid = 'workspace-a'
+        query_a.placement_generation = 1
         query_a.bot_uuid = 'bot-a'
         query_a.pipeline_uuid = 'pipeline-a'
         query_a.session.launcher_type.value = 'person'
         query_a.session.launcher_id = 'shared-user'
 
         query_b = MagicMock()
+        query_b.instance_uuid = 'instance-a'
+        query_b.workspace_uuid = 'workspace-a'
+        query_b.placement_generation = 1
         query_b.bot_uuid = 'bot-b'
         query_b.pipeline_uuid = 'pipeline-a'
         query_b.session.launcher_type.value = 'person'
         query_b.session.launcher_id = 'shared-user'
 
         query_c = MagicMock()
+        query_c.instance_uuid = 'instance-a'
+        query_c.workspace_uuid = 'workspace-a'
+        query_c.placement_generation = 1
         query_c.bot_uuid = 'bot-a'
         query_c.pipeline_uuid = 'pipeline-b'
         query_c.session.launcher_type.value = 'person'
         query_c.session.launcher_id = 'shared-user'
 
+        query_d = MagicMock()
+        query_d.instance_uuid = 'instance-a'
+        query_d.workspace_uuid = 'workspace-b'
+        query_d.placement_generation = 2
+        query_d.bot_uuid = 'bot-a'
+        query_d.pipeline_uuid = 'pipeline-a'
+        query_d.session.launcher_type.value = 'person'
+        query_d.session.launcher_id = 'shared-user'
+
         key_a = difysvapi._session_key_from_query(query_a)
         key_b = difysvapi._session_key_from_query(query_b)
         key_c = difysvapi._session_key_from_query(query_c)
+        key_d = difysvapi._session_key_from_query(query_d)
         difysvapi._PENDING_FORMS.clear()
         difysvapi._set_pending_form(key_a, {'form_token': 'token-a', 'workflow_run_id': 'run-a'})
         difysvapi._set_pending_form(key_b, {'form_token': 'token-b', 'workflow_run_id': 'run-b'})
         difysvapi._set_pending_form(key_c, {'form_token': 'token-c', 'workflow_run_id': 'run-c'})
+        difysvapi._set_pending_form(key_d, {'form_token': 'token-d', 'workflow_run_id': 'run-d'})
 
         assert key_a != key_b
         assert key_a != key_c
+        assert key_a != key_d
         assert difysvapi._get_pending_form_by_token(key_a, 'token-a') is not None
         assert difysvapi._get_pending_form_by_token(key_a, 'token-b') is None
         assert difysvapi._get_pending_form_by_token(key_a, 'token-c') is None
+        assert difysvapi._get_pending_form_by_token(key_a, 'token-d') is None
         assert difysvapi._get_pending_form_by_token(key_b, 'token-b') is not None
         assert difysvapi._get_pending_form_by_token(key_c, 'token-c') is not None
+        assert difysvapi._get_pending_form_by_token(key_d, 'token-d') is not None
         assert difysvapi._get_latest_pending_form(key_a)['workflow_run_id'] == 'run-a'
         assert difysvapi._get_latest_pending_form(key_b)['workflow_run_id'] == 'run-b'
         assert difysvapi._get_latest_pending_form(key_c)['workflow_run_id'] == 'run-c'
@@ -296,6 +428,130 @@ class TestDifyHumanInputForms:
         assert difysvapi._dify_user_from_query(query_a) == difysvapi._dify_user_from_query(query_b)
         assert difysvapi._dify_user_from_query(query_a) == difysvapi._dify_user_from_query(query_c)
         difysvapi._PENDING_FORMS.clear()
+
+    def test_pending_form_lookup_does_not_scan_unrelated_sessions(self, monkeypatch):
+        from langbot.pkg.provider.runners import difysvapi
+
+        def session_key(index: int):
+            return (
+                'instance',
+                f'workspace-{index}',
+                1,
+                'bot',
+                'pipeline',
+                'adapter',
+                'person',
+                f'user-{index}',
+            )
+
+        difysvapi._PENDING_FORMS.clear()
+        for index in range(512):
+            difysvapi._set_pending_form(
+                session_key(index),
+                {
+                    'form_token': f'token-{index}',
+                    'workflow_run_id': f'run-{index}',
+                },
+            )
+
+        class NoGlobalIterationDict(dict):
+            def __iter__(self):
+                raise AssertionError('pending form lookup scanned all sessions')
+
+            def keys(self):
+                raise AssertionError('pending form lookup scanned all sessions')
+
+            def items(self):
+                raise AssertionError('pending form lookup scanned all sessions')
+
+            def values(self):
+                raise AssertionError('pending form lookup scanned all sessions')
+
+        guarded_forms = NoGlobalIterationDict(difysvapi._PENDING_FORMS)
+        monkeypatch.setattr(difysvapi, '_PENDING_FORMS', guarded_forms)
+
+        assert difysvapi._get_pending_form_by_token(session_key(511), 'token-511')['workflow_run_id'] == 'run-511'
+        difysvapi._set_pending_form(
+            session_key(512),
+            {'form_token': 'token-512', 'workflow_run_id': 'run-512'},
+        )
+        assert len(guarded_forms) == 513
+
+    def test_pending_form_expiry_heap_ignores_stale_overwrite_and_stays_bounded(self):
+        from langbot.pkg.provider.runners import difysvapi
+
+        session_key = (
+            'instance',
+            'workspace',
+            1,
+            'bot',
+            'pipeline',
+            'adapter',
+            'person',
+            'user',
+        )
+        difysvapi._PENDING_FORMS.clear()
+        now = time.time()
+        difysvapi._set_pending_form(
+            session_key,
+            {
+                'form_token': 'token',
+                'workflow_run_id': 'stale',
+                'expiration_time': now + 1,
+            },
+        )
+        for revision in range(500):
+            difysvapi._set_pending_form(
+                session_key,
+                {
+                    'form_token': 'token',
+                    'workflow_run_id': f'current-{revision}',
+                    'expiration_time': now + 3600 + revision,
+                },
+            )
+
+        difysvapi._prune_pending_forms(now + 2)
+
+        assert difysvapi._get_pending_form_by_token(session_key, 'token')['workflow_run_id'] == 'current-499'
+        assert difysvapi._PENDING_FORM_ACTIVE_COUNT == 1
+        assert len(difysvapi._PENDING_FORM_EXPIRY_HEAP) <= max(
+            difysvapi._PENDING_FORM_HEAP_COMPACT_FLOOR,
+            difysvapi._PENDING_FORM_ACTIVE_COUNT * difysvapi._PENDING_FORM_HEAP_MAX_MULTIPLIER,
+        )
+
+    def test_pending_form_capacity_evicts_earliest_session_without_full_scan(
+        self,
+        monkeypatch,
+    ):
+        from langbot.pkg.provider.runners import difysvapi
+
+        def session_key(index: int):
+            return (
+                'instance',
+                f'workspace-{index}',
+                1,
+                'bot',
+                'pipeline',
+                'adapter',
+                'person',
+                f'user-{index}',
+            )
+
+        difysvapi._PENDING_FORMS.clear()
+        monkeypatch.setattr(difysvapi, '_PENDING_FORM_MAX_SESSIONS', 2)
+        now = time.time()
+        for index, expires_in in ((1, 300), (2, 100), (3, 200)):
+            difysvapi._set_pending_form(
+                session_key(index),
+                {
+                    'form_token': f'token-{index}',
+                    'expiration_time': now + expires_in,
+                },
+            )
+
+        assert session_key(1) in difysvapi._PENDING_FORMS
+        assert session_key(2) not in difysvapi._PENDING_FORMS
+        assert session_key(3) in difysvapi._PENDING_FORMS
 
     def test_interactive_form_data_preserves_pipeline_uuid(self):
         from langbot.pkg.provider.runners import difysvapi

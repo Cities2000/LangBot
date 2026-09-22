@@ -1,4 +1,9 @@
-import { BaseHttpClient } from './BaseHttpClient';
+import { BaseHttpClient, type RequestConfig } from './BaseHttpClient';
+import type {
+  CodexAuthStatus,
+  CodexDeviceAuthorization,
+  CodexDevicePoll,
+} from '@/app/infra/entities/codex';
 import {
   ApiRespProviderRequesters,
   ApiRespProviderRequester,
@@ -61,6 +66,16 @@ import type { PluginLogEntry } from '@/app/infra/entities/plugin';
 import type { I18nObject } from '@/app/infra/entities/common';
 import { GetBotLogsRequest } from '@/app/infra/http/requestParam/bots/GetBotLogsRequest';
 import { GetBotLogsResponse } from '@/app/infra/http/requestParam/bots/GetBotLogsResponse';
+import type {
+  CurrentWorkspace,
+  Workspace,
+  WorkspaceInvitation,
+  WorkspaceInvitationDelivery,
+  WorkspaceMembership,
+  WorkspaceBootstrapResponse,
+  WorkspaceRole,
+  WorkspaceSpaceBilling,
+} from '@/app/infra/entities/workspace';
 
 /**
  * 后端服务客户端
@@ -116,8 +131,52 @@ export class BackendClient extends BaseHttpClient {
     return this.put(`/api/v1/provider/providers/${uuid}`, provider);
   }
 
-  public deleteModelProvider(uuid: string): Promise<object> {
-    return this.delete(`/api/v1/provider/providers/${uuid}`);
+  public deleteModelProvider(uuid: string, cascade = false): Promise<object> {
+    return this.delete(
+      `/api/v1/provider/providers/${uuid}${cascade ? '?cascade=true' : ''}`,
+    );
+  }
+
+  public getCodexAuthStatus(
+    uuid: string,
+    signal?: AbortSignal,
+  ): Promise<CodexAuthStatus> {
+    return this.get(
+      `/api/v1/provider/providers/${uuid}/codex/status`,
+      undefined,
+      { signal },
+    );
+  }
+
+  public startCodexDeviceLogin(
+    uuid: string,
+  ): Promise<CodexDeviceAuthorization> {
+    return this.post(`/api/v1/provider/providers/${uuid}/codex/device`, {});
+  }
+
+  public pollCodexDeviceLogin(
+    uuid: string,
+    authorizationId: string,
+    signal?: AbortSignal,
+  ): Promise<CodexDevicePoll> {
+    return this.post(
+      `/api/v1/provider/providers/${uuid}/codex/device/poll`,
+      { authorization_id: authorizationId },
+      { signal },
+    );
+  }
+
+  public cancelCodexDeviceLogin(
+    uuid: string,
+    authorizationId: string,
+  ): Promise<object> {
+    return this.delete(
+      `/api/v1/provider/providers/${uuid}/codex/device/${encodeURIComponent(authorizationId)}`,
+    );
+  }
+
+  public disconnectCodex(uuid: string): Promise<object> {
+    return this.delete(`/api/v1/provider/providers/${uuid}/codex/auth`);
   }
 
   public scanProviderModels(
@@ -140,7 +199,9 @@ export class BackendClient extends BaseHttpClient {
     return this.get(`/api/v1/provider/models/llm/${uuid}`);
   }
 
-  public createProviderLLMModel(model: LLMModel): Promise<object> {
+  public createProviderLLMModel(
+    model: Omit<LLMModel, 'uuid'>,
+  ): Promise<{ uuid: string }> {
     return this.post('/api/v1/provider/models/llm', model);
   }
 
@@ -451,10 +512,24 @@ export class BackendClient extends BaseHttpClient {
     return this.post(`/api/v1/platform/bots/${botId}/logs`, request);
   }
 
+  public testHttpBotInbound(
+    botId: string,
+    message: string,
+  ): Promise<{ session_id: string; accepted_message_id: string }> {
+    return this.post(`/api/v1/platform/bots/${botId}/test-inbound`, {
+      message,
+    });
+  }
+
   public getBotSessions(
     botId: string,
-    limit: number = 100,
-    offset: number = 0,
+    options: {
+      limit: number;
+      offset: number;
+      startTime?: string;
+      endTime?: string;
+      userQuery?: string;
+    },
   ): Promise<{
     sessions: Array<{
       session_id: string;
@@ -474,15 +549,38 @@ export class BackendClient extends BaseHttpClient {
   }> {
     const queryParams = new URLSearchParams();
     queryParams.append('botId', botId);
-    queryParams.append('limit', limit.toString());
-    queryParams.append('offset', offset.toString());
+    queryParams.append('limit', options.limit.toString());
+    queryParams.append('offset', options.offset.toString());
+    if (options.startTime) {
+      queryParams.append('startTime', options.startTime);
+    }
+    if (options.endTime) {
+      queryParams.append('endTime', options.endTime);
+    }
+    if (options.userQuery) {
+      queryParams.append('userQuery', options.userQuery);
+    }
     return this.get(`/api/v1/monitoring/sessions?${queryParams.toString()}`);
+  }
+
+  public getSessionAnalysis<T>(
+    sessionId: string,
+    botId: string,
+    options: { startTime?: string; endTime?: string } = {},
+  ): Promise<T> {
+    const queryParams = new URLSearchParams({ botId });
+    if (options.startTime) queryParams.set('startTime', options.startTime);
+    if (options.endTime) queryParams.set('endTime', options.endTime);
+    return this.get(
+      `/api/v1/monitoring/sessions/${encodeURIComponent(sessionId)}/analysis?${queryParams.toString()}`,
+    );
   }
 
   public getSessionMessages(
     sessionId: string,
     limit: number = 200,
     offset: number = 0,
+    botId?: string,
   ): Promise<{
     messages: Array<{
       id: string;
@@ -506,6 +604,7 @@ export class BackendClient extends BaseHttpClient {
   }> {
     const queryParams = new URLSearchParams();
     queryParams.append('sessionId', sessionId);
+    if (botId) queryParams.append('botId', botId);
     queryParams.append('limit', limit.toString());
     queryParams.append('offset', offset.toString());
     return this.get(`/api/v1/monitoring/messages?${queryParams.toString()}`);
@@ -700,6 +799,54 @@ export class BackendClient extends BaseHttpClient {
     );
   }
 
+  private async getAuthenticatedObjectURL(
+    path: string,
+    rewritePluginPageSdk = false,
+  ): Promise<string> {
+    const response = await this.instance.get<Blob>(path, {
+      responseType: 'blob',
+    });
+    let blob = response.data;
+    if (rewritePluginPageSdk && blob.type.startsWith('text/html')) {
+      const apiBase =
+        this.instance.defaults.baseURL === '/'
+          ? window.location.origin
+          : this.instance.defaults.baseURL?.replace(/\/$/, '');
+      const pageSdkUrl = `${apiBase}/api/v1/plugins/_sdk/page-sdk.js`;
+      const html = await blob.text();
+      blob = new Blob(
+        [
+          html.replace(
+            /(<script\b[^>]*\bsrc\s*=\s*)(["'])\/api\/v1\/plugins\/_sdk\/page-sdk\.js\2/gi,
+            `$1$2${pageSdkUrl}$2`,
+          ),
+        ],
+        { type: blob.type },
+      );
+    }
+    return URL.createObjectURL(blob);
+  }
+
+  public getAuthenticatedPluginAssetURL(
+    author: string,
+    name: string,
+    filepath: string,
+  ): Promise<string> {
+    return this.getAuthenticatedObjectURL(
+      `/api/v1/plugins/${author}/${name}/authenticated-assets/${filepath}`,
+      true,
+    );
+  }
+
+  public getAuthenticatedPluginIconURL(
+    author: string,
+    name: string,
+  ): Promise<string> {
+    return this.getAuthenticatedObjectURL(
+      `/api/v1/plugins/${author}/${name}/authenticated-icon`,
+    );
+  }
+
   public async pluginPageApi(
     author: string,
     name: string,
@@ -733,13 +880,15 @@ export class BackendClient extends BaseHttpClient {
   }
 
   public installPluginFromGithub(
-    assetUrl: string,
+    assetId: number,
+    releaseId: number,
     owner: string,
     repo: string,
     releaseTag: string,
   ): Promise<AsyncTaskCreatedResp> {
     return this.post('/api/v1/plugins/install/github', {
-      asset_url: assetUrl,
+      asset_id: assetId,
+      release_id: releaseId,
       owner,
       repo,
       release_tag: releaseTag,
@@ -1008,10 +1157,19 @@ export class BackendClient extends BaseHttpClient {
     step: number;
     selected_adapter: string | null;
     created_bot_uuid: string | null;
+    created_pipeline_uuid?: string | null;
     bot_saved: boolean;
+    message_received?: boolean;
     selected_runner: string | null;
   }): Promise<void> {
     return this.put('/api/v1/system/wizard/progress', progress);
+  }
+
+  public getWizardRecommendedModel(): Promise<{
+    uuid: string;
+    name: string;
+  }> {
+    return this.get('/api/v1/system/wizard/recommended-model');
   }
 
   public getAsyncTasks(params?: {
@@ -1053,8 +1211,13 @@ export class BackendClient extends BaseHttpClient {
   public getPluginDebugInfo(): Promise<{
     debug_url: string;
     plugin_debug_key: string;
+    expires_at: string;
   }> {
     return this.get('/api/v1/plugins/debug-info');
+  }
+
+  public getBoxRuntimeStatus(): Promise<ApiRespBoxStatus> {
+    return this.get('/api/v1/box/runtime-status');
   }
 
   public getBoxStatus(): Promise<ApiRespBoxStatus> {
@@ -1067,19 +1230,29 @@ export class BackendClient extends BaseHttpClient {
 
   // ============ User API ============
   public checkIfInited(): Promise<{ initialized: boolean }> {
-    return this.get('/api/v1/user/init');
+    return this.get('/api/v1/user/init', undefined, { skipWorkspace: true });
   }
 
   public initUser(user: string, password: string): Promise<object> {
-    return this.post('/api/v1/user/init', { user, password });
+    return this.post(
+      '/api/v1/user/init',
+      { user, password },
+      { skipWorkspace: true },
+    );
   }
 
   public authUser(user: string, password: string): Promise<ApiRespUserToken> {
-    return this.post('/api/v1/user/auth', { user, password });
+    return this.post(
+      '/api/v1/user/auth',
+      { user, password },
+      { skipWorkspace: true },
+    );
   }
 
   public checkUserToken(): Promise<ApiRespUserToken> {
-    return this.get('/api/v1/user/check-token');
+    return this.get('/api/v1/user/check-token', undefined, {
+      skipWorkspace: true,
+    });
   }
 
   public resetPassword(
@@ -1087,65 +1260,266 @@ export class BackendClient extends BaseHttpClient {
     recoveryKey: string,
     newPassword: string,
   ): Promise<{ user: string }> {
-    return this.post('/api/v1/user/reset-password', {
-      user,
-      recovery_key: recoveryKey,
-      new_password: newPassword,
-    });
+    return this.post(
+      '/api/v1/user/reset-password',
+      {
+        user,
+        recovery_key: recoveryKey,
+        new_password: newPassword,
+      },
+      { skipWorkspace: true },
+    );
   }
 
   public changePassword(
     currentPassword: string,
     newPassword: string,
   ): Promise<{ user: string }> {
-    return this.post('/api/v1/user/change-password', {
-      current_password: currentPassword,
-      new_password: newPassword,
-    });
+    return this.post(
+      '/api/v1/user/change-password',
+      {
+        current_password: currentPassword,
+        new_password: newPassword,
+      },
+      { skipWorkspace: true },
+    );
   }
 
   public getUserInfo(): Promise<{
+    account_uuid: string;
     user: string;
     account_type: 'local' | 'space';
     has_password: boolean;
   }> {
-    return this.get('/api/v1/user/info');
+    return this.get('/api/v1/user/info', undefined, { skipWorkspace: true });
   }
 
-  public getSpaceCredits(): Promise<{ credits: number | null }> {
+  public getWorkspaceSpaceBilling(): Promise<WorkspaceSpaceBilling> {
     return this.get('/api/v1/user/space-credits');
   }
 
   public getAccountInfo(): Promise<{
     initialized: boolean;
-    account_type?: 'local' | 'space';
-    has_password?: boolean;
+    authenticated_invitation_acceptance_enabled?: boolean;
+    invitation_registration_enabled?: boolean;
+    password_login_enabled?: boolean;
+    space_login_enabled?: boolean;
+    passkey_login_enabled?: boolean;
+    passkey_supported?: boolean;
   }> {
-    return this.get('/api/v1/user/account-info');
+    return this.get('/api/v1/user/account-info', undefined, {
+      skipWorkspace: true,
+    });
+  }
+
+  // ============ Passkey (WebAuthn) API ============
+  public getPasskeyAuthOptions(
+    email?: string,
+    origin?: string,
+  ): Promise<{ options: any; challenge_token: string }> {
+    return this.post(
+      '/api/v1/user/passkey/auth/options',
+      { email, origin },
+      { skipWorkspace: true },
+    );
+  }
+
+  public verifyPasskeyAuth(
+    challenge_token: string,
+    credential: any,
+  ): Promise<{ token: string; user: string }> {
+    return this.post(
+      '/api/v1/user/passkey/auth/verify',
+      { challenge_token, credential },
+      { skipWorkspace: true },
+    );
+  }
+
+  public getPasskeyRegisterOptions(
+    origin?: string,
+  ): Promise<{ options: any; challenge_token: string }> {
+    return this.post(
+      '/api/v1/user/passkey/register/options',
+      { origin },
+      { skipWorkspace: true },
+    );
+  }
+
+  public verifyPasskeyRegister(
+    challenge_token: string,
+    credential: any,
+    name?: string,
+  ): Promise<{ uuid: string; name: string; created_at?: string }> {
+    return this.post(
+      '/api/v1/user/passkey/register/verify',
+      { challenge_token, credential, name },
+      { skipWorkspace: true },
+    );
+  }
+
+  public getPasskeys(): Promise<
+    Array<{
+      uuid: string;
+      name: string;
+      aaguid?: string;
+      transports?: string;
+      backed_up?: boolean;
+      created_at?: string;
+      last_used_at?: string;
+    }>
+  > {
+    return this.get('/api/v1/user/passkeys', undefined, {
+      skipWorkspace: true,
+    });
+  }
+
+  public renamePasskey(
+    uuid: string,
+    name: string,
+  ): Promise<{ uuid: string; name: string }> {
+    return this.patch(
+      `/api/v1/user/passkey/${encodeURIComponent(uuid)}`,
+      { name },
+      { skipWorkspace: true },
+    );
+  }
+
+  public deletePasskey(uuid: string): Promise<void> {
+    return this.delete(`/api/v1/user/passkey/${encodeURIComponent(uuid)}`, {
+      skipWorkspace: true,
+    });
+  }
+
+  // ============ Workspace API ============
+  public getWorkspaceBootstrap(): Promise<WorkspaceBootstrapResponse> {
+    return this.get('/api/v1/workspaces/bootstrap', undefined, {
+      skipWorkspace: true,
+    });
+  }
+
+  public getWorkspaces(): Promise<{ workspaces: Workspace[] }> {
+    return this.get('/api/v1/workspaces', undefined, { skipWorkspace: true });
+  }
+
+  public getCurrentWorkspace(): Promise<CurrentWorkspace> {
+    return this.get('/api/v1/workspaces/current');
+  }
+
+  public getWorkspace(
+    workspaceUuid: string,
+  ): Promise<{ workspace: Workspace }> {
+    return this.get(`/api/v1/workspaces/${workspaceUuid}`);
+  }
+
+  public getWorkspaceMembers(
+    workspaceUuid: string,
+  ): Promise<{ members: WorkspaceMembership[] }> {
+    return this.get(`/api/v1/workspaces/${workspaceUuid}/members`);
+  }
+
+  public createWorkspaceInvitation(
+    workspaceUuid: string,
+    email: string,
+    role: Exclude<WorkspaceRole, 'owner'>,
+  ): Promise<{
+    invitation: WorkspaceInvitation;
+    token: string;
+    link: string;
+    delivery: WorkspaceInvitationDelivery;
+  }> {
+    return this.post(`/api/v1/workspaces/${workspaceUuid}/invitations`, {
+      email,
+      role,
+    });
+  }
+
+  public getWorkspaceInvitations(
+    workspaceUuid: string,
+  ): Promise<{ invitations: WorkspaceInvitation[] }> {
+    return this.get(`/api/v1/workspaces/${workspaceUuid}/invitations`);
+  }
+
+  public revokeWorkspaceInvitation(
+    workspaceUuid: string,
+    invitationUuid: string,
+  ): Promise<object> {
+    return this.delete(
+      `/api/v1/workspaces/${workspaceUuid}/invitations/${invitationUuid}`,
+    );
+  }
+
+  public inspectWorkspaceInvitation(
+    token: string,
+  ): Promise<{ invitation: WorkspaceInvitation; workspace: Workspace }> {
+    return this.post(
+      '/api/v1/invitations/inspect',
+      { token },
+      { skipWorkspace: true },
+    );
+  }
+
+  public acceptWorkspaceInvitation(
+    token: string,
+    registration?: { email: string; password: string },
+  ): Promise<{ token: string; workspace_uuid: string }> {
+    return this.post(
+      '/api/v1/invitations/accept',
+      {
+        token,
+        registration,
+      },
+      { skipWorkspace: true },
+    );
+  }
+
+  public updateWorkspaceMemberRole(
+    workspaceUuid: string,
+    accountUuid: string,
+    role: WorkspaceRole,
+  ): Promise<{ member: WorkspaceMembership }> {
+    return this.patch(
+      `/api/v1/workspaces/${workspaceUuid}/members/${accountUuid}`,
+      { role },
+    );
+  }
+
+  public removeWorkspaceMember(
+    workspaceUuid: string,
+    accountUuid: string,
+  ): Promise<object> {
+    return this.delete(
+      `/api/v1/workspaces/${workspaceUuid}/members/${accountUuid}`,
+    );
   }
 
   public setPassword(
     newPassword: string,
     currentPassword?: string,
   ): Promise<{ user: string }> {
-    return this.post('/api/v1/user/set-password', {
-      new_password: newPassword,
-      current_password: currentPassword,
-    });
+    return this.post(
+      '/api/v1/user/set-password',
+      {
+        new_password: newPassword,
+        current_password: currentPassword,
+      },
+      { skipWorkspace: true },
+    );
   }
 
   public async bindSpaceAccount(
     code: string,
     state: string,
+    redirectUri: string,
   ): Promise<{
     token: string;
     user: string;
     account_type: 'local' | 'space';
   }> {
-    const response = await this.instance.post('/api/v1/user/bind-space', {
-      code,
-      state,
-    });
+    const response = await this.instance.post(
+      '/api/v1/user/bind-space',
+      { code, state, redirect_uri: redirectUri },
+      { skipWorkspace: true } as RequestConfig,
+    );
     if (response.data.code !== 0) {
       throw {
         code: response.data.code,
@@ -1156,26 +1530,50 @@ export class BackendClient extends BaseHttpClient {
   }
 
   // ============ Space OAuth API (Redirect Flow) ============
-  public getSpaceAuthorizeUrl(
-    redirectUri: string,
-    state?: string,
-  ): Promise<{
+  public getSpaceAuthorizeUrl(redirectUri: string): Promise<{
     authorize_url: string;
   }> {
-    const params: Record<string, string> = { redirect_uri: redirectUri };
-    if (state) {
-      params.state = state;
-    }
-    return this.get('/api/v1/user/space/authorize-url', params);
+    return this.get(
+      '/api/v1/user/space/authorize-url',
+      { redirect_uri: redirectUri },
+      { skipWorkspace: true },
+    );
   }
 
-  public async exchangeSpaceOAuthCode(code: string): Promise<{
-    token: string;
-    user: string;
+  public getSpaceBindAuthorizeUrl(redirectUri: string): Promise<{
+    authorize_url: string;
   }> {
-    const response = await this.instance.post('/api/v1/user/space/callback', {
-      code,
-    });
+    return this.get(
+      '/api/v1/user/space/bind-authorize-url',
+      { redirect_uri: redirectUri },
+      { skipWorkspace: true },
+    );
+  }
+
+  public async exchangeSpaceOAuthCode(
+    code: string,
+    state: string,
+    redirectUri: string,
+    workspaceUuid?: string,
+    launchAssertion?: string,
+  ): Promise<{
+    token: string;
+    user?: string;
+    workspace_uuid?: string;
+    principal_type?: 'account' | 'support_admin';
+    actor_account_uuid?: string;
+  }> {
+    const response = await this.instance.post(
+      '/api/v1/user/space/callback',
+      {
+        code,
+        state,
+        redirect_uri: redirectUri,
+        workspace_uuid: workspaceUuid,
+        launch_assertion: launchAssertion,
+      },
+      { skipWorkspace: true } as RequestConfig,
+    );
     if (response.data.code !== 0) {
       throw {
         code: response.data.code,
@@ -1193,6 +1591,11 @@ export class BackendClient extends BaseHttpClient {
     endTime?: string;
     limit?: number;
   }): Promise<{
+    traffic?: {
+      bucket: 'hour' | 'day';
+      points: Array<{ timestamp: string; messages: number; llm_calls: number }>;
+      truncated: boolean;
+    };
     overview: {
       total_messages: number;
       llm_calls: number;

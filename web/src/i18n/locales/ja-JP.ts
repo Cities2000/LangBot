@@ -44,6 +44,7 @@ const jaJP = {
     delete: '削除',
     add: '追加',
     select: '選択してください',
+    clear: 'クリア',
     skill: 'スキル',
     cancel: 'キャンセル',
     submit: '送信',
@@ -77,28 +78,34 @@ const jaJP = {
     privacyPolicy: 'プライバシーポリシー',
     and: 'および',
     dataCollectionPolicy: 'データ収集ポリシー',
-    dataCollectionPolicyUrl: 'https://link.langbot.app/ja/docs/data-policy',
+    dataCollectionPolicyUrl:
+      'https://langbot.app/docs/ja/insight/data-collection-policy',
     loading: '読み込み中...',
     fieldRequired: 'この項目は必須です',
     or: 'または',
-    loginWithSpace: 'Space でログイン',
+    loginWithSpace: 'LangBot アカウントでログイン',
     spaceLoginRecommended:
       'おすすめ：公式の安定したモデル API とクラウドサービスを利用',
     loginLocal: 'ローカルアカウントでログイン',
     loginWithPassword: 'パスワードでログイン',
-    spaceLoginTitle: 'Space でログイン',
+    loginWithPasskey: 'パスキーでログイン',
+    passkeyLoginSuccess: 'パスキーの認証に成功しました。ログイン中...',
+    passkeyLoginFailed: 'パスキーでのログインに失敗しました',
+    passkeyNotSupported:
+      'お使いのブラウザまたはデバイスはパスキーをサポートしていません',
+    spaceLoginTitle: 'LangBot アカウントでログイン',
     spaceLoginDescription:
       'QRコードをスキャンするか、下のリンクにアクセスして認証してください',
     spaceLoginUserCode: '認証コード',
     spaceLoginExpires: 'コードは {{seconds}} 秒後に期限切れになります',
     spaceLoginWaiting: '認証を待っています...',
     spaceLoginSuccess: '認証に成功しました',
-    spaceLoginFailed: 'Space ログインに失敗しました',
+    spaceLoginFailed: 'LangBot アカウントログインに失敗しました',
     spaceLoginExpired:
       '認証コードの有効期限が切れました。もう一度お試しください',
     spaceLoginCancel: 'キャンセル',
     spaceLoginVisitLink: 'リンクにアクセス',
-    spaceLoginProcessing: 'Space でログイン中',
+    spaceLoginProcessing: 'LangBot アカウントでログイン中',
     spaceLoginProcessingDescription:
       'ログインを完了しています。しばらくお待ちください...',
     spaceLoginSuccessDescription: 'LangBot にリダイレクト中...',
@@ -107,7 +114,7 @@ const jaJP = {
     backToLogin: 'ログインに戻る',
     backToHome: 'ホームに戻る',
     spaceAccountCannotChangePassword:
-      'Space アカウントはここでパスワードを変更できません',
+      'LangBot アカウントはここでパスワードを変更できません',
     theme: 'テーマ',
     changePassword: 'パスワードを変更',
     currentPassword: '現在のパスワード',
@@ -169,6 +176,7 @@ const jaJP = {
     actions: 'アクション',
     apiKeyCreatedMessage:
       'この API キーをコピーしてください。もしボタンが無効な場合は手動でコピーしてください。',
+    apiKeyStoredSecurely: 'シークレットは作成時のみ表示されます',
     none: 'なし',
     more: 'もっと見る ({{count}})',
     less: '折りたたむ',
@@ -183,6 +191,38 @@ const jaJP = {
     help: 'ヘルプドキュメントを見る',
   },
   models: {
+    codex: {
+      account: 'ChatGPT サブスクリプション',
+      description:
+        'ChatGPT アカウントでログインします。サブスクリプションと OpenAI API の課金は別です。利用可能なモデルと使用制限はプランによって異なります。',
+      disconnected: '未接続',
+      loading: '接続を確認中…',
+      starting: 'ログインを開始中…',
+      pending: '認証を待機中',
+      connected: '接続済み',
+      expired:
+        'ログインの有効期限が切れました。新しいコードを取得してください。',
+      error: 'ログインできません。接続を確認して再試行してください。',
+      canceling: 'ログインをキャンセル中…',
+      saveAndSignIn: '保存してログイン',
+      done: '完了',
+      instructions:
+        'OpenAI のページでこのコードを入力してください。ログインが完了するまでこの画面を開いたままにしてください。',
+      copyCode: 'コードをコピー',
+      copied: 'コピー済み',
+      copyManually: 'コードを選択して手動でコピーしてください。',
+      continueAtOpenAI: 'OpenAI で続行',
+      expiresAt: 'コードの有効期限: {{time}}',
+      retrying: '接続が切れました。自動的に再試行しています…',
+      cancelSignIn: 'ログインをキャンセル',
+      tryAgain: '再試行',
+      signIn: 'ログイン',
+      reconnect: '再接続',
+      disconnect: '切断',
+      disconnectConfirm:
+        'このプロバイダーを切断しますか？再ログインするまでモデルは使用できません。ChatGPT のサブスクリプションは解約されません。',
+      confirmDisconnect: '切断を確認',
+    },
     title: 'モデル設定',
     description: 'パイプラインで使用できるモデルを設定・管理',
     createModel: 'モデルを作成',
@@ -216,6 +256,19 @@ const jaJP = {
     selectModelAbilities: 'モデル機能を選択',
     visionAbility: '視覚機能',
     functionCallAbility: '関数呼び出し',
+    reasoningAbility: '推論',
+    reasoningLevel: '推論レベル',
+    reasoningLevels: {
+      providerDefault: 'Provider デフォルト',
+      disabled: 'オフ',
+      enabled: 'オン',
+      minimal: '最小',
+      low: '低',
+      medium: '中',
+      high: '高',
+      xhigh: '最高',
+      max: '最大',
+    },
     contextLength: 'コンテキストウィンドウ',
     contextLengthPlaceholder: '不明',
     contextLengthInvalid:
@@ -243,8 +296,9 @@ const jaJP = {
     llmModels: 'LLM モデル',
     localProvider: 'ローカル',
     localProviderDescription: 'ローカルで設定・管理されているモデル',
-    spaceProviderDescription: 'Space アカウントから同期されたモデル',
-    spaceDisabledForLocalAccount: 'Space でログインしてクラウドモデルを使用',
+    spaceProviderDescription: 'LangBot アカウントから同期されたモデル',
+    spaceDisabledForLocalAccount:
+      'LangBot アカウントでログインしてクラウドモデルを使用',
     syncModels: '同期',
     syncSuccess: '同期完了：{{created}} 件作成、{{updated}} 件更新',
     syncError: '同期に失敗しました：',
@@ -281,12 +335,16 @@ const jaJP = {
     searchProviders: 'プロバイダーを検索...',
     langbotModelsDescription: 'LangBot Space が提供するクラウドモデル',
     credits: 'クレジット',
-    loginWithSpace: 'Space でログイン',
-    loginToUseModels: 'Space でログインしてクラウドモデルを使用',
+    loginWithSpace: 'LangBot アカウントでログイン',
+    loginToUseModels: 'LangBot アカウントでログインしてクラウドモデルを使用',
+    ownerMustBindSpace:
+      'LangBot モデルを使うにはワークスペース所有者が LangBot アカウントを連携する必要があります。',
+    usesOwnerSpaceBilling:
+      'ワークスペース所有者の LangBot アカウント課金とクレジットを使用します。',
     noModels: 'モデルがありません',
     langbotModels: 'LangBot モデル',
     spaceTrialTooltip:
-      '無料トライアルクレジットが利用可能！Space でログインして、設定不要でクラウドモデルを使用できます。',
+      '無料トライアルクレジットが利用可能！LangBot アカウントでログインして、設定不要でクラウドモデルを使用できます。',
     unlockModels: 'ログインして使用',
     editProvider: 'プロバイダーを編集',
     addProvider: 'プロバイダーを追加',
@@ -302,6 +360,8 @@ const jaJP = {
     providerSaveError: 'プロバイダーの保存に失敗しました：',
     providerDeleted: 'プロバイダーを削除しました',
     providerDeleteError: 'プロバイダーの削除に失敗しました：',
+    deleteProviderCascadeConfirmation:
+      'このプロバイダーと、その中のすべてのモデルを削除しますか？この操作は取り消せず、元に戻せません。',
     deleteProviderConfirmation: 'このプロバイダーを削除してもよろしいですか？',
     loadError: 'データの読み込みに失敗しました',
     chat: 'チャット',
@@ -498,6 +558,8 @@ const jaJP = {
     getPluginListError: 'プラグインリストの取得に失敗しました：',
     noPluginInstalled: 'プラグインがインストールされていません',
     noExtensionInstalled: '拡張機能がインストールされていません',
+    searchInstalled: 'インストール済み拡張機能を検索',
+    noMatchingExtensions: '「{{query}}」に一致する拡張機能はありません',
     loadingExtensions: '拡張機能を読み込み中...',
     groupByType: '形式でグループ化',
     pluginConfig: 'プラグイン設定',
@@ -522,9 +584,10 @@ const jaJP = {
     debugInfoTitle: 'プラグインデバッグ情報',
     debugUrl: 'デバッグURL',
     debugKey: 'デバッグキー',
+    debugKeyExpires:
+      '{{time}} にローテーションします。Workspace ごとにキーが異なります',
     noDebugKey: '(未設定)',
-    debugKeyDisabled:
-      'デバッグキーが設定されていません。プラグインデバッグには認証が不要です',
+    debugKeyDisabled: 'デバッグ認証情報を一時的に利用できません',
     boxStatusTitle: 'Box ランタイム',
     boxStatus: 'ステータス',
     boxConnected: '接続済み',
@@ -706,6 +769,7 @@ const jaJP = {
     notFound: 'プラグイン情報が見つかりません',
     sortBy: '並び順',
     sort: {
+      hottest: '人気順',
       recentlyAdded: '最近追加',
       recentlyUpdated: '最近更新',
       mostDownloads: 'ダウンロード数多',
@@ -713,6 +777,9 @@ const jaJP = {
     },
     downloads: '回ダウンロード',
     download: 'ダウンロード',
+    like: 'いいね',
+    unlike: 'いいねを解除',
+    likeFailed: 'いいねを更新できませんでした。もう一度お試しください。',
     repository: 'リポジトリ',
     downloadFailed: 'ダウンロード失敗',
     noReadme: 'このプラグインはREADMEドキュメントを提供していません',
@@ -767,6 +834,9 @@ const jaJP = {
     deprecatedTooltip:
       '対応する「ナレッジエンジン」プラグインをインストールしてください。',
     installCard: '{{name}} をインストール',
+    installedCard: '{{name}} はインストール済み',
+    installed: 'インストール済み',
+    updateAvailable: '更新があります',
   },
   mcp: {
     title: 'MCP',
@@ -803,6 +873,9 @@ const jaJP = {
     url: 'URL',
     headers: 'ヘッダー',
     timeout: 'タイムアウト',
+    toolCallTimeout: 'ツール呼び出しタイムアウト（秒）',
+    toolCallTimeoutDescription:
+      '1 回のツール呼び出しの最大待機時間です。0 で無制限、既定値は 300 秒です。',
     addArgument: '引数を追加',
     addEnvVar: '環境変数を追加',
     addHeader: 'ヘッダーを追加',
@@ -818,6 +891,15 @@ const jaJP = {
     connectionSuccess: '接続に成功しました',
     connectionFailed: '接続に失敗しました，URLを確認してください',
     connectionFailedStatus: '接続失敗',
+    connectionUnreachable:
+      'MCP サーバーに接続できません。起動状態とネットワークを確認してください。',
+    connectionTimeout:
+      'MCP サーバーの応答がタイムアウトしました。サービスを確認するか、待機時間を延長してください。',
+    connectionHttpError:
+      'MCP サーバーが HTTP {{status}} を返しました。アクセス要件とサーバーログを確認してください。',
+    oauthAuthorizationRequired: 'OAuth 認可が必要です',
+    oauthAuthorizationRequiredSuggestion:
+      'この MCP サーバーには OAuth ログインが必要です。現在は OAuth ログインに対応していません。サーバーが許可している場合は、Authorization ヘッダーを手動で追加してください。',
     boxDisabledStdioRefused:
       'Stdio モードの MCP サーバーは Box サンドボックスを必要としますが、設定で無効化されています（box.enabled = false）。',
     boxUnavailableStdioRefused:
@@ -825,6 +907,9 @@ const jaJP = {
     boxStdioRefusedSuggestion:
       'Box を有効化（box.enabled = true）してランタイムの接続を確認するか、このサーバーを http/sse モードに切り替えてください。',
     boxRequired: 'Box が必要',
+    disabledByPolicy: 'ポリシーにより無効',
+    stdioDisabledByPolicy:
+      'このデプロイでは Stdio MCP が無効です。リモート MCP サーバーを使用してください。',
     stdioBlockedByBoxToast:
       'Box サンドボックスが無効または利用できないため、stdio モードの MCP は保存できません。Box を有効化するか、http/sse モードに切り替えてください。',
     toolsFound: '個のツール',
@@ -1194,13 +1279,13 @@ const jaJP = {
     adminAccountNote:
       'ここで初期化されたアカウントは管理者アカウントとして使用されます',
     register: '登録',
-    initWithSpace: 'Space で初期化',
+    initWithSpace: 'LangBot アカウントで初期化',
     spaceRecommended:
       'おすすめ：公式の安定したモデル API とクラウドサービスを利用',
     spaceInfoTip1:
       'Space は統一されたアカウント認証サービスを提供し、機密情報をアップロードすることはありません。',
     spaceInfoTip2:
-      'Space アカウントでログインすると、LangBot Models などのクラウドサービスを利用でき、無料のモデル呼び出しクレジットで迅速に開始できます。',
+      'LangBot アカウントでログインすると、LangBot Models などのクラウドサービスを利用でき、無料のモデル呼び出しクレジットで迅速に開始できます。',
     spaceInfoTip3:
       'ログイン方法は他の機能に影響しません。いつでも他のソースからモデルを設定して使用できます。',
     registerLocal: 'ローカルアカウントを登録',
@@ -1257,27 +1342,131 @@ const jaJP = {
     passwordNotSet: '未設定',
     passwordSetDescription:
       'パスワードが設定されています。メールとパスワードでログインできます',
-    spaceStatus: 'Space アカウント',
+    spaceStatus: 'LangBot アカウント',
     spaceBound: '連携済み',
     spaceNotBound: '未連携',
     spaceBoundDescription:
-      'Space アカウントと連携済み、公式モデル API とクラウドサービスが利用可能',
-    bindSpace: 'Space アカウントを連携',
+      'LangBot アカウントと連携済み、公式モデル API とクラウドサービスが利用可能',
+    bindSpace: 'LangBot アカウントを連携',
     bindSpaceDescription: '連携して公式モデル API とクラウドサービスを利用',
     bindSpaceButton: '連携',
     bindSpaceConfirmTitle: '連携を確認',
     bindSpaceConfirmDescription:
-      'ローカルインスタンスを Space アカウントに連携しようとしています',
+      'ローカルインスタンスを LangBot アカウントに連携しようとしています',
     bindSpaceWarning:
-      '連携後、ログインメールアドレスは {{localEmail}} から Space アカウントのメールアドレスに変更されます。',
-    bindSpaceSuccess: 'Space アカウントの連携に成功しました',
-    bindSpaceFailed: 'Space アカウントの連携に失敗しました',
+      '連携後、ログインメールアドレスは {{localEmail}} から LangBot アカウントのメールアドレスに変更されます。',
+    bindSpaceSuccess: 'LangBot アカウントの連携に成功しました',
+    passkeySectionTitle: 'パスキー (Passkey)',
+    passkeySectionDesc:
+      '生体認証やセキュリティキーを使って、パスワード不要で安全にログインします',
+    addPasskey: 'パスキーを追加',
+    passkeyName: 'キー名',
+    passkeyNamePlaceholder: '例: MacBook Touch ID、YubiKey',
+    passkeyCreated: '作成日: {{date}}',
+    passkeyLastUsed: '最終使用: {{date}}',
+    noPasskeys: '登録されているパスキーはありません',
+    deletePasskeyConfirm:
+      'このパスキーを削除してもよろしいですか？削除後はこのキーでのログインができなくなります。',
+    passkeyAddedSuccess: 'パスキーが正常に追加されました',
+    passkeyDeleteSuccess: 'パスキーを削除しました',
+    passkeyRenameSuccess: 'パスキー名を変更しました',
+    bindSpaceFailed: 'LangBot アカウントの連携に失敗しました',
     bindSpaceInvalidState:
       '無効な連携リクエストです。アカウント設定から再度お試しください。',
     setPasswordHint:
       'パスワードを設定するとメールとパスワードでログインできます',
     spaceEmailMismatch:
-      'Spaceログインのメールアドレスがローカルアカウントのメールアドレスと一致しません',
+      'LangBot アカウントのメールアドレスがローカルアカウントのメールアドレスと一致しません',
+    space_account_not_registeredTitle: 'アカウントが登録されていません',
+    space_account_not_registered:
+      'この LangBot アカウントのメールアドレスのローカルアカウントはありません。ワークスペース所有者に招待を依頼してください。',
+    space_account_binding_requiredTitle: 'LangBot アカウントの連携が必要です',
+    space_account_binding_required:
+      'LangBot アカウントログインを使用する前に、アカウント設定でこのローカルアカウントを LangBot アカウントに連携してください。',
+  },
+  workspace: {
+    title: 'ワークスペース',
+    description: 'メンバー、ロール、招待リンクを管理します',
+    selectTitle: 'ワークスペースを選択',
+    selectDescription: 'LangBot で使用するワークスペースを選択してください。',
+    selectionLoadFailed:
+      'ワークスペースを読み込めませんでした。もう一度お試しください。',
+    switchWorkspace: 'ワークスペースを切り替え',
+    ossSingletonDescription:
+      'このセルフホストインスタンスには1つのワークスペースがあり、複数のユーザーを追加できます。',
+    cloudManagedDescription:
+      'このワークスペースは LangBot Cloud でホストされています。メンバーはここで管理し、請求は Cloud で開きます。',
+    loadFailed: 'ワークスペース情報の読み込みに失敗しました',
+    members: 'メンバー',
+    you: 'あなた',
+    inviteMember: 'メンバーを招待',
+    inviteDescription:
+      '現在のワークスペースにユーザーを追加する一度限りのリンクを作成します。',
+    emailPlaceholder: 'member@example.com',
+    createInvitation: '招待を作成',
+    invitationCreated: '招待を作成しました',
+    delivery: {
+      sent: '招待メールを送信しました',
+      link_only: '招待リンクを作成しました',
+      failed: '招待リンクを作成しましたが、メールを送信できませんでした',
+    },
+    invitationCreateFailed: '招待の作成に失敗しました',
+    oneTimeLinkWarning:
+      'このリンクを今すぐコピーしてください。一度だけ表示されます。',
+    copyInvitation: '招待リンクをコピー',
+    invitationCopied: '招待リンクをコピーしました',
+    pendingInvitations: '保留中の招待',
+    expiresAt: '{{date}} に期限切れ',
+    revokeInvitation: '招待を取り消す',
+    invitationRevoked: '招待を取り消しました',
+    invitationRevokeFailed: '招待の取り消しに失敗しました',
+    acceptInvitation: '招待を承認',
+    invitedToWorkspace: '{{workspace}} に招待されました',
+    checkingInvitation: '招待を確認しています...',
+    invitationMissing: 'この招待リンクには必要な情報がありません。',
+    invitationExpired: 'この招待は期限切れです。',
+    invitationAlreadyRevoked: 'この招待は取り消されました。',
+    invitationAlreadyUsed: 'この招待はすでに使用されています。',
+    invitationInvalid: 'この招待は無効か、利用できなくなっています。',
+    invitationAccepted: '招待を承認しました',
+    invitationAcceptFailed: '招待の承認に失敗しました',
+    invitationEmailMismatch: 'この招待は別のメールアドレスに送られたものです。',
+    existingAccountLoginRequired:
+      'このメールアドレスのアカウントは既に存在します。ログインしてください。',
+    acceptAsCurrentAccount: '現在のアカウントで承認',
+    authenticatedInvitationNotice:
+      '一度ログアウトし、招待されたアカウントでログインしてください。招待は保持されます。',
+    logoutAndReturn: 'ログアウトしてこの招待に戻る',
+    switchAccount: 'アカウントを切り替える',
+    registerAndAccept: 'アカウントを作成して承認',
+    alreadyHaveAccount: 'アカウントを持っています',
+    confirmPassword: 'パスワードを確認',
+    passwordMinimum: 'パスワードは8文字以上にしてください。',
+    passwordMismatch: 'パスワードが一致しません。',
+    backToLogin: 'ログインに戻る',
+    memberUpdated: 'メンバーのロールを更新しました',
+    memberUpdateFailed: 'メンバーのロール更新に失敗しました',
+    removeMember: 'メンバーを削除',
+    removeMemberConfirm: 'このメンバーをワークスペースから削除しますか？',
+    memberRemoved: 'メンバーを削除しました',
+    memberRemoveFailed: 'メンバーの削除に失敗しました',
+    transferOwnership: '所有権を移譲',
+    types: {
+      personal: '個人',
+      team: 'チーム',
+    },
+    roles: {
+      owner: '所有者',
+      admin: '管理者',
+      developer: '開発者',
+      operator: 'オペレーター',
+      viewer: '閲覧者',
+    },
+
+    settings: 'Workspace Settings',
+    currentPlan: 'Current plan',
+    planUnavailable: 'Unavailable',
+    upgradePlan: 'Change or upgrade plan',
   },
   monitoring: {
     title: 'ダッシュボード',
@@ -1489,7 +1678,17 @@ const jaJP = {
     queryVariables: {
       title: 'クエリ変数',
     },
+    loadError: 'モニタリングデータを読み込めませんでした',
+    partialMessages:
+      '全 {{total}} 件中 {{shown}} 件のメッセージを表示。会話トレースは不完全な場合があります。',
+    partialModelCalls: '全 {{total}} 件中 {{shown}} 件のモデル呼び出しを表示。',
+    partialToolCalls:
+      '全 {{total}} 件中 {{shown}} 件のツール呼び出しを表示。会話トレースは不完全な場合があります。',
+    partialErrors: '全 {{total}} 件中 {{shown}} 件のエラーを表示。',
     trafficChart: {
+      unavailable: 'トラフィック集計を利用できません',
+      truncated:
+        'トラフィック範囲が切り詰められています。短い期間を選択してください。',
       title: 'トラフィック概要',
       messages: 'メッセージ',
       llmCalls: 'LLM呼び出し',
@@ -1531,6 +1730,7 @@ const jaJP = {
   settingsDialog: {
     title: '設定',
     nav: {
+      workspace: 'ワークスペース',
       models: 'モデル',
       api: 'API',
       storage: 'ストレージ',
@@ -1579,6 +1779,12 @@ const jaJP = {
       'パイプライン数が上限（{{max}}個）に達しました。新しいパイプラインを作成するには、既存のパイプラインを削除してください。',
     maxExtensionsReached:
       '拡張機能数が上限（{{max}}個）に達しました。新しい MCP サーバーやプラグインを追加するには、既存のものを削除してください。',
+    quotaLoadingTooltip:
+      'ワークスペースの使用状況を読み込んでいます。リソースを作成する前にお待ちください。',
+    quotaCheckFailed:
+      '現在のワークスペース上限を確認できません。もう一度お試しください。',
+    createDisabledTooltip:
+      'このワークスペースの{{resource}}数が上限（{{max}}個）に達しました。新しく作成する前に既存の{{resource}}を削除してください。',
   },
   wizard: {
     sidebarDescription: 'ガイド付きステップでボットを作成',
@@ -1596,7 +1802,6 @@ const jaJP = {
     botCreateSuccess: 'ボットが正常に作成されました！',
     botSaveSuccess: 'ボット設定が保存され、有効になりました！',
     createError: 'リソースの作成に失敗しました',
-    spaceAuthError: 'Space 認証の開始に失敗しました',
     skipSaveError: 'スキップ状態の保存に失敗しました。もう一度お試しください。',
     completeSaveError: '完了状態の保存に失敗しました。もう一度お試しください。',
     step: {
@@ -1618,19 +1823,79 @@ const jaJP = {
       resaveBot: '設定を再保存',
       botSaved:
         'ボット設定が保存され、有効になりました。ログを確認して接続を検証してください。',
+      waitingForMessage:
+        'ボットが有効になりました。続行するには IM からメッセージを送信してください。',
+      messageReceived:
+        'ボットが IM メッセージを受信しました。次のステップに進めます。',
+      messageReceivedLocalAccountWarning:
+        'ボット側の接続設定は正常で、IM メッセージを受信できています。LangBot Account でログインしていないためモデル呼び出しが失敗する場合がありますが、次のステップで独自のモデルを追加できます。',
+      pageBotTestPrompt:
+        'ページボットが有効になりました。右下のチャットバブルをクリックしてメッセージを送信し、会話フロー全体を確認してください。',
+      pageBotTestNotice:
+        'テスト専用です。実際の外部 Web ページにコードを埋め込んでください。',
+      webhookTestPrompt:
+        'コールバック URL の準備ができました。外部プラットフォームに設定し、ボットへ実際のメッセージを送信してください。',
+      httpTestPrompt:
+        'HTTP Bot が有効になりました。実際の受信メッセージを送信して接続を確認できます。',
+      httpTestDefaultMessage: 'こんにちは。これは接続テストメッセージです。',
+      sendHttpTest: 'テストメッセージを送信',
+      httpTestAccepted:
+        'テストメッセージを受け付けました。まもなくログに表示されます。',
+      httpTestMissingSecret:
+        '受信署名シークレットを入力し、先に設定を保存してください。',
+      httpTestFailed: 'テストメッセージの送信に失敗しました：{{error}}',
       logsTitle: 'ボットログ',
       logsDescription:
         'ボットの活動を監視して、プラットフォーム接続が正常に動作していることを確認します。',
     },
     aiEngine: {
-      title: 'AIエンジンを選択',
+      title: 'AIエンジンを設定',
       description:
         'ボットのインテリジェンスを駆動するAIエンジンを選択してください。',
-    },
-    spaceBanner: {
-      message:
-        'LangBot Spaceに接続して、無料トライアルモデルクレジットとゼロ設定の即時セットアップを入手！',
-      action: 'Spaceで認証',
+      optionalDescription:
+        'このステップは任意です。現在の Agent をどのように設定するか選択してください。',
+      externalTitle: '外部プラットフォームの Agent を接続',
+      externalDescription:
+        'Dify、n8n、Coze などを接続し、ボットのパイプラインを置き換えます。',
+      ownModelTitle: '自分のモデルを使用',
+      ownModelDescription:
+        'プロバイダーを追加し、モデルをスキャンまたは手動入力して設定を完了します。',
+      ownModelSetupTitle: '自分のモデルを追加',
+      ownModelSetupDescription:
+        'モデルプロバイダーを追加すると自動スキャンされます。モデル ID の手動入力も可能です。',
+      addProviderTitle: 'プロバイダーを追加',
+      addProviderDescription:
+        '接続とモデルスキャンに使用するプロバイダー情報と API キーを入力します。',
+      selectModelTitle: 'モデルを選択',
+      selectScannedModelTitle: 'モデルを選択',
+      selectScannedModelDescription:
+        '選択したモデルを新しいパイプラインのメインモデルに設定し、ボットをそのパイプラインへ切り替えます。',
+      scanModelMode: 'モデルをスキャン',
+      manualModelMode: '手動で追加',
+      scanningModels: '利用可能なモデルをスキャン中…',
+      noScannedModels:
+        '利用可能なチャットモデルが見つかりません。プロバイダー設定を確認してください。',
+      scanModelsFailed:
+        'モデルのスキャンに失敗しました。URL と API キーを確認して再試行してください。',
+      manualFallbackFailed:
+        '自動スキャンに失敗しました。プロバイダーが対応するモデル ID を直接入力できます。',
+      manualFallbackEmpty:
+        'モデルが見つかりませんでした。プロバイダーが対応するモデル ID を直接入力できます。',
+      manualModelId: 'モデル ID',
+      manualModelIdPlaceholder: '例：gpt-4o',
+      manualModelIdDescription:
+        'モデルリクエストで実際に使用する model パラメーターを入力します。',
+      manualModelOptions: '任意のモデル機能',
+      editProvider: 'プロバイダーを編集',
+      rescanModels: 'モデルを再スキャン',
+      moreFeaturesTitle: 'Agent に機能を追加',
+      moreFeaturesDescription:
+        'ワークベンチを開き、自動生成されたばかりの Agent にツール、ナレッジベースなどの機能を追加します。',
+      runnerDescription: '外部 Agent の Runner を選択し、接続を設定します。',
+      backToChoices: '選択肢に戻る',
+      createExternal: '作成して関連付ける',
+      finishWithModel: '選択したモデルを使用して完了',
+      openWorkbench: 'ワークベンチを開く',
     },
     config: {
       botInfo: 'ボット情報',
@@ -1711,6 +1976,9 @@ const jaJP = {
     scanQRCode: '以下のQRコードをWeChatでスキャンし、トークンを自動入力',
     loginSuccess: 'ログイン成功！トークンが自動入力されました',
     loginFailed: 'ログイン失敗',
+    connecting: 'WeChatサービスに接続中...',
+    waitingForScan: 'スキャン待ち',
+    retry: '再試行',
   },
   dingtalk: {
     createApp: 'ワンクリックでDingTalkアプリ作成',

@@ -99,7 +99,31 @@ export interface LLMModel {
   provider?: ModelProvider;
   abilities?: string[];
   context_length?: number | null;
+  reasoning_config?: ReasoningConfig;
+  reasoning_capabilities?: ReasoningCapabilities;
   extra_args?: object;
+}
+
+export type ReasoningLevel =
+  | 'provider_default'
+  | 'disabled'
+  | 'enabled'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'xhigh'
+  | 'max';
+
+export interface ReasoningConfig {
+  level: ReasoningLevel;
+}
+
+export interface ReasoningCapabilities {
+  supported: boolean;
+  levels: ReasoningLevel[];
+  legacy_levels?: ReasoningLevel[];
+  source: 'litellm' | 'provider' | 'manual' | 'unknown';
 }
 
 export interface ApiRespProviderEmbeddingModels {
@@ -328,6 +352,7 @@ export interface SystemLimitation {
   max_bots: number;
   max_pipelines: number;
   max_extensions: number;
+  max_knowledge_bases?: number;
   /** When non-empty, every pipeline is forced to this Box sandbox-scope
    *  template (e.g. ``{global}``) and the per-pipeline "Sandbox Scope"
    *  selector is locked. Used by SaaS deployments. Empty = no restriction. */
@@ -338,7 +363,9 @@ export interface WizardProgress {
   step: number;
   selected_adapter: string | null;
   created_bot_uuid: string | null;
+  created_pipeline_uuid?: string | null;
   bot_saved: boolean;
+  message_received?: boolean;
   selected_runner: string | null;
 }
 
@@ -346,10 +373,16 @@ export interface ApiRespSystemInfo {
   debug: boolean;
   version: string;
   edition: string;
+  /** Independent instance-level gate for local stdio MCP transports. */
+  mcp_stdio_enabled: boolean;
   cloud_service_url: string;
   enable_marketplace: boolean;
   allow_modify_login_info: boolean;
   disable_models_service: boolean;
+  invitation_delivery?: {
+    enabled: boolean;
+    provider: 'resend' | 'smtp' | null;
+  };
   limitation: SystemLimitation;
   /** Public outbound IPs of the deployment (``system.outbound_ips`` in
    *  config.yaml). Shown on adapter config forms whose platform requires
@@ -427,6 +460,8 @@ export interface AsyncTask {
   name: string;
   label: string;
   task_type: string; // system or user
+  /** Unix epoch seconds (float) when the task was created. */
+  created_at?: number;
   runtime: AsyncTaskRuntimeInfo;
   task_context: AsyncTaskTaskContext;
 }
@@ -519,18 +554,21 @@ export interface MCPServerExtraArgsSSE {
   headers: Record<string, string>;
   timeout: number;
   ssereadtimeout: number;
+  tool_call_timeout_sec?: number;
 }
 
 export interface MCPServerExtraArgsStdio {
   command: string;
   args: string[];
   env: Record<string, string>;
+  tool_call_timeout_sec?: number;
 }
 
 export interface MCPServerExtraArgsHttp {
   url: string;
   headers: Record<string, string>;
   timeout: number;
+  tool_call_timeout_sec?: number;
 }
 
 // "remote" mode: the user only supplies a URL; the backend auto-detects the
@@ -540,6 +578,7 @@ export interface MCPServerExtraArgsRemote {
   url: string;
   headers?: Record<string, string>;
   timeout?: number;
+  tool_call_timeout_sec?: number;
 }
 
 export enum MCPSessionStatus {
@@ -549,6 +588,7 @@ export enum MCPSessionStatus {
 }
 
 export interface MCPServerRuntimeInfo {
+  error_code?: string;
   status: MCPSessionStatus;
   error_message?: string;
   /** Stage at which the session failed. Frontends key off this to render

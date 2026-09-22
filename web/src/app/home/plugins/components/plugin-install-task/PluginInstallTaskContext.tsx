@@ -8,18 +8,14 @@ import React, {
 } from 'react';
 import { httpClient } from '@/app/infra/http/HttpClient';
 import { AsyncTask } from '@/app/infra/entities/api';
+import {
+  InstallStage,
+  INSTALL_PROGRESS_CAP,
+  computeStageProgress,
+  mapActionToStage,
+} from './install-progress';
 
-/**
- * Installation stages mapped from backend current_action strings.
- */
-export enum InstallStage {
-  DOWNLOADING = 'downloading',
-  INSTALLING_DEPS = 'installing_deps',
-  INITIALIZING = 'initializing',
-  LAUNCHING = 'launching',
-  DONE = 'done',
-  ERROR = 'error',
-}
+export { InstallStage } from './install-progress';
 
 export interface PluginInstallTask {
   id: string; // unique key: `${source}-${taskId}`
@@ -34,15 +30,10 @@ export interface PluginInstallTask {
   downloadCurrent?: number; // bytes downloaded so far
   downloadTotal?: number; // total bytes to download
   downloadSpeed?: number; // bytes per second
-  // Dependency progress
-  depsTotal?: number; // total dependency count
-  depsInstalled?: number; // deps installed so far
-  depsRemaining?: number; // remaining
-  currentDep?: string; // currently installing dep name
-  depsDownloadedSize?: number; // total bytes of downloaded deps
-  depsSpeed?: number; // deps download speed bytes/s
   error?: string;
   startedAt: number; // timestamp
+  /** When the current stage began, used to bound in-stage drift. */
+  stageStartedAt: number;
   currentAction: string; // raw backend action string
 }
 
@@ -81,45 +72,6 @@ export function usePluginInstallTasks() {
     );
   }
   return ctx;
-}
-
-/**
- * Map backend `current_action` to our InstallStage.
- */
-function mapActionToStage(action: string): InstallStage {
-  if (!action) return InstallStage.DOWNLOADING;
-  const lower = action.toLowerCase();
-  if (lower.includes('download')) return InstallStage.DOWNLOADING;
-  if (lower.includes('dependencies') || lower.includes('requirements'))
-    return InstallStage.INSTALLING_DEPS;
-  if (lower.includes('initializ') || lower.includes('setting'))
-    return InstallStage.INSTALLING_DEPS;
-  if (lower.includes('launch')) return InstallStage.INSTALLING_DEPS;
-  if (lower.includes('installed') || lower.includes('complete'))
-    return InstallStage.DONE;
-  return InstallStage.DOWNLOADING;
-}
-
-/**
- * Get overall progress percentage from a stage.
- */
-function stageToProgress(stage: InstallStage): number {
-  switch (stage) {
-    case InstallStage.DOWNLOADING:
-      return 10;
-    case InstallStage.INSTALLING_DEPS:
-      return 70;
-    case InstallStage.INITIALIZING:
-      return 70;
-    case InstallStage.LAUNCHING:
-      return 85;
-    case InstallStage.DONE:
-      return 100;
-    case InstallStage.ERROR:
-      return 0;
-    default:
-      return 0;
-  }
 }
 
 /**
@@ -172,7 +124,15 @@ function asyncTaskToPluginInstallTask(task: AsyncTask): PluginInstallTask {
     }
   } else {
     stage = mapActionToStage(action);
-    overallProgress = Math.min(95, stageToProgress(stage));
+    overallProgress = Math.min(
+      INSTALL_PROGRESS_CAP,
+      computeStageProgress({
+        stage,
+        downloadCurrent: num(md.download_current),
+        downloadTotal: num(md.download_total),
+        stageElapsedSeconds: 0,
+      }),
+    );
   }
 
   const pluginName = str(md.plugin_name) || task.label || `${source} extension`;
@@ -195,14 +155,9 @@ function asyncTaskToPluginInstallTask(task: AsyncTask): PluginInstallTask {
     downloadCurrent: num(md.download_current),
     downloadTotal: num(md.download_total),
     downloadSpeed: num(md.download_speed),
-    depsTotal: num(md.deps_total),
-    depsInstalled: num(md.deps_installed),
-    depsRemaining: num(md.deps_remaining),
-    currentDep: str(md.current_dep),
-    depsDownloadedSize: num(md.deps_downloaded_size),
-    depsSpeed: num(md.deps_speed),
     error,
     startedAt: Date.now(),
+    stageStartedAt: Date.now(),
     currentAction: action,
   };
 }
@@ -271,19 +226,13 @@ export function PluginInstallTaskProvider({
               unknown
             >;
 
-            // Extract progress fields from metadata
+            // Download byte counts are the only measurable install progress
+            // the backend reports for this task.
             const num = (v: unknown) => (typeof v === 'number' ? v : undefined);
-            const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
 
             const downloadCurrent = num(md.download_current);
             const downloadTotal = num(md.download_total);
             const downloadSpeed = num(md.download_speed);
-            const depsTotal = num(md.deps_total);
-            const depsInstalled = num(md.deps_installed);
-            const depsRemaining = num(md.deps_remaining);
-            const currentDep = str(md.current_dep);
-            const depsDownloadedSize = num(md.deps_downloaded_size);
-            const depsSpeed = num(md.deps_speed);
 
             setTasks((prev) =>
               prev.map((t) => {
@@ -293,13 +242,6 @@ export function PluginInstallTaskProvider({
                   downloadCurrent: downloadCurrent ?? t.downloadCurrent,
                   downloadTotal: downloadTotal ?? t.downloadTotal,
                   downloadSpeed: downloadSpeed ?? t.downloadSpeed,
-                  depsTotal: depsTotal ?? t.depsTotal,
-                  depsInstalled: depsInstalled ?? t.depsInstalled,
-                  depsRemaining: depsRemaining ?? t.depsRemaining,
-                  currentDep: currentDep ?? t.currentDep,
-                  depsDownloadedSize:
-                    depsDownloadedSize ?? t.depsDownloadedSize,
-                  depsSpeed: depsSpeed ?? t.depsSpeed,
                 };
 
                 if (done) {
@@ -333,21 +275,28 @@ export function PluginInstallTaskProvider({
                 }
 
                 const stage = mapActionToStage(action);
-                const baseProgress = stageToProgress(stage);
-                // Add small time-based increment within stage
-                const elapsed = (Date.now() - t.startedAt) / 1000;
-                const withinStageIncrement = Math.min(
-                  15,
-                  Math.floor(elapsed / 2),
-                );
+                // Reset the in-stage clock whenever the reported stage moves
+                // so drift reflects time spent in this stage, not the whole
+                // installation.
+                const stageChanged = stage !== t.stage;
+                const stageStartedAt = stageChanged
+                  ? Date.now()
+                  : t.stageStartedAt;
+                const stageProgress = computeStageProgress({
+                  stage,
+                  downloadCurrent,
+                  downloadTotal,
+                  stageElapsedSeconds: (Date.now() - stageStartedAt) / 1000,
+                });
                 const progress = Math.min(
-                  95,
-                  baseProgress + withinStageIncrement,
+                  INSTALL_PROGRESS_CAP,
+                  Math.max(t.overallProgress, stageProgress),
                 );
 
                 return {
                   ...t,
                   stage,
+                  stageStartedAt,
                   overallProgress: progress,
                   currentAction: action,
                   ...progressFields,
@@ -474,6 +423,7 @@ export function PluginInstallTaskProvider({
         overallProgress: 5,
         fileSize: params.fileSize,
         startedAt: Date.now(),
+        stageStartedAt: Date.now(),
         currentAction: '',
       };
 

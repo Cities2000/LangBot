@@ -37,7 +37,11 @@ _saved_modules = {name: sys.modules.get(name) for name in _import_stubs}
 for _name, _stub in _import_stubs.items():
     sys.modules[_name] = _stub
 try:
-    from langbot.pkg.provider.runners.n8nsvapi import N8nServiceAPIRunner
+    from langbot.pkg.provider.runners.n8nsvapi import (
+        N8nAPIError,
+        N8nServiceAPIRunner,
+        _MAX_N8N_RESPONSE_CHARS,
+    )
 finally:
     for _name, _original in _saved_modules.items():
         if _original is None:
@@ -51,7 +55,7 @@ finally:
 # ---------------------------------------------------------------------------
 
 
-def make_runner(output_key: str = 'response') -> N8nServiceAPIRunner:
+def make_runner(output_key: str = 'response', response_handling: str = 'reply') -> N8nServiceAPIRunner:
     ap = Mock()
     ap.logger = Mock()
     pipeline_config = {
@@ -59,6 +63,7 @@ def make_runner(output_key: str = 'response') -> N8nServiceAPIRunner:
             'n8n-service-api': {
                 'webhook-url': 'http://test-n8n/webhook',
                 'output-key': output_key,
+                'response-handling': response_handling,
                 'auth-type': 'none',
             }
         }
@@ -231,6 +236,17 @@ async def test_plain_json_non_dict_response():
 
 
 @pytest.mark.asyncio
+async def test_response_size_is_bounded():
+    runner = make_runner()
+
+    with pytest.raises(N8nAPIError, match='exceeds the runtime limit'):
+        await collect_chunks(
+            runner,
+            [b'x' * (_MAX_N8N_RESPONSE_CHARS + 1)],
+        )
+
+
+@pytest.mark.asyncio
 async def test_invalid_json_returns_raw_text():
     """Non-JSON response returns raw text as-is."""
     runner = make_runner()
@@ -272,6 +288,7 @@ def make_http_session_mock(response_bytes: bytes, status: int = 200):
     """Mock httpclient.get_session() returning a session whose post() yields response_bytes."""
     mock_response = make_mock_response([response_bytes], status=status)
     mock_response.status = status
+    mock_response.headers = {}
 
     mock_cm = AsyncMock()
     mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
@@ -297,6 +314,91 @@ async def test_call_webhook_nonstream_adapter_plain_json():
     assert len(results) == 1
     assert isinstance(results[0], provider_message.Message)
     assert results[0].content == 'result text'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status', [200, 201, 202, 204])
+@pytest.mark.parametrize(
+    'response_body',
+    [
+        b'{"message":"Workflow was started"}',
+        b'{"response":"must not be forwarded"}',
+        b'plain acknowledgement',
+    ],
+)
+async def test_call_webhook_ignore_response_body(response_body: bytes, status: int):
+    """Ignore mode accepts any HTTP 2xx response without emitting chat output."""
+    runner = make_runner(response_handling='ignore')
+    query = make_query(is_stream=False)
+    http_session = make_http_session_mock(response_body, status=status)
+
+    with patch('langbot.pkg.provider.runners.n8nsvapi.httpclient.get_session', return_value=http_session):
+        results = []
+        async for message in runner._call_webhook(query):
+            results.append(message)
+
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_call_webhook_ignore_releases_without_reading_response_body():
+    """Ignore mode returns after the success status without waiting for the body."""
+    runner = make_runner(response_handling='ignore')
+    query = make_query(is_stream=False)
+    mock_response = make_mock_response([], status=202)
+    mock_response.headers = {}
+    mock_response.release = Mock()
+
+    async def fail_if_read(_size):
+        raise AssertionError('ignore mode must not read the response body')
+        yield b''
+
+    mock_response.content.iter_chunked = fail_if_read
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_cm.__aexit__ = AsyncMock(return_value=False)
+    mock_session = Mock()
+    mock_session.post = Mock(return_value=mock_cm)
+
+    with patch('langbot.pkg.provider.runners.n8nsvapi.httpclient.get_session', return_value=mock_session):
+        results = [message async for message in runner._call_webhook(query)]
+
+    assert results == []
+    mock_response.release.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('status', [201, 202, 204])
+async def test_call_webhook_reply_mode_preserves_http_200_contract(status: int):
+    """Reply mode remains backward compatible and rejects non-200 statuses."""
+    runner = make_runner(response_handling='reply')
+    query = make_query(is_stream=False)
+    http_session = make_http_session_mock(b'', status=status)
+
+    with patch('langbot.pkg.provider.runners.n8nsvapi.httpclient.get_session', return_value=http_session):
+        with pytest.raises(N8nAPIError, match=f'n8n webhook call failed: {status}'):
+            async for _ in runner._call_webhook(query):
+                pass
+
+
+@pytest.mark.asyncio
+async def test_call_webhook_ignore_mode_preserves_http_error():
+    """Ignore mode must not swallow a failed n8n webhook response."""
+    runner = make_runner(response_handling='ignore')
+    query = make_query(is_stream=False)
+    http_session = make_http_session_mock(b'{"error":"unavailable"}', status=500)
+
+    with patch('langbot.pkg.provider.runners.n8nsvapi.httpclient.get_session', return_value=http_session):
+        with pytest.raises(N8nAPIError, match='n8n webhook call exception'):
+            async for _ in runner._call_webhook(query):
+                pass
+
+
+@pytest.mark.asyncio
+async def test_invalid_response_handling_is_rejected():
+    """Configuration errors should fail fast instead of silently changing reply behavior."""
+    with pytest.raises(ValueError, match='Invalid n8n response-handling'):
+        make_runner(response_handling='unexpected')
 
 
 @pytest.mark.asyncio

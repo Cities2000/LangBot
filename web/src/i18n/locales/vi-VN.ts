@@ -44,6 +44,7 @@ const viVN = {
     delete: 'Xóa',
     add: 'Thêm',
     select: 'Chọn',
+    clear: 'Xóa',
     skill: 'Kỹ năng',
     cancel: 'Hủy',
     submit: 'Gửi',
@@ -77,27 +78,32 @@ const viVN = {
     privacyPolicy: 'Chính sách bảo mật',
     and: 'và',
     dataCollectionPolicy: 'Chính sách thu thập dữ liệu',
-    dataCollectionPolicyUrl: 'https://link.langbot.app/en/docs/data-policy',
+    dataCollectionPolicyUrl:
+      'https://langbot.app/docs/en/insight/data-collection-policy',
     loading: 'Đang tải...',
     fieldRequired: 'Trường này là bắt buộc',
     or: 'hoặc',
-    loginWithSpace: 'Đăng nhập với Space',
+    loginWithSpace: 'Đăng nhập bằng tài khoản LangBot',
     spaceLoginRecommended:
       'Khuyến nghị: Sử dụng API mô hình ổn định chính thức và dịch vụ đám mây',
     loginLocal: 'Đăng nhập với tài khoản cục bộ',
     loginWithPassword: 'Đăng nhập bằng mật khẩu',
-    spaceLoginTitle: 'Đăng nhập với Space',
+    loginWithPasskey: 'Đăng nhập bằng Passkey',
+    passkeyLoginSuccess: 'Xác thực Passkey thành công, đang đăng nhập...',
+    passkeyLoginFailed: 'Đăng nhập bằng Passkey thất bại',
+    passkeyNotSupported: 'Trình duyệt hoặc thiết bị này không hỗ trợ Passkey',
+    spaceLoginTitle: 'Đăng nhập bằng tài khoản LangBot',
     spaceLoginDescription:
       'Quét mã QR hoặc truy cập liên kết bên dưới để ủy quyền',
     spaceLoginUserCode: 'Mã của bạn',
     spaceLoginExpires: 'Mã hết hạn sau {{seconds}} giây',
     spaceLoginWaiting: 'Đang chờ ủy quyền...',
     spaceLoginSuccess: 'Ủy quyền thành công',
-    spaceLoginFailed: 'Đăng nhập Space thất bại',
+    spaceLoginFailed: 'Đăng nhập bằng tài khoản LangBot thất bại',
     spaceLoginExpired: 'Mã ủy quyền đã hết hạn, vui lòng thử lại',
     spaceLoginCancel: 'Hủy',
     spaceLoginVisitLink: 'Truy cập liên kết',
-    spaceLoginProcessing: 'Đang đăng nhập với Space',
+    spaceLoginProcessing: 'Đang đăng nhập bằng tài khoản LangBot',
     spaceLoginProcessingDescription:
       'Vui lòng chờ trong khi chúng tôi hoàn tất đăng nhập...',
     spaceLoginSuccessDescription: 'Đang chuyển hướng đến LangBot...',
@@ -106,7 +112,7 @@ const viVN = {
     backToLogin: 'Quay lại đăng nhập',
     backToHome: 'Quay lại trang chủ',
     spaceAccountCannotChangePassword:
-      'Tài khoản Space không thể đổi mật khẩu tại đây',
+      'Tài khoản LangBot không thể đổi mật khẩu tại đây',
     theme: 'Giao diện',
     changePassword: 'Đổi mật khẩu',
     currentPassword: 'Mật khẩu hiện tại',
@@ -172,6 +178,8 @@ const viVN = {
     more: 'Thêm ({{count}})',
     less: 'Thu gọn',
     noItems: 'Không có mục nào',
+
+    apiKeyStoredSecurely: 'Secret shown only when created',
   },
   notFound: {
     title: 'Không tìm thấy trang',
@@ -181,6 +189,37 @@ const viVN = {
     help: 'Trợ giúp',
   },
   models: {
+    codex: {
+      account: 'Gói đăng ký ChatGPT',
+      description:
+        'Đăng nhập bằng tài khoản ChatGPT. Gói đăng ký độc lập với thanh toán API OpenAI; mô hình và giới hạn sử dụng tùy thuộc vào gói của bạn.',
+      disconnected: 'Chưa kết nối',
+      loading: 'Đang kiểm tra kết nối…',
+      starting: 'Đang bắt đầu đăng nhập…',
+      pending: 'Đang chờ cấp quyền',
+      connected: 'Đã kết nối',
+      expired: 'Phiên đăng nhập đã hết hạn. Hãy lấy mã mới.',
+      error: 'Không thể đăng nhập. Kiểm tra kết nối và thử lại.',
+      canceling: 'Đang hủy đăng nhập…',
+      saveAndSignIn: 'Lưu và đăng nhập',
+      done: 'Xong',
+      instructions:
+        'Nhập mã này trên trang OpenAI. Giữ hộp thoại này mở cho đến khi đăng nhập hoàn tất.',
+      copyCode: 'Sao chép mã',
+      copied: 'Đã sao chép',
+      copyManually: 'Chọn và sao chép mã thủ công.',
+      continueAtOpenAI: 'Tiếp tục tại OpenAI',
+      expiresAt: 'Mã hết hạn lúc {{time}}.',
+      retrying: 'Kết nối bị gián đoạn. Đang tự động thử lại…',
+      cancelSignIn: 'Hủy đăng nhập',
+      tryAgain: 'Thử lại',
+      signIn: 'Đăng nhập',
+      reconnect: 'Kết nối lại',
+      disconnect: 'Ngắt kết nối',
+      disconnectConfirm:
+        'Ngắt kết nối nhà cung cấp này? Các mô hình sẽ ngừng hoạt động cho đến khi bạn đăng nhập lại. Thao tác này không hủy gói ChatGPT của bạn.',
+      confirmDisconnect: 'Xác nhận ngắt kết nối',
+    },
     title: 'Mô hình',
     description:
       'Cấu hình và quản lý các mô hình có thể sử dụng trong Pipeline',
@@ -215,6 +254,19 @@ const viVN = {
     selectModelAbilities: 'Chọn khả năng mô hình',
     visionAbility: 'Khả năng thị giác',
     functionCallAbility: 'Gọi hàm',
+    reasoningAbility: 'Khả năng suy luận',
+    reasoningLevel: 'Mức độ suy luận',
+    reasoningLevels: {
+      providerDefault: 'Mặc định của nhà cung cấp',
+      disabled: 'Tắt',
+      enabled: 'Bật',
+      minimal: 'Tối thiểu',
+      low: 'Thấp',
+      medium: 'Trung bình',
+      high: 'Cao',
+      xhigh: 'Rất cao',
+      max: 'Tối đa',
+    },
     contextLength: 'Cửa sổ ngữ cảnh',
     contextLengthPlaceholder: 'Không rõ',
     contextLengthInvalid: 'Cửa sổ ngữ cảnh phải là số nguyên dương',
@@ -243,9 +295,9 @@ const viVN = {
     localProvider: 'Cục bộ',
     localProviderDescription: 'Các mô hình được cấu hình và quản lý cục bộ',
     spaceProviderDescription:
-      'Các mô hình được đồng bộ từ tài khoản Space của bạn',
+      'Các mô hình được đồng bộ từ tài khoản LangBot của bạn',
     spaceDisabledForLocalAccount:
-      'Đăng nhập với Space để sử dụng mô hình đám mây',
+      'Đăng nhập bằng tài khoản LangBot để sử dụng mô hình đám mây',
     syncModels: 'Đồng bộ',
     syncSuccess:
       'Đồng bộ hoàn tất: {{created}} đã tạo, {{updated}} đã cập nhật',
@@ -281,12 +333,13 @@ const viVN = {
     searchProviders: 'Tìm kiếm nhà cung cấp...',
     langbotModelsDescription: 'Mô hình đám mây được cung cấp bởi LangBot Space',
     credits: 'Tín dụng',
-    loginWithSpace: 'Đăng nhập với Space',
-    loginToUseModels: 'Đăng nhập với Space để sử dụng mô hình đám mây',
+    loginWithSpace: 'Đăng nhập bằng tài khoản LangBot',
+    loginToUseModels:
+      'Đăng nhập bằng tài khoản LangBot để sử dụng mô hình đám mây',
     noModels: 'Chưa cấu hình mô hình nào',
     langbotModels: 'Mô hình LangBot',
     spaceTrialTooltip:
-      'Có tín dụng dùng thử miễn phí! Đăng nhập với Space để truy cập mô hình đám mây không cần cấu hình.',
+      'Có tín dụng dùng thử miễn phí! Đăng nhập bằng tài khoản LangBot để truy cập mô hình đám mây không cần cấu hình.',
     unlockModels: 'Đăng nhập để sử dụng',
     editProvider: 'Chỉnh sửa nhà cung cấp',
     addProvider: 'Thêm nhà cung cấp',
@@ -301,6 +354,8 @@ const viVN = {
     providerSaveError: 'Lưu nhà cung cấp thất bại: ',
     providerDeleted: 'Đã xóa nhà cung cấp',
     providerDeleteError: 'Xóa nhà cung cấp thất bại: ',
+    deleteProviderCascadeConfirmation:
+      'Xóa nhà cung cấp này và TẤT CẢ mô hình bên trong? Hành động này không thể đảo ngược hoặc hoàn tác.',
     deleteProviderConfirmation:
       'Bạn có chắc chắn muốn xóa nhà cung cấp này không?',
     loadError: 'Tải dữ liệu thất bại',
@@ -319,6 +374,11 @@ const viVN = {
       fallbackList: 'Mô hình dự phòng',
       addFallback: 'Thêm mô hình dự phòng',
     },
+
+    ownerMustBindSpace:
+      'The Workspace owner must connect a LangBot Account for LangBot Models.',
+    usesOwnerSpaceBilling:
+      "Uses the Workspace owner's LangBot Account billing and credits.",
   },
   bots: {
     title: 'Bot',
@@ -498,6 +558,8 @@ const viVN = {
     getPluginListError: 'Lấy danh sách plugin thất bại:',
     noPluginInstalled: 'Chưa cài đặt plugin nào',
     noExtensionInstalled: 'Chưa cài đặt tiện ích mở rộng nào',
+    searchInstalled: 'Tìm tiện ích mở rộng đã cài đặt',
+    noMatchingExtensions: 'Không có tiện ích mở rộng nào khớp với "{{query}}"',
     loadingExtensions: 'Đang tải tiện ích mở rộng...',
     groupByType: 'Nhóm theo định dạng',
     pluginConfig: 'Cấu hình Plugin',
@@ -522,9 +584,9 @@ const viVN = {
     debugInfoTitle: 'Thông tin gỡ lỗi Plugin',
     debugUrl: 'URL gỡ lỗi',
     debugKey: 'Khóa gỡ lỗi',
+    debugKeyExpires: 'Xoay vòng lúc {{time}}; mỗi Workspace có khóa riêng',
     noDebugKey: '(Chưa đặt)',
-    debugKeyDisabled:
-      'Khóa gỡ lỗi chưa được đặt, gỡ lỗi plugin không yêu cầu xác thực',
+    debugKeyDisabled: 'Thông tin xác thực gỡ lỗi tạm thời không khả dụng',
     boxStatusTitle: 'Box Runtime',
     boxStatus: 'Trạng thái',
     boxConnected: 'Đã kết nối',
@@ -705,6 +767,7 @@ const viVN = {
     notFound: 'Không tìm thấy thông tin plugin',
     sortBy: 'Sắp xếp theo',
     sort: {
+      hottest: 'Phổ biến nhất',
       recentlyAdded: 'Mới thêm gần đây',
       recentlyUpdated: 'Mới cập nhật gần đây',
       mostDownloads: 'Tải nhiều nhất',
@@ -712,6 +775,9 @@ const viVN = {
     },
     downloads: 'lượt tải',
     download: 'Tải xuống',
+    like: 'Thích',
+    unlike: 'Bỏ thích',
+    likeFailed: 'Không thể cập nhật lượt thích. Vui lòng thử lại.',
     repository: 'Kho lưu trữ',
     downloadFailed: 'Tải xuống thất bại',
     noReadme: 'Plugin này không cung cấp tài liệu README',
@@ -765,6 +831,9 @@ const viVN = {
       noTags: 'Không có thẻ nào',
     },
     installCard: 'Cài đặt {{name}}',
+    installedCard: 'Đã cài đặt {{name}}',
+    installed: 'Đã cài đặt',
+    updateAvailable: 'Có bản cập nhật',
   },
   mcp: {
     title: 'MCP',
@@ -801,6 +870,9 @@ const viVN = {
     url: 'URL',
     headers: 'Tiêu đề',
     timeout: 'Thời gian chờ',
+    toolCallTimeout: 'Thời gian chờ gọi công cụ (giây)',
+    toolCallTimeoutDescription:
+      'Thời gian chờ tối đa cho một lần gọi công cụ. Đặt 0 để không giới hạn. Mặc định là 300 giây.',
     addArgument: 'Thêm tham số',
     addEnvVar: 'Thêm biến môi trường',
     addHeader: 'Thêm tiêu đề',
@@ -816,6 +888,15 @@ const viVN = {
     connectionSuccess: 'Kết nối thành công',
     connectionFailed: 'Kết nối thất bại, vui lòng kiểm tra URL',
     connectionFailedStatus: 'Kết nối thất bại',
+    connectionUnreachable:
+      'Không thể kết nối tới máy chủ MCP. Hãy kiểm tra dịch vụ và kết nối mạng.',
+    connectionTimeout:
+      'Máy chủ MCP không phản hồi kịp thời. Hãy kiểm tra dịch vụ hoặc tăng thời gian chờ.',
+    connectionHttpError:
+      'Máy chủ MCP trả về HTTP {{status}}. Hãy kiểm tra yêu cầu truy cập và nhật ký máy chủ.',
+    oauthAuthorizationRequired: 'Yêu cầu ủy quyền OAuth',
+    oauthAuthorizationRequiredSuggestion:
+      'MCP server này yêu cầu đăng nhập OAuth. Hiện chưa hỗ trợ đăng nhập OAuth; hãy thêm thủ công tiêu đề Authorization nếu server cho phép.',
     boxDisabledStdioRefused:
       'MCP server ở chế độ stdio cần Sandbox Box, hiện đã bị tắt trong cấu hình (box.enabled = false).',
     boxUnavailableStdioRefused:
@@ -823,6 +904,9 @@ const viVN = {
     boxStdioRefusedSuggestion:
       'Hãy bật Box (box.enabled = true) và đảm bảo runtime hoạt động, hoặc chuyển server này sang chế độ http/sse.',
     boxRequired: 'cần Box',
+    disabledByPolicy: 'bị tắt theo chính sách',
+    stdioDisabledByPolicy:
+      'Stdio MCP đã bị tắt trong bản triển khai này. Hãy dùng máy chủ MCP từ xa.',
     stdioBlockedByBoxToast:
       'Không thể lưu MCP ở chế độ stdio khi Sandbox Box bị tắt hoặc không khả dụng. Hãy bật Box hoặc chọn chế độ http/sse.',
     toolsFound: 'công cụ',
@@ -1192,13 +1276,13 @@ const viVN = {
     adminAccountNote:
       'Tài khoản bạn sử dụng ở đây sẽ được đặt làm tài khoản quản trị viên',
     register: 'Đăng ký',
-    initWithSpace: 'Khởi tạo với Space',
+    initWithSpace: 'Khởi tạo bằng tài khoản LangBot',
     spaceRecommended:
       'Khuyến nghị: Sử dụng API mô hình ổn định chính thức và dịch vụ đám mây',
     spaceInfoTip1:
       'Space cung cấp dịch vụ xác thực tài khoản thống nhất mà không tải lên bất kỳ thông tin nhạy cảm nào của bạn.',
     spaceInfoTip2:
-      'Đăng nhập bằng tài khoản Space cho phép bạn truy cập Mô hình LangBot và các dịch vụ đám mây khác, bao gồm tín dụng gọi mô hình miễn phí để giúp bạn bắt đầu nhanh chóng.',
+      'Đăng nhập bằng tài khoản LangBot cho phép bạn truy cập Mô hình LangBot và các dịch vụ đám mây khác, bao gồm tín dụng gọi mô hình miễn phí để giúp bạn bắt đầu nhanh chóng.',
     spaceInfoTip3:
       'Phương thức đăng nhập của bạn không ảnh hưởng đến các tính năng khác. Bạn có thể cấu hình và sử dụng mô hình từ các nguồn khác bất cứ lúc nào.',
     registerLocal: 'Đăng ký tài khoản cục bộ',
@@ -1255,27 +1339,48 @@ const viVN = {
     passwordNotSet: 'Chưa đặt',
     passwordSetDescription:
       'Mật khẩu đã được đặt, bạn có thể đăng nhập bằng email và mật khẩu',
-    spaceStatus: 'Tài khoản Space',
+    spaceStatus: 'Tài khoản LangBot',
     spaceBound: 'Đã liên kết',
     spaceNotBound: 'Chưa liên kết',
     spaceBoundDescription:
-      'Tài khoản Space đã liên kết, có thể sử dụng API mô hình chính thức và dịch vụ đám mây',
-    bindSpace: 'Liên kết tài khoản Space',
+      'Tài khoản LangBot đã liên kết, có thể sử dụng API mô hình chính thức và dịch vụ đám mây',
+    bindSpace: 'Liên kết tài khoản LangBot',
     bindSpaceDescription:
       'Liên kết để sử dụng API mô hình chính thức và dịch vụ đám mây',
     bindSpaceButton: 'Liên kết',
     bindSpaceConfirmTitle: 'Xác nhận liên kết',
     bindSpaceConfirmDescription:
-      'Bạn sắp liên kết phiên bản cục bộ với tài khoản Space',
+      'Bạn sắp liên kết phiên bản cục bộ với tài khoản LangBot',
     bindSpaceWarning:
-      'Sau khi liên kết, email đăng nhập của bạn sẽ được đổi từ {{localEmail}} sang email tài khoản Space.',
-    bindSpaceSuccess: 'Liên kết tài khoản Space thành công',
-    bindSpaceFailed: 'Liên kết tài khoản Space thất bại',
+      'Sau khi liên kết, email đăng nhập của bạn sẽ được đổi từ {{localEmail}} sang email tài khoản LangBot.',
+    bindSpaceSuccess: 'Liên kết tài khoản LangBot thành công',
+    passkeySectionTitle: 'Mã khóa truy cập (Passkey)',
+    passkeySectionDesc:
+      'Đăng nhập an toàn không cần mật khẩu bằng sinh trắc học hoặc khóa bảo mật',
+    addPasskey: 'Thêm mã khóa truy cập',
+    passkeyName: 'Tên khóa',
+    passkeyNamePlaceholder: 'ví dụ: MacBook Touch ID, YubiKey',
+    passkeyCreated: 'Được tạo vào {{date}}',
+    passkeyLastUsed: 'Sử dụng lần cuối: {{date}}',
+    noPasskeys: 'Chưa có mã khóa truy cập nào được đăng ký',
+    deletePasskeyConfirm:
+      'Bạn có chắc chắn muốn xóa mã khóa truy cập này? Bạn sẽ không thể sử dụng nó để đăng nhập nữa.',
+    passkeyAddedSuccess: 'Đã thêm mã khóa truy cập thành công',
+    passkeyDeleteSuccess: 'Đã xóa mã khóa truy cập',
+    passkeyRenameSuccess: 'Đã đổi tên mã khóa truy cập thành công',
+    bindSpaceFailed: 'Liên kết tài khoản LangBot thất bại',
     bindSpaceInvalidState:
       'Yêu cầu liên kết không hợp lệ. Vui lòng thử lại từ cài đặt tài khoản.',
     setPasswordHint: 'Đặt mật khẩu để đăng nhập bằng email và mật khẩu',
     spaceEmailMismatch:
-      'Email đăng nhập Space không khớp với email tài khoản cục bộ',
+      'Email tài khoản LangBot không khớp với email tài khoản cục bộ',
+
+    space_account_not_registeredTitle: 'Account not registered',
+    space_account_not_registered:
+      'No local account is registered for this LangBot Account email. Ask the Workspace owner for an invitation.',
+    space_account_binding_requiredTitle: 'LangBot Account connection required',
+    space_account_binding_required:
+      'This local account must connect a LangBot Account from Account settings before using LangBot Account login.',
   },
   monitoring: {
     title: 'Bảng điều khiển',
@@ -1486,7 +1591,17 @@ const viVN = {
     queryVariables: {
       title: 'Biến truy vấn',
     },
+    loadError: 'Không thể tải dữ liệu giám sát',
+    partialMessages:
+      'Hiển thị {{shown}} trên {{total}} tin nhắn. Dấu vết hội thoại có thể không đầy đủ.',
+    partialModelCalls: 'Hiển thị {{shown}} trên {{total}} lượt gọi mô hình.',
+    partialToolCalls:
+      'Hiển thị {{shown}} trên {{total}} lượt gọi công cụ. Dấu vết hội thoại có thể không đầy đủ.',
+    partialErrors: 'Hiển thị {{shown}} trên {{total}} lỗi.',
     trafficChart: {
+      unavailable: 'Không có dữ liệu tổng hợp lưu lượng',
+      truncated:
+        'Phạm vi lưu lượng bị cắt ngắn. Hãy chọn khoảng thời gian ngắn hơn.',
       title: 'Tổng quan lưu lượng',
       messages: 'Tin nhắn',
       llmCalls: 'Cuộc gọi LLM',
@@ -1532,6 +1647,8 @@ const viVN = {
       api: 'API',
       storage: 'Lưu trữ',
       account: 'Tài khoản',
+
+      workspace: 'Workspace',
     },
   },
   storageAnalysis: {
@@ -1576,6 +1693,12 @@ const viVN = {
       'Đã đạt số lượng Pipeline tối đa ({{max}}). Vui lòng xóa một Pipeline hiện có trước khi tạo mới.',
     maxExtensionsReached:
       'Đã đạt số lượng tiện ích mở rộng tối đa ({{max}}). Vui lòng xóa một máy chủ MCP hoặc plugin hiện có trước khi thêm mới.',
+    quotaLoadingTooltip:
+      'Dữ liệu sử dụng không gian làm việc đang tải. Vui lòng chờ trước khi tạo tài nguyên.',
+    quotaCheckFailed:
+      'Không thể kiểm tra hạn mức hiện tại của không gian làm việc. Vui lòng thử lại.',
+    createDisabledTooltip:
+      'Đã đạt giới hạn {{resource}} ({{max}}) của workspace này. Hãy xóa một mục hiện có trước khi tạo mới.',
   },
   wizard: {
     sidebarDescription: 'Tạo Bot với các bước hướng dẫn',
@@ -1593,7 +1716,6 @@ const viVN = {
     botCreateSuccess: 'Tạo Bot thành công!',
     botSaveSuccess: 'Cấu hình Bot đã lưu và bật!',
     createError: 'Tạo tài nguyên thất bại',
-    spaceAuthError: 'Khởi tạo ủy quyền Space thất bại',
     skipSaveError: 'Lưu trạng thái bỏ qua thất bại. Vui lòng thử lại.',
     completeSaveError: 'Lưu trạng thái hoàn tất thất bại. Vui lòng thử lại.',
     step: {
@@ -1613,18 +1735,78 @@ const viVN = {
       resaveBot: 'Lưu lại cấu hình',
       botSaved:
         'Cấu hình Bot đã lưu và bật. Kiểm tra nhật ký để xác minh kết nối.',
+      waitingForMessage:
+        'Bot đã được bật. Hãy gửi cho Bot một tin nhắn từ nền tảng nhắn tin để tiếp tục.',
+      messageReceived:
+        'Bot đã nhận được tin nhắn. Bạn có thể tiếp tục sang bước tiếp theo.',
+      messageReceivedLocalAccountWarning:
+        'Kết nối phía Bot đã được cấu hình đúng và đã nhận được tin nhắn. Vì bạn không đăng nhập bằng tài khoản LangBot, lệnh gọi mô hình có thể thất bại; hãy tiếp tục sang bước tiếp theo để thêm mô hình của riêng bạn.',
+      pageBotTestPrompt:
+        'Page Bot đã được bật. Nhấp vào bong bóng trò chuyện ở góc dưới bên phải và gửi tin nhắn để xác minh toàn bộ luồng hội thoại.',
+      pageBotTestNotice:
+        'Chỉ dùng để kiểm thử. Hãy nhúng mã vào một trang web bên ngoài thực tế.',
+      webhookTestPrompt:
+        'URL callback đã sẵn sàng. Hãy cấu hình URL này trên nền tảng bên ngoài, sau đó gửi một tin nhắn thực cho Bot.',
+      httpTestPrompt:
+        'HTTP Bot đã được bật. Gửi một tin nhắn đến thực tế tại đây để xác minh kết nối.',
+      httpTestDefaultMessage: 'Xin chào, đây là tin nhắn kiểm tra kết nối.',
+      sendHttpTest: 'Gửi tin nhắn kiểm tra',
+      httpTestAccepted:
+        'Tin nhắn kiểm tra đã được chấp nhận và sẽ sớm xuất hiện trong nhật ký.',
+      httpTestMissingSecret:
+        'Hãy nhập khóa bí mật ký yêu cầu đến và lưu cấu hình trước.',
+      httpTestFailed: 'Không thể gửi tin nhắn kiểm tra: {{error}}',
       logsTitle: 'Nhật ký Bot',
       logsDescription:
         'Giám sát hoạt động Bot để xác minh kết nối nền tảng đang hoạt động.',
     },
     aiEngine: {
-      title: 'Chọn công cụ AI',
+      title: 'Cấu hình công cụ AI',
       description: 'Chọn công cụ AI sẽ cung cấp trí tuệ cho Bot của bạn.',
-    },
-    spaceBanner: {
-      message:
-        'Kết nối với LangBot Space để nhận tín dụng dùng thử mô hình miễn phí và thiết lập tức thì không cần cấu hình!',
-      action: 'Ủy quyền với Space',
+      optionalDescription:
+        'Bước này không bắt buộc. Hãy chọn cách bạn muốn tiếp tục với Agent hiện tại.',
+      externalTitle: 'Kết nối Agent từ nền tảng bên ngoài',
+      externalDescription:
+        'Kết nối Dify, n8n, Coze hoặc nền tảng khác và thay thế Pipeline của Bot.',
+      ownModelTitle: 'Sử dụng mô hình của riêng tôi',
+      ownModelDescription:
+        'Thêm nhà cung cấp, sau đó quét hoặc nhập mô hình thủ công để hoàn tất thiết lập.',
+      ownModelSetupTitle: 'Thêm mô hình của riêng bạn',
+      ownModelSetupDescription:
+        'Thêm nhà cung cấp mô hình. Các mô hình trò chuyện sẽ được quét tự động, hoặc bạn có thể nhập ID mô hình thủ công.',
+      addProviderTitle: 'Thêm nhà cung cấp',
+      addProviderDescription:
+        'Nhập thông tin nhà cung cấp và API Key dùng để kết nối và quét mô hình.',
+      selectModelTitle: 'Chọn mô hình',
+      selectScannedModelTitle: 'Chọn mô hình',
+      selectScannedModelDescription:
+        'Mô hình đã chọn sẽ là mô hình chính của Pipeline mới và Bot sẽ chuyển sang sử dụng mô hình đó.',
+      scanModelMode: 'Quét mô hình',
+      manualModelMode: 'Thêm thủ công',
+      scanningModels: 'Đang quét các mô hình khả dụng…',
+      noScannedModels:
+        'Không tìm thấy mô hình trò chuyện khả dụng. Hãy kiểm tra cấu hình nhà cung cấp.',
+      scanModelsFailed:
+        'Quét mô hình thất bại. Hãy kiểm tra URL và API Key rồi thử lại.',
+      manualFallbackFailed:
+        'Quét tự động thất bại. Hãy nhập ID mô hình được nhà cung cấp hỗ trợ.',
+      manualFallbackEmpty:
+        'Không tìm thấy mô hình. Hãy nhập ID mô hình được nhà cung cấp hỗ trợ.',
+      manualModelId: 'ID mô hình',
+      manualModelIdPlaceholder: 'Ví dụ: gpt-4o',
+      manualModelIdDescription:
+        'Nhập tham số mô hình được sử dụng trong các yêu cầu mô hình.',
+      manualModelOptions: 'Khả năng mô hình tùy chọn',
+      editProvider: 'Chỉnh sửa nhà cung cấp',
+      rescanModels: 'Quét lại mô hình',
+      moreFeaturesTitle: 'Thêm khả năng cho Agent',
+      moreFeaturesDescription:
+        'Mở bàn làm việc để thêm công cụ, cơ sở tri thức và các khả năng khác cho Agent vừa được tạo tự động.',
+      runnerDescription: 'Chọn Runner cho Agent bên ngoài và cấu hình kết nối.',
+      backToChoices: 'Quay lại các tùy chọn',
+      createExternal: 'Tạo và liên kết',
+      finishWithModel: 'Sử dụng mô hình đã chọn và hoàn tất',
+      openWorkbench: 'Mở bàn làm việc',
     },
     config: {
       botInfo: 'Thông tin Bot',
@@ -1676,6 +1858,9 @@ const viVN = {
       'Quét mã QR bên dưới bằng WeChat để ủy quyền và tự động điền token',
     loginSuccess: 'Đăng nhập thành công! Token đã được điền tự động',
     loginFailed: 'Đăng nhập thất bại',
+    connecting: 'Đang kết nối tới dịch vụ WeChat...',
+    waitingForScan: 'Đang chờ quét mã',
+    retry: 'Thử lại',
   },
   dingtalk: {
     createApp: 'Tạo ứng dụng DingTalk chỉ với một lần nhấp',
@@ -1842,6 +2027,90 @@ const viVN = {
     createSkillHint: 'Nhập từ thư mục cục bộ hoặc tạo thủ công',
     unsupportedFileType:
       'Loại tệp không được hỗ trợ. Chỉ hỗ trợ tệp .zip và .lbpkg',
+  },
+
+  workspace: {
+    title: 'Workspace',
+    description: 'Manage members, roles, and invitation links',
+    selectTitle: 'Choose a Workspace',
+    selectDescription: 'Select where you want to continue in LangBot.',
+    selectionLoadFailed:
+      'Your Workspaces could not be loaded. Please try again.',
+    switchWorkspace: 'Switch Workspace',
+    settings: 'Workspace Settings',
+    currentPlan: 'Current plan',
+    planUnavailable: 'Unavailable',
+    upgradePlan: 'Change or upgrade plan',
+    ossSingletonDescription:
+      'This self-hosted instance has one Workspace and can include multiple users.',
+    cloudManagedDescription:
+      'This Workspace is hosted by LangBot Cloud. Manage members here; billing opens in Cloud.',
+    loadFailed: 'Failed to load Workspace information',
+    members: 'Members',
+    you: 'You',
+    inviteMember: 'Invite a member',
+    inviteDescription:
+      'Create a one-time link to add another user to this Workspace.',
+    emailPlaceholder: 'member@example.com',
+    createInvitation: 'Create invitation',
+    invitationCreated: 'Invitation created',
+    delivery: {
+      sent: 'Invitation sent',
+      link_only: 'Invitation link created',
+      failed: 'Invitation link created, but email could not be sent',
+    },
+    invitationCreateFailed: 'Failed to create invitation',
+    oneTimeLinkWarning: 'Copy this link now. It is shown only once.',
+    copyInvitation: 'Copy invitation link',
+    invitationCopied: 'Invitation link copied',
+    pendingInvitations: 'Pending invitations',
+    expiresAt: 'Expires {{date}}',
+    revokeInvitation: 'Revoke invitation',
+    invitationRevoked: 'Invitation revoked',
+    invitationRevokeFailed: 'Failed to revoke invitation',
+    acceptInvitation: 'Accept invitation',
+    invitedToWorkspace: 'You were invited to {{workspace}}',
+    checkingInvitation: 'Checking this invitation...',
+    invitationMissing: 'This invitation link is missing required information.',
+    invitationExpired: 'This invitation has expired.',
+    invitationAlreadyRevoked: 'This invitation was revoked.',
+    invitationAlreadyUsed: 'This invitation was already used.',
+    invitationInvalid: 'This invitation is invalid or no longer available.',
+    invitationAccepted: 'Invitation accepted',
+    invitationAcceptFailed: 'Failed to accept invitation',
+    invitationEmailMismatch:
+      'This invitation belongs to a different email address.',
+    existingAccountLoginRequired:
+      'An account already exists for this email. Sign in to continue.',
+    acceptAsCurrentAccount: 'Accept with current account',
+    authenticatedInvitationNotice:
+      'Sign out first, then sign in with the invited account. Your invitation will be preserved.',
+    logoutAndReturn: 'Sign out and return to this invitation',
+    switchAccount: 'Switch account',
+    registerAndAccept: 'Create account and accept',
+    alreadyHaveAccount: 'I already have an account',
+    confirmPassword: 'Confirm password',
+    passwordMinimum: 'Password must contain at least 8 characters.',
+    passwordMismatch: 'The passwords do not match.',
+    backToLogin: 'Back to sign in',
+    memberUpdated: 'Member role updated',
+    memberUpdateFailed: 'Failed to update member role',
+    removeMember: 'Remove member',
+    removeMemberConfirm: 'Remove this member from the Workspace?',
+    memberRemoved: 'Member removed',
+    memberRemoveFailed: 'Failed to remove member',
+    transferOwnership: 'Transfer ownership',
+    types: {
+      personal: 'Personal',
+      team: 'Team',
+    },
+    roles: {
+      owner: 'Owner',
+      admin: 'Admin',
+      developer: 'Developer',
+      operator: 'Operator',
+      viewer: 'Viewer',
+    },
   },
 };
 

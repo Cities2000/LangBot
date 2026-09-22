@@ -15,6 +15,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import DynamicFormItemComponent from '@/app/home/components/dynamic-form/DynamicFormItemComponent';
+import {
+  normalizeDynamicFormFieldValue,
+  normalizeDynamicFormValuesForSave,
+} from '@/app/home/components/dynamic-form/DynamicFormSaveValues';
 import QrCodeLoginDialog, {
   QrLoginPlatform,
 } from '@/app/home/components/qrcode-login/QrCodeLoginDialog';
@@ -42,30 +46,10 @@ import {
 } from '@/components/ui/tooltip';
 import { systemInfo } from '@/app/infra/http';
 import { getAdapterDocUrl } from '@/app/infra/entities/adapter-docs';
-
-/**
- * Resolve the value referenced by a `show_if.field` string.
- *
- * Fields prefixed with `__system.` are looked up in the caller-supplied
- * `systemContext` dictionary (e.g. `__system.is_wizard` → `systemContext.is_wizard`).
- * All other field names are resolved from the live form values first, then
- * fall back to `externalDependentValues`.
- */
-function resolveShowIfValue(
-  field: string,
-  watchedValues: Record<string, unknown>,
-  externalDependentValues?: Record<string, unknown>,
-  systemContext?: Record<string, unknown>,
-): unknown {
-  if (field.startsWith(SYSTEM_FIELD_PREFIX)) {
-    const key = field.slice(SYSTEM_FIELD_PREFIX.length);
-    return systemContext?.[key];
-  }
-  if (watchedValues[field] !== undefined) {
-    return watchedValues[field];
-  }
-  return externalDependentValues?.[field];
-}
+import {
+  resolveDisabledState,
+  resolveShowIfValue,
+} from './DynamicFormConditions';
 
 type DynamicFormValueSpec = Pick<
   IDynamicFormItemSchema,
@@ -143,6 +127,7 @@ function getValueSchema(spec: DynamicFormValueSpec) {
       return z.object({
         primary: z.string(),
         fallbacks: z.array(z.string()),
+        reasoning: z.record(z.string()),
       });
     case DynamicFormItemType.PROMPT_EDITOR:
       return z.array(
@@ -462,49 +447,6 @@ export default function DynamicFormComponent({
   const previousInitialValues = useRef(initialValues);
   const { t, i18n } = useTranslation();
 
-  // Normalize a form value according to its field type.
-  // This ensures legacy/malformed data (e.g. a plain string for
-  // model-fallback-selector) is coerced to the expected shape
-  // so that downstream components never crash.
-  const normalizeFieldValue = (
-    item: DynamicFormValueSpec,
-    value: unknown,
-  ): unknown => {
-    if (
-      item.name === 'mcp-resources' ||
-      item.type === DynamicFormItemType.RESOURCES_SELECTOR ||
-      item.type === DynamicFormItemType.RICH_TOOLS_SELECTOR
-    ) {
-      return Array.isArray(value) ? value : [];
-    }
-    if (item.type === 'model-fallback-selector') {
-      if (value != null && typeof value === 'object' && !Array.isArray(value)) {
-        const obj = value as Record<string, unknown>;
-        return {
-          primary: typeof obj.primary === 'string' ? obj.primary : '',
-          fallbacks: Array.isArray(obj.fallbacks)
-            ? (obj.fallbacks as unknown[]).filter(
-                (v): v is string => typeof v === 'string',
-              )
-            : [],
-        };
-      }
-      // Legacy string format or any other unexpected type
-      return {
-        primary: typeof value === 'string' ? value : '',
-        fallbacks: [],
-      };
-    }
-    if (item.type === 'prompt-editor') {
-      if (Array.isArray(value)) {
-        return value;
-      }
-      // Default to a single empty system prompt entry
-      return [{ role: 'system', content: '' }];
-    }
-    return value;
-  };
-
   // Filter out display-only fields (webhook-url/embed-code/qr-code-login types
   // and `__system.*`-named fields) that should not participate in form state,
   // validation, or value emission.
@@ -560,7 +502,7 @@ export default function DynamicFormComponent({
       const rawValue = initialValues?.[item.name] ?? item.default;
       return {
         ...acc,
-        [item.name]: normalizeFieldValue(item, rawValue),
+        [item.name]: normalizeDynamicFormFieldValue(item, rawValue),
       };
     }, {} as FormValues),
   });
@@ -597,7 +539,10 @@ export default function DynamicFormComponent({
       const mergedValues = editableValueSpecs.reduce(
         (acc, item) => {
           const rawValue = initialValues[item.name] ?? item.default;
-          acc[item.name] = normalizeFieldValue(item, rawValue) as object;
+          acc[item.name] = normalizeDynamicFormFieldValue(
+            item,
+            rawValue,
+          ) as object;
           return acc;
         },
         {} as Record<string, object>,
@@ -631,12 +576,9 @@ export default function DynamicFormComponent({
     // even if the user saves without modifying any field.
     // form.watch(callback) only fires on subsequent changes, not on mount.
     const formValues = form.getValues();
-    const initialFinalValues = editableValueSpecs.reduce(
-      (acc, item) => {
-        acc[item.name] = formValues[item.name] ?? item.default;
-        return acc;
-      },
-      {} as Record<string, object>,
+    const initialFinalValues = normalizeDynamicFormValuesForSave(
+      editableValueSpecs,
+      formValues as Record<string, unknown>,
     );
     onSubmitRef.current?.(initialFinalValues);
 
@@ -651,12 +593,9 @@ export default function DynamicFormComponent({
 
     const subscription = form.watch(() => {
       const formValues = form.getValues();
-      const finalValues = editableValueSpecs.reduce(
-        (acc, item) => {
-          acc[item.name] = formValues[item.name] ?? item.default;
-          return acc;
-        },
-        {} as Record<string, object>,
+      const finalValues = normalizeDynamicFormValuesForSave(
+        editableValueSpecs,
+        formValues as Record<string, unknown>,
       );
       onSubmitRef.current?.(finalValues);
       previousInitialValues.current = finalValues as Record<string, object>;
@@ -716,40 +655,19 @@ export default function DynamicFormComponent({
             }
           }
 
-          // ``disable_if`` mirrors ``show_if``'s evaluator but instead of
-          // hiding the field, leaves it visible and inert. Use it when the
-          // operator needs to see that the field exists yet cannot edit it
-          // under the current runtime state (e.g. sandbox-bound fields when
-          // Box is disabled).
-          let isDisabledByCondition = false;
-          if (config.disable_if) {
-            const dependValue = resolveShowIfValue(
-              config.disable_if.field,
+          // Keep locked fields visible and resolve only the applicable reason.
+          const { isDisabledByCondition, disabledTooltip: tooltip } =
+            resolveDisabledState(
+              config,
               watchedValues as Record<string, unknown>,
               externalDependentValues,
               systemContext,
             );
-            const cond = config.disable_if;
-            if (cond.operator === 'eq' && dependValue === cond.value) {
-              isDisabledByCondition = true;
-            } else if (cond.operator === 'neq' && dependValue !== cond.value) {
-              isDisabledByCondition = true;
-            } else if (
-              cond.operator === 'in' &&
-              Array.isArray(cond.value) &&
-              cond.value.includes(dependValue)
-            ) {
-              isDisabledByCondition = true;
-            }
-          }
 
           // All fields are disabled when editing (creation_settings are
           // immutable) or when ``disable_if`` matches.
           const isFieldDisabled = !!isEditing || isDisabledByCondition;
-          const disabledTooltip =
-            isDisabledByCondition && config.disabled_tooltip
-              ? extractI18nObject(config.disabled_tooltip)
-              : '';
+          const disabledTooltip = tooltip ? extractI18nObject(tooltip) : '';
           const renderDisabledTooltipIcon = () =>
             disabledTooltip ? (
               <DisabledTooltipIcon text={disabledTooltip} />

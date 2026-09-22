@@ -7,6 +7,9 @@
   // Read config from script tag data attributes
   var scriptEl = document.currentScript;
   var scriptTitle = scriptEl ? scriptEl.getAttribute("data-title") : null;
+  var scriptTestNotice = scriptEl
+    ? scriptEl.getAttribute("data-test-notice")
+    : null;
 
   // ========== i18n ==========
   var I18N = {
@@ -192,6 +195,7 @@
     .lb-header-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: opacity 0.15s; }\
     .lb-header-btn:hover { opacity: 1; }\
     .lb-header-btn svg { width: 18px; height: 18px; fill: currentColor; }\
+    .lb-test-notice { padding: 8px 16px; border-bottom: 1px solid #fde68a; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.5; text-align: center; flex-shrink: 0; }\
     .lb-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }\
     .lb-messages::-webkit-scrollbar { width: 6px; }\
     .lb-messages::-webkit-scrollbar-track { background: transparent; }\
@@ -356,6 +360,7 @@
     isConnected: false,
     ws: null,
     connectionId: null,
+    sessionToken: null,
     sessionId: getOrCreateSessionId(),
     reconnectAttempts: 0,
     heartbeatTimer: null,
@@ -538,7 +543,12 @@
 
     state.ws.onopen = function () {
       state.reconnectAttempts = 0;
-      startHeartbeat();
+      state.ws.send(
+        JSON.stringify({
+          type: "authenticate",
+          token: state.sessionToken || "",
+        }),
+      );
     };
 
     state.ws.onmessage = function (event) {
@@ -576,6 +586,7 @@
         state.connectionId = data.connection_id;
         if (state.hasConnected) loadHistory(true);
         state.hasConnected = true;
+        startHeartbeat();
         updateStatusDot();
         updateSendBtn();
         break;
@@ -631,9 +642,10 @@
               .replace(/\s+/g, " ")
               .trim();
             if (
-              prevContent === content ||
-              prevContent.indexOf(content) >= 0 ||
-              content.indexOf(prevContent) >= 0
+              prevContent &&
+              (prevContent === content ||
+                prevContent.indexOf(content) >= 0 ||
+                content.indexOf(prevContent) >= 0)
             )
               return;
           }
@@ -1233,6 +1245,14 @@
     // Root container
     var root = document.createElement("div");
     root.id = "langbot-widget-root";
+    root.langbotDestroy = function () {
+      wsDisconnect();
+      if (state.historyReloadTimer) {
+        clearTimeout(state.historyReloadTimer);
+        state.historyReloadTimer = null;
+      }
+      root.remove();
+    };
     document.body.appendChild(root);
 
     var shadow = root.attachShadow({ mode: "open" });
@@ -1320,6 +1340,14 @@
     header.appendChild(headerLeft);
     header.appendChild(headerActions);
     panel.appendChild(header);
+
+    if (scriptTestNotice) {
+      var testNotice = document.createElement("div");
+      testNotice.className = "lb-test-notice";
+      testNotice.setAttribute("role", "note");
+      testNotice.textContent = scriptTestNotice;
+      panel.appendChild(testNotice);
+    }
 
     // Messages area
     var messages = document.createElement("div");

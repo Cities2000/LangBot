@@ -43,6 +43,7 @@ const thTH = {
     delete: 'ลบ',
     add: 'เพิ่ม',
     select: 'เลือก',
+    clear: 'ล้าง',
     skill: 'สกิล',
     cancel: 'ยกเลิก',
     submit: 'ส่ง',
@@ -76,27 +77,32 @@ const thTH = {
     privacyPolicy: 'นโยบายความเป็นส่วนตัว',
     and: 'และ',
     dataCollectionPolicy: 'นโยบายการเก็บรวบรวมข้อมูล',
-    dataCollectionPolicyUrl: 'https://link.langbot.app/en/docs/data-policy',
+    dataCollectionPolicyUrl:
+      'https://langbot.app/docs/en/insight/data-collection-policy',
     loading: 'กำลังโหลด...',
     fieldRequired: 'ช่องนี้จำเป็นต้องกรอก',
     or: 'หรือ',
-    loginWithSpace: 'เข้าสู่ระบบด้วย Space',
+    loginWithSpace: 'เข้าสู่ระบบด้วยบัญชี LangBot',
     spaceLoginRecommended:
       'แนะนำ: ใช้ API โมเดลที่เสถียรอย่างเป็นทางการและบริการคลาวด์',
     loginLocal: 'เข้าสู่ระบบด้วยบัญชีท้องถิ่น',
     loginWithPassword: 'เข้าสู่ระบบด้วยรหัสผ่าน',
-    spaceLoginTitle: 'เข้าสู่ระบบด้วย Space',
+    loginWithPasskey: 'เข้าสู่ระบบด้วย Passkey',
+    passkeyLoginSuccess: 'ยืนยัน Passkey สำเร็จ กำลังเข้าสู่ระบบ...',
+    passkeyLoginFailed: 'เข้าสู่ระบบด้วย Passkey ล้มเหลว',
+    passkeyNotSupported: 'เบราว์เซอร์หรืออุปกรณ์นี้ไม่รองรับ Passkey',
+    spaceLoginTitle: 'เข้าสู่ระบบด้วยบัญชี LangBot',
     spaceLoginDescription:
       'สแกน QR code หรือเข้าชมลิงก์ด้านล่างเพื่อยืนยันสิทธิ์',
     spaceLoginUserCode: 'รหัสของคุณ',
     spaceLoginExpires: 'รหัสจะหมดอายุใน {{seconds}} วินาที',
     spaceLoginWaiting: 'กำลังรอการยืนยันสิทธิ์...',
     spaceLoginSuccess: 'ยืนยันสิทธิ์สำเร็จ',
-    spaceLoginFailed: 'เข้าสู่ระบบ Space ล้มเหลว',
+    spaceLoginFailed: 'เข้าสู่ระบบด้วยบัญชี LangBot ล้มเหลว',
     spaceLoginExpired: 'รหัสยืนยันหมดอายุแล้ว กรุณาลองใหม่',
     spaceLoginCancel: 'ยกเลิก',
     spaceLoginVisitLink: 'เข้าชมลิงก์',
-    spaceLoginProcessing: 'กำลังเข้าสู่ระบบด้วย Space',
+    spaceLoginProcessing: 'กำลังเข้าสู่ระบบด้วยบัญชี LangBot',
     spaceLoginProcessingDescription: 'กรุณารอสักครู่ขณะดำเนินการเข้าสู่ระบบ...',
     spaceLoginSuccessDescription: 'กำลังเปลี่ยนเส้นทางไปยัง LangBot...',
     spaceLoginError: 'เข้าสู่ระบบล้มเหลว',
@@ -104,7 +110,7 @@ const thTH = {
     backToLogin: 'กลับไปหน้าเข้าสู่ระบบ',
     backToHome: 'กลับไปหน้าแรก',
     spaceAccountCannotChangePassword:
-      'บัญชี Space ไม่สามารถเปลี่ยนรหัสผ่านได้ที่นี่',
+      'บัญชี LangBot ไม่สามารถเปลี่ยนรหัสผ่านได้ที่นี่',
     theme: 'ธีม',
     changePassword: 'เปลี่ยนรหัสผ่าน',
     currentPassword: 'รหัสผ่านปัจจุบัน',
@@ -169,6 +175,8 @@ const thTH = {
     more: 'เพิ่มเติม ({{count}})',
     less: 'น้อยลง',
     noItems: 'ไม่มีรายการ',
+
+    apiKeyStoredSecurely: 'Secret shown only when created',
   },
   notFound: {
     title: 'ไม่พบหน้า',
@@ -178,6 +186,37 @@ const thTH = {
     help: 'ขอความช่วยเหลือ',
   },
   models: {
+    codex: {
+      account: 'การสมัครสมาชิก ChatGPT',
+      description:
+        'ลงชื่อเข้าใช้ด้วยบัญชี ChatGPT การใช้งานผ่านการสมัครสมาชิกแยกจากการเรียกเก็บเงิน OpenAI API รุ่นโมเดลและขีดจำกัดการใช้งานขึ้นอยู่กับแพ็กเกจของคุณ',
+      disconnected: 'ยังไม่ได้เชื่อมต่อ',
+      loading: 'กำลังตรวจสอบการเชื่อมต่อ…',
+      starting: 'กำลังเริ่มลงชื่อเข้าใช้…',
+      pending: 'กำลังรอการอนุญาต',
+      connected: 'เชื่อมต่อแล้ว',
+      expired: 'การลงชื่อเข้าใช้หมดอายุ เริ่มใหม่เพื่อรับรหัสใหม่',
+      error: 'ไม่สามารถลงชื่อเข้าใช้ได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
+      canceling: 'กำลังยกเลิกการลงชื่อเข้าใช้…',
+      saveAndSignIn: 'บันทึกและลงชื่อเข้าใช้',
+      done: 'เสร็จสิ้น',
+      instructions:
+        'ป้อนรหัสนี้บนหน้า OpenAI เปิดกล่องโต้ตอบนี้ไว้จนกว่าจะลงชื่อเข้าใช้เสร็จ',
+      copyCode: 'คัดลอกรหัส',
+      copied: 'คัดลอกแล้ว',
+      copyManually: 'เลือกรหัสและคัดลอกด้วยตนเอง',
+      continueAtOpenAI: 'ดำเนินการต่อที่ OpenAI',
+      expiresAt: 'รหัสหมดอายุเวลา {{time}}',
+      retrying: 'การเชื่อมต่อขัดข้อง กำลังลองใหม่โดยอัตโนมัติ…',
+      cancelSignIn: 'ยกเลิกการลงชื่อเข้าใช้',
+      tryAgain: 'ลองอีกครั้ง',
+      signIn: 'ลงชื่อเข้าใช้',
+      reconnect: 'เชื่อมต่อใหม่',
+      disconnect: 'ยกเลิกการเชื่อมต่อ',
+      disconnectConfirm:
+        'ยกเลิกการเชื่อมต่อผู้ให้บริการนี้หรือไม่? โมเดลจะหยุดทำงานจนกว่าคุณจะลงชื่อเข้าใช้อีกครั้ง การดำเนินการนี้ไม่ได้ยกเลิกการสมัครสมาชิก ChatGPT',
+      confirmDisconnect: 'ยืนยันการยกเลิกการเชื่อมต่อ',
+    },
     title: 'โมเดล',
     description: 'กำหนดค่าและจัดการโมเดลที่สามารถใช้ใน Pipeline',
     createModel: 'สร้างโมเดล',
@@ -211,6 +250,19 @@ const thTH = {
     selectModelAbilities: 'เลือกความสามารถของโมเดล',
     visionAbility: 'ความสามารถด้านภาพ',
     functionCallAbility: 'การเรียกฟังก์ชัน',
+    reasoningAbility: 'ความสามารถในการให้เหตุผล',
+    reasoningLevel: 'ระดับการให้เหตุผล',
+    reasoningLevels: {
+      providerDefault: 'ค่าเริ่มต้นของผู้ให้บริการ',
+      disabled: 'ปิด',
+      enabled: 'เปิด',
+      minimal: 'ต่ำสุด',
+      low: 'ต่ำ',
+      medium: 'ปานกลาง',
+      high: 'สูง',
+      xhigh: 'สูงมาก',
+      max: 'สูงสุด',
+    },
     contextLength: 'หน้าต่างบริบท',
     contextLengthPlaceholder: 'ไม่ทราบ',
     contextLengthInvalid: 'หน้าต่างบริบทต้องเป็นจำนวนเต็มบวก',
@@ -237,8 +289,9 @@ const thTH = {
     llmModels: 'โมเดล LLM',
     localProvider: 'ท้องถิ่น',
     localProviderDescription: 'โมเดลที่กำหนดค่าและจัดการในเครื่อง',
-    spaceProviderDescription: 'โมเดลที่ซิงค์จากบัญชี Space ของคุณ',
-    spaceDisabledForLocalAccount: 'เข้าสู่ระบบด้วย Space เพื่อใช้โมเดลคลาวด์',
+    spaceProviderDescription: 'โมเดลที่ซิงค์จากบัญชี LangBot ของคุณ',
+    spaceDisabledForLocalAccount:
+      'เข้าสู่ระบบด้วยบัญชี LangBot เพื่อใช้โมเดลคลาวด์',
     syncModels: 'ซิงค์',
     syncSuccess:
       'ซิงค์เสร็จสมบูรณ์: สร้าง {{created}} รายการ, อัปเดต {{updated}} รายการ',
@@ -273,12 +326,12 @@ const thTH = {
     searchProviders: 'ค้นหาผู้ให้บริการ...',
     langbotModelsDescription: 'โมเดลคลาวด์ขับเคลื่อนโดย LangBot Space',
     credits: 'เครดิต',
-    loginWithSpace: 'เข้าสู่ระบบด้วย Space',
-    loginToUseModels: 'เข้าสู่ระบบด้วย Space เพื่อใช้โมเดลคลาวด์',
+    loginWithSpace: 'เข้าสู่ระบบด้วยบัญชี LangBot',
+    loginToUseModels: 'เข้าสู่ระบบด้วยบัญชี LangBot เพื่อใช้โมเดลคลาวด์',
     noModels: 'ยังไม่มีโมเดลที่กำหนดค่า',
     langbotModels: 'โมเดล LangBot',
     spaceTrialTooltip:
-      'มีเครดิตทดลองใช้งานฟรี! เข้าสู่ระบบด้วย Space เพื่อเข้าถึงโมเดลคลาวด์โดยไม่ต้องตั้งค่า',
+      'มีเครดิตทดลองใช้งานฟรี! เข้าสู่ระบบด้วยบัญชี LangBot เพื่อเข้าถึงโมเดลคลาวด์โดยไม่ต้องตั้งค่า',
     unlockModels: 'เข้าสู่ระบบเพื่อใช้งาน',
     editProvider: 'แก้ไขผู้ให้บริการ',
     addProvider: 'เพิ่มผู้ให้บริการ',
@@ -293,6 +346,8 @@ const thTH = {
     providerSaveError: 'บันทึกผู้ให้บริการล้มเหลว: ',
     providerDeleted: 'ลบผู้ให้บริการแล้ว',
     providerDeleteError: 'ลบผู้ให้บริการล้มเหลว: ',
+    deleteProviderCascadeConfirmation:
+      'ลบผู้ให้บริการนี้และโมเดลทั้งหมดที่อยู่ภายในหรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับหรือยกเลิกได้',
     deleteProviderConfirmation: 'คุณแน่ใจหรือไม่ว่าต้องการลบผู้ให้บริการนี้?',
     loadError: 'โหลดข้อมูลล้มเหลว',
     chat: 'แชท',
@@ -310,6 +365,11 @@ const thTH = {
       fallbackList: 'โมเดลสำรอง',
       addFallback: 'เพิ่มโมเดลสำรอง',
     },
+
+    ownerMustBindSpace:
+      'The Workspace owner must connect a LangBot Account for LangBot Models.',
+    usesOwnerSpaceBilling:
+      "Uses the Workspace owner's LangBot Account billing and credits.",
   },
   bots: {
     title: 'บอท',
@@ -488,6 +548,8 @@ const thTH = {
     getPluginListError: 'ไม่สามารถดึงรายการปลั๊กอินได้:',
     noPluginInstalled: 'ยังไม่มีปลั๊กอินที่ติดตั้ง',
     noExtensionInstalled: 'ยังไม่มีส่วนขยายที่ติดตั้ง',
+    searchInstalled: 'ค้นหาส่วนขยายที่ติดตั้งแล้ว',
+    noMatchingExtensions: 'ไม่มีส่วนขยายที่ตรงกับ "{{query}}"',
     loadingExtensions: 'กำลังโหลดส่วนขยาย...',
     groupByType: 'จัดกลุ่มตามรูปแบบ',
     pluginConfig: 'การกำหนดค่าปลั๊กอิน',
@@ -511,9 +573,9 @@ const thTH = {
     debugInfoTitle: 'ข้อมูลดีบักปลั๊กอิน',
     debugUrl: 'URL ดีบัก',
     debugKey: 'คีย์ดีบัก',
+    debugKeyExpires: 'หมุนเวียนเวลา {{time}}; แต่ละ Workspace ใช้คีย์ต่างกัน',
     noDebugKey: '(ไม่ได้ตั้งค่า)',
-    debugKeyDisabled:
-      'ไม่ได้ตั้งค่าคีย์ดีบัก การดีบักปลั๊กอินไม่ต้องยืนยันตัวตน',
+    debugKeyDisabled: 'ข้อมูลรับรองการดีบักไม่พร้อมใช้งานชั่วคราว',
     boxStatusTitle: 'Box Runtime',
     boxStatus: 'สถานะ',
     boxConnected: 'เชื่อมต่อแล้ว',
@@ -690,6 +752,7 @@ const thTH = {
     notFound: 'ไม่พบข้อมูลปลั๊กอิน',
     sortBy: 'เรียงตาม',
     sort: {
+      hottest: 'ยอดนิยมที่สุด',
       recentlyAdded: 'เพิ่มล่าสุด',
       recentlyUpdated: 'อัปเดตล่าสุด',
       mostDownloads: 'ดาวน์โหลดมากที่สุด',
@@ -697,6 +760,9 @@ const thTH = {
     },
     downloads: 'ดาวน์โหลด',
     download: 'ดาวน์โหลด',
+    like: 'ถูกใจ',
+    unlike: 'เลิกถูกใจ',
+    likeFailed: 'อัปเดตการถูกใจไม่สำเร็จ โปรดลองอีกครั้ง',
     repository: 'Repository',
     downloadFailed: 'ดาวน์โหลดล้มเหลว',
     noReadme: 'ปลั๊กอินนี้ไม่มีเอกสาร README',
@@ -750,6 +816,9 @@ const thTH = {
       noTags: 'ไม่มีแท็กที่พร้อมใช้งาน',
     },
     installCard: 'ติดตั้ง {{name}}',
+    installedCard: 'ติดตั้ง {{name}} แล้ว',
+    installed: 'ติดตั้งแล้ว',
+    updateAvailable: 'มีอัปเดต',
   },
   mcp: {
     title: 'MCP',
@@ -786,6 +855,9 @@ const thTH = {
     url: 'URL',
     headers: 'ส่วนหัว',
     timeout: 'หมดเวลา',
+    toolCallTimeout: 'หมดเวลาการเรียกเครื่องมือ (วินาที)',
+    toolCallTimeoutDescription:
+      'เวลารอสูงสุดต่อการเรียกเครื่องมือหนึ่งครั้ง ตั้งเป็น 0 เพื่อไม่จำกัด ค่าเริ่มต้นคือ 300 วินาที',
     addArgument: 'เพิ่มอาร์กิวเมนต์',
     addEnvVar: 'เพิ่มตัวแปรสภาพแวดล้อม',
     addHeader: 'เพิ่มส่วนหัว',
@@ -801,6 +873,15 @@ const thTH = {
     connectionSuccess: 'เชื่อมต่อสำเร็จ',
     connectionFailed: 'เชื่อมต่อล้มเหลว กรุณาตรวจสอบ URL',
     connectionFailedStatus: 'เชื่อมต่อล้มเหลว',
+    connectionUnreachable:
+      'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ MCP ได้ โปรดตรวจสอบว่าบริการทำงานและเข้าถึงได้',
+    connectionTimeout:
+      'เซิร์ฟเวอร์ MCP ไม่ตอบกลับภายในเวลาที่กำหนด โปรดตรวจสอบบริการหรือเพิ่มเวลารอ',
+    connectionHttpError:
+      'เซิร์ฟเวอร์ MCP ส่งคืน HTTP {{status}} โปรดตรวจสอบข้อกำหนดการเข้าถึงและบันทึกของเซิร์ฟเวอร์',
+    oauthAuthorizationRequired: 'ต้องมีการอนุญาต OAuth',
+    oauthAuthorizationRequiredSuggestion:
+      'MCP server นี้ต้องเข้าสู่ระบบด้วย OAuth ซึ่งยังไม่รองรับในขณะนี้ หาก server อนุญาต คุณสามารถเพิ่ม Authorization header ด้วยตนเองได้',
     boxDisabledStdioRefused:
       'MCP server แบบ stdio ต้องใช้ Sandbox Box ซึ่งถูกปิดใช้งานในการตั้งค่า (box.enabled = false)',
     boxUnavailableStdioRefused:
@@ -808,6 +889,9 @@ const thTH = {
     boxStdioRefusedSuggestion:
       'กรุณาเปิดใช้งาน Box (box.enabled = true) และตรวจสอบว่ารันไทม์ทำงานปกติ หรือเปลี่ยน MCP server เป็นโหมด http/sse',
     boxRequired: 'ต้องใช้ Box',
+    disabledByPolicy: 'ถูกปิดใช้งานโดยนโยบาย',
+    stdioDisabledByPolicy:
+      'การติดตั้งใช้งานนี้ปิด Stdio MCP อยู่ โปรดใช้เซิร์ฟเวอร์ MCP แบบระยะไกล',
     stdioBlockedByBoxToast:
       'ไม่สามารถบันทึก MCP โหมด stdio เนื่องจาก Sandbox Box ถูกปิดใช้งานหรือไม่พร้อมใช้งาน กรุณาเปิดใช้งาน Box หรือเลือกโหมด http/sse',
     toolsFound: 'เครื่องมือ',
@@ -1172,13 +1256,13 @@ const thTH = {
     description: 'นี่เป็นครั้งแรกที่คุณเริ่มใช้งาน LangBot',
     adminAccountNote: 'บัญชีที่คุณใช้ที่นี่จะถูกตั้งเป็นบัญชีผู้ดูแลระบบ',
     register: 'ลงทะเบียน',
-    initWithSpace: 'เริ่มต้นด้วย Space',
+    initWithSpace: 'เริ่มต้นด้วยบัญชี LangBot',
     spaceRecommended:
       'แนะนำ: ใช้ API โมเดลที่เสถียรอย่างเป็นทางการและบริการคลาวด์',
     spaceInfoTip1:
       'Space ให้บริการยืนยันตัวตนแบบรวมโดยไม่อัปโหลดข้อมูลสำคัญใดๆ ของคุณ',
     spaceInfoTip2:
-      'การเข้าสู่ระบบด้วยบัญชี Space ช่วยให้คุณเข้าถึงโมเดล LangBot และบริการคลาวด์อื่นๆ รวมถึงเครดิตเรียกใช้โมเดลฟรีเพื่อช่วยให้คุณเริ่มต้นได้อย่างรวดเร็ว',
+      'การเข้าสู่ระบบด้วยบัญชี LangBot ช่วยให้คุณเข้าถึงโมเดล LangBot และบริการคลาวด์อื่นๆ รวมถึงเครดิตเรียกใช้โมเดลฟรีเพื่อช่วยให้คุณเริ่มต้นได้อย่างรวดเร็ว',
     spaceInfoTip3:
       'วิธีการเข้าสู่ระบบของคุณไม่มีผลต่อฟีเจอร์อื่นๆ คุณสามารถกำหนดค่าและใช้โมเดลจากแหล่งอื่นได้ตลอดเวลา',
     registerLocal: 'ลงทะเบียนบัญชีท้องถิ่น',
@@ -1233,23 +1317,46 @@ const thTH = {
     passwordNotSet: 'ยังไม่ได้ตั้งค่า',
     passwordSetDescription:
       'ตั้งรหัสผ่านแล้ว คุณสามารถเข้าสู่ระบบด้วยอีเมลและรหัสผ่าน',
-    spaceStatus: 'บัญชี Space',
+    spaceStatus: 'บัญชี LangBot',
     spaceBound: 'ผูกแล้ว',
     spaceNotBound: 'ยังไม่ผูก',
     spaceBoundDescription:
-      'ผูกบัญชี Space แล้ว สามารถใช้ API โมเดลอย่างเป็นทางการและบริการคลาวด์ได้',
-    bindSpace: 'ผูกบัญชี Space',
+      'ผูกบัญชี LangBot แล้ว สามารถใช้ API โมเดลอย่างเป็นทางการและบริการคลาวด์ได้',
+    bindSpace: 'ผูกบัญชี LangBot',
     bindSpaceDescription: 'ผูกเพื่อใช้ API โมเดลอย่างเป็นทางการและบริการคลาวด์',
     bindSpaceButton: 'ผูก',
     bindSpaceConfirmTitle: 'ยืนยันการผูก',
-    bindSpaceConfirmDescription: 'คุณกำลังจะผูกอินสแตนซ์ท้องถิ่นกับบัญชี Space',
+    bindSpaceConfirmDescription:
+      'คุณกำลังจะผูกอินสแตนซ์ท้องถิ่นกับบัญชี LangBot',
     bindSpaceWarning:
-      'หลังจากผูกแล้ว อีเมลเข้าสู่ระบบของคุณจะเปลี่ยนจาก {{localEmail}} เป็นอีเมลบัญชี Space',
-    bindSpaceSuccess: 'ผูกบัญชี Space สำเร็จ',
-    bindSpaceFailed: 'ผูกบัญชี Space ล้มเหลว',
+      'หลังจากผูกแล้ว อีเมลเข้าสู่ระบบของคุณจะเปลี่ยนจาก {{localEmail}} เป็นอีเมลบัญชี LangBot',
+    bindSpaceSuccess: 'ผูกบัญชี LangBot สำเร็จ',
+    passkeySectionTitle: 'พาสคีย์ (Passkey)',
+    passkeySectionDesc:
+      'เข้าสู่ระบบอย่างปลอดภัยโดยไม่ต้องใช้รหัสผ่านด้วยไบโอเมตริกซ์หรือคีย์ความปลอดภัย',
+    addPasskey: 'เพิ่มพาสคีย์',
+    passkeyName: 'ชื่อคีย์',
+    passkeyNamePlaceholder: 'เช่น MacBook Touch ID, YubiKey',
+    passkeyCreated: 'สร้างเมื่อ {{date}}',
+    passkeyLastUsed: 'ใช้งานล่าสุด: {{date}}',
+    noPasskeys: 'ยังไม่มีพาสคีย์ที่ลงทะเบียน',
+    deletePasskeyConfirm:
+      'คุณแน่ใจหรือไม่ว่าต้องการลบพาสคีย์นี้? คุณจะไม่สามารถใช้คีย์นี้เข้าสู่ระบบได้อีก',
+    passkeyAddedSuccess: 'เพิ่มพาสคีย์สำเร็จ',
+    passkeyDeleteSuccess: 'ลบพาสคีย์แล้ว',
+    passkeyRenameSuccess: 'เปลี่ยนชื่อพาสคีย์สำเร็จ',
+    bindSpaceFailed: 'ผูกบัญชี LangBot ล้มเหลว',
     bindSpaceInvalidState: 'คำขอผูกไม่ถูกต้อง กรุณาลองใหม่จากการตั้งค่าบัญชี',
     setPasswordHint: 'ตั้งรหัสผ่านเพื่อเข้าสู่ระบบด้วยอีเมลและรหัสผ่าน',
-    spaceEmailMismatch: 'อีเมลเข้าสู่ระบบ Space ไม่ตรงกับอีเมลบัญชีท้องถิ่น',
+    spaceEmailMismatch:
+      'อีเมลเข้าสู่ระบบด้วยบัญชี LangBot ไม่ตรงกับอีเมลบัญชีท้องถิ่น',
+
+    space_account_not_registeredTitle: 'Account not registered',
+    space_account_not_registered:
+      'No local account is registered for this LangBot Account email. Ask the Workspace owner for an invitation.',
+    space_account_binding_requiredTitle: 'LangBot Account connection required',
+    space_account_binding_required:
+      'This local account must connect a LangBot Account from Account settings before using LangBot Account login.',
   },
   monitoring: {
     title: 'แดชบอร์ด',
@@ -1460,7 +1567,17 @@ const thTH = {
     queryVariables: {
       title: 'ตัวแปรคำค้นหา',
     },
+    loadError: 'โหลดข้อมูลการตรวจสอบไม่สำเร็จ',
+    partialMessages:
+      'แสดง {{shown}} จาก {{total}} ข้อความ ประวัติการสนทนาอาจไม่ครบถ้วน',
+    partialModelCalls: 'แสดง {{shown}} จาก {{total}} การเรียกโมเดล',
+    partialToolCalls:
+      'แสดง {{shown}} จาก {{total}} การเรียกเครื่องมือ ประวัติการสนทนาอาจไม่ครบถ้วน',
+    partialErrors: 'แสดง {{shown}} จาก {{total}} ข้อผิดพลาด',
     trafficChart: {
+      unavailable: 'ไม่มีข้อมูลสรุปปริมาณการใช้งาน',
+      truncated:
+        'ช่วงข้อมูลปริมาณการใช้งานถูกตัดทอน โปรดเลือกช่วงเวลาที่สั้นลง',
       title: 'ภาพรวมปริมาณการใช้งาน',
       messages: 'ข้อความ',
       llmCalls: 'การเรียก LLM',
@@ -1506,6 +1623,8 @@ const thTH = {
       api: 'API',
       storage: 'พื้นที่จัดเก็บ',
       account: 'บัญชี',
+
+      workspace: 'Workspace',
     },
   },
   storageAnalysis: {
@@ -1550,6 +1669,12 @@ const thTH = {
       'จำนวน Pipeline สูงสุด ({{max}}) ถึงขีดจำกัดแล้ว กรุณาลบ Pipeline ที่มีอยู่ก่อนสร้างใหม่',
     maxExtensionsReached:
       'จำนวนส่วนขยายสูงสุด ({{max}}) ถึงขีดจำกัดแล้ว กรุณาลบเซิร์ฟเวอร์ MCP หรือปลั๊กอินที่มีอยู่ก่อนเพิ่มใหม่',
+    quotaLoadingTooltip:
+      'กำลังโหลดการใช้งานพื้นที่ทำงาน โปรดรอก่อนสร้างทรัพยากร',
+    quotaCheckFailed:
+      'ไม่สามารถตรวจสอบโควตาปัจจุบันของพื้นที่ทำงานได้ โปรดลองอีกครั้ง',
+    createDisabledTooltip:
+      'ถึงขีดจำกัด {{resource}} ({{max}}) ของเวิร์กสเปซนี้แล้ว โปรดลบรายการเดิมก่อนสร้างรายการใหม่',
   },
   wizard: {
     sidebarDescription: 'สร้าง Bot ด้วยขั้นตอนที่แนะนำ',
@@ -1567,7 +1692,6 @@ const thTH = {
     botCreateSuccess: 'สร้าง Bot สำเร็จ!',
     botSaveSuccess: 'บันทึกและเปิดใช้งาน Bot สำเร็จ!',
     createError: 'ไม่สามารถสร้างทรัพยากรได้',
-    spaceAuthError: 'ไม่สามารถเริ่มต้นการยืนยันสิทธิ์ Space ได้',
     skipSaveError: 'ไม่สามารถบันทึกสถานะการข้ามได้ กรุณาลองใหม่',
     completeSaveError: 'ไม่สามารถบันทึกสถานะการเสร็จสิ้นได้ กรุณาลองใหม่',
     step: {
@@ -1587,18 +1711,75 @@ const thTH = {
       resaveBot: 'บันทึกการกำหนดค่าอีกครั้ง',
       botSaved:
         'บันทึกและเปิดใช้งาน Bot แล้ว ตรวจสอบบันทึกเพื่อยืนยันการเชื่อมต่อ',
+      waitingForMessage:
+        'เปิดใช้งาน Bot แล้ว โปรดส่งข้อความจากแพลตฟอร์มแชตเพื่อดำเนินการต่อ',
+      messageReceived: 'Bot ได้รับข้อความแล้ว คุณสามารถไปยังขั้นตอนถัดไปได้',
+      messageReceivedLocalAccountWarning:
+        'การเชื่อมต่อฝั่ง Bot ได้รับการกำหนดค่าอย่างถูกต้องและได้รับข้อความแล้ว เนื่องจากคุณไม่ได้เข้าสู่ระบบด้วยบัญชี LangBot การเรียกใช้โมเดลอาจล้มเหลว โปรดไปยังขั้นตอนถัดไปเพื่อเพิ่มโมเดลของคุณเอง',
+      pageBotTestPrompt:
+        'เปิดใช้งาน Page Bot แล้ว คลิกฟองแชตที่มุมขวาล่างและส่งข้อความเพื่อตรวจสอบขั้นตอนการสนทนาทั้งหมด',
+      pageBotTestNotice:
+        'สำหรับการทดสอบเท่านั้น โปรดฝังโค้ดในหน้าเว็บภายนอกจริง',
+      webhookTestPrompt:
+        'URL Callback พร้อมแล้ว โปรดกำหนดค่าบนแพลตฟอร์มภายนอก แล้วส่งข้อความจริงถึง Bot',
+      httpTestPrompt:
+        'เปิดใช้งาน HTTP Bot แล้ว ส่งข้อความขาเข้าจริงที่นี่เพื่อตรวจสอบการเชื่อมต่อ',
+      httpTestDefaultMessage: 'สวัสดี นี่คือข้อความทดสอบการเชื่อมต่อ',
+      sendHttpTest: 'ส่งข้อความทดสอบ',
+      httpTestAccepted: 'ระบบรับข้อความทดสอบแล้ว และจะแสดงในบันทึกในอีกสักครู่',
+      httpTestMissingSecret:
+        'โปรดกรอก Secret สำหรับลงนามข้อความขาเข้าและบันทึกการกำหนดค่าก่อน',
+      httpTestFailed: 'ส่งข้อความทดสอบไม่สำเร็จ: {{error}}',
       logsTitle: 'บันทึก Bot',
       logsDescription:
         'ตรวจสอบกิจกรรม Bot เพื่อยืนยันว่าการเชื่อมต่อแพลตฟอร์มทำงานอยู่',
     },
     aiEngine: {
-      title: 'เลือกเครื่องมือ AI',
+      title: 'กำหนดค่าเครื่องมือ AI',
       description: 'เลือกเครื่องมือ AI ที่จะขับเคลื่อนความฉลาดของ Bot',
-    },
-    spaceBanner: {
-      message:
-        'เชื่อมต่อกับ LangBot Space เพื่อรับเครดิตทดลองใช้โมเดลฟรีและตั้งค่าทันทีโดยไม่ต้องกำหนดค่า!',
-      action: 'ยืนยันสิทธิ์กับ Space',
+      optionalDescription:
+        'ขั้นตอนนี้ไม่บังคับ เลือกวิธีที่คุณต้องการดำเนินการต่อกับ Agent ปัจจุบัน',
+      externalTitle: 'เชื่อมต่อ Agent จากแพลตฟอร์มภายนอก',
+      externalDescription:
+        'เชื่อมต่อ Dify, n8n, Coze หรือแพลตฟอร์มอื่น และแทนที่ Pipeline ของ Bot',
+      ownModelTitle: 'ใช้โมเดลของฉันเอง',
+      ownModelDescription:
+        'เพิ่มผู้ให้บริการ แล้วสแกนหรือกรอกโมเดลด้วยตนเองเพื่อเสร็จสิ้นการตั้งค่า',
+      ownModelSetupTitle: 'เพิ่มโมเดลของคุณเอง',
+      ownModelSetupDescription:
+        'เพิ่มผู้ให้บริการโมเดล ระบบจะสแกนโมเดลแชตโดยอัตโนมัติ หรือคุณสามารถกรอก ID โมเดลด้วยตนเอง',
+      addProviderTitle: 'เพิ่มผู้ให้บริการ',
+      addProviderDescription:
+        'กรอกรายละเอียดผู้ให้บริการและ API Key ที่ใช้เชื่อมต่อและสแกนโมเดล',
+      selectModelTitle: 'เลือกโมเดล',
+      selectScannedModelTitle: 'เลือกโมเดล',
+      selectScannedModelDescription:
+        'โมเดลที่เลือกจะเป็นโมเดลหลักของ Pipeline ใหม่ และ Bot จะเปลี่ยนไปใช้โมเดลนี้',
+      scanModelMode: 'สแกนโมเดล',
+      manualModelMode: 'เพิ่มด้วยตนเอง',
+      scanningModels: 'กำลังสแกนโมเดลที่พร้อมใช้งาน…',
+      noScannedModels:
+        'ไม่พบโมเดลแชตที่พร้อมใช้งาน โปรดตรวจสอบการกำหนดค่าผู้ให้บริการ',
+      scanModelsFailed:
+        'สแกนโมเดลไม่สำเร็จ โปรดตรวจสอบ URL และ API Key แล้วลองอีกครั้ง',
+      manualFallbackFailed:
+        'การสแกนอัตโนมัติไม่สำเร็จ โปรดกรอก ID โมเดลที่ผู้ให้บริการรองรับ',
+      manualFallbackEmpty: 'ไม่พบโมเดล โปรดกรอก ID โมเดลที่ผู้ให้บริการรองรับ',
+      manualModelId: 'ID โมเดล',
+      manualModelIdPlaceholder: 'ตัวอย่าง: gpt-4o',
+      manualModelIdDescription: 'กรอกพารามิเตอร์โมเดลที่ใช้ในคำขอโมเดล',
+      manualModelOptions: 'ความสามารถเพิ่มเติมของโมเดล',
+      editProvider: 'แก้ไขผู้ให้บริการ',
+      rescanModels: 'สแกนโมเดลอีกครั้ง',
+      moreFeaturesTitle: 'เพิ่มความสามารถให้ Agent',
+      moreFeaturesDescription:
+        'เปิดหน้าทำงานเพื่อเพิ่มเครื่องมือ ฐานความรู้ และความสามารถอื่น ๆ ให้ Agent ที่เพิ่งสร้างขึ้นโดยอัตโนมัติ',
+      runnerDescription:
+        'เลือก Runner สำหรับ Agent ภายนอกและกำหนดค่าการเชื่อมต่อ',
+      backToChoices: 'กลับไปยังตัวเลือก',
+      createExternal: 'สร้างและผูก',
+      finishWithModel: 'ใช้โมเดลที่เลือกและเสร็จสิ้น',
+      openWorkbench: 'เปิดหน้าทำงาน',
     },
     config: {
       botInfo: 'ข้อมูล Bot',
@@ -1648,6 +1829,9 @@ const thTH = {
       'สแกนคิวอาร์โค้ดด้านล่างด้วย WeChat เพื่ออนุญาตและกรอกโทเคนอัตโนมัติ',
     loginSuccess: 'เข้าสู่ระบบสำเร็จ และกรอกโทเคนอัตโนมัติแล้ว',
     loginFailed: 'เข้าสู่ระบบไม่สำเร็จ',
+    connecting: 'กำลังเชื่อมต่อบริการ WeChat...',
+    waitingForScan: 'กำลังรอการสแกน',
+    retry: 'ลองอีกครั้ง',
   },
   dingtalk: {
     createApp: 'สร้างแอป DingTalk ด้วยคลิกเดียว',
@@ -1808,6 +1992,90 @@ const thTH = {
     createSkill: 'สร้างสกิลใหม่',
     createSkillHint: 'นำเข้าจากไดเรกทอรีในเครื่องหรือสร้างด้วยตนเอง',
     unsupportedFileType: 'ประเภทไฟล์ไม่รองรับ รองรับเฉพาะไฟล์ .zip และ .lbpkg',
+  },
+
+  workspace: {
+    title: 'Workspace',
+    description: 'Manage members, roles, and invitation links',
+    selectTitle: 'Choose a Workspace',
+    selectDescription: 'Select where you want to continue in LangBot.',
+    selectionLoadFailed:
+      'Your Workspaces could not be loaded. Please try again.',
+    switchWorkspace: 'Switch Workspace',
+    settings: 'Workspace Settings',
+    currentPlan: 'Current plan',
+    planUnavailable: 'Unavailable',
+    upgradePlan: 'Change or upgrade plan',
+    ossSingletonDescription:
+      'This self-hosted instance has one Workspace and can include multiple users.',
+    cloudManagedDescription:
+      'This Workspace is hosted by LangBot Cloud. Manage members here; billing opens in Cloud.',
+    loadFailed: 'Failed to load Workspace information',
+    members: 'Members',
+    you: 'You',
+    inviteMember: 'Invite a member',
+    inviteDescription:
+      'Create a one-time link to add another user to this Workspace.',
+    emailPlaceholder: 'member@example.com',
+    createInvitation: 'Create invitation',
+    invitationCreated: 'Invitation created',
+    delivery: {
+      sent: 'Invitation sent',
+      link_only: 'Invitation link created',
+      failed: 'Invitation link created, but email could not be sent',
+    },
+    invitationCreateFailed: 'Failed to create invitation',
+    oneTimeLinkWarning: 'Copy this link now. It is shown only once.',
+    copyInvitation: 'Copy invitation link',
+    invitationCopied: 'Invitation link copied',
+    pendingInvitations: 'Pending invitations',
+    expiresAt: 'Expires {{date}}',
+    revokeInvitation: 'Revoke invitation',
+    invitationRevoked: 'Invitation revoked',
+    invitationRevokeFailed: 'Failed to revoke invitation',
+    acceptInvitation: 'Accept invitation',
+    invitedToWorkspace: 'You were invited to {{workspace}}',
+    checkingInvitation: 'Checking this invitation...',
+    invitationMissing: 'This invitation link is missing required information.',
+    invitationExpired: 'This invitation has expired.',
+    invitationAlreadyRevoked: 'This invitation was revoked.',
+    invitationAlreadyUsed: 'This invitation was already used.',
+    invitationInvalid: 'This invitation is invalid or no longer available.',
+    invitationAccepted: 'Invitation accepted',
+    invitationAcceptFailed: 'Failed to accept invitation',
+    invitationEmailMismatch:
+      'This invitation belongs to a different email address.',
+    existingAccountLoginRequired:
+      'An account already exists for this email. Sign in to continue.',
+    acceptAsCurrentAccount: 'Accept with current account',
+    authenticatedInvitationNotice:
+      'Sign out first, then sign in with the invited account. Your invitation will be preserved.',
+    logoutAndReturn: 'Sign out and return to this invitation',
+    switchAccount: 'Switch account',
+    registerAndAccept: 'Create account and accept',
+    alreadyHaveAccount: 'I already have an account',
+    confirmPassword: 'Confirm password',
+    passwordMinimum: 'Password must contain at least 8 characters.',
+    passwordMismatch: 'The passwords do not match.',
+    backToLogin: 'Back to sign in',
+    memberUpdated: 'Member role updated',
+    memberUpdateFailed: 'Failed to update member role',
+    removeMember: 'Remove member',
+    removeMemberConfirm: 'Remove this member from the Workspace?',
+    memberRemoved: 'Member removed',
+    memberRemoveFailed: 'Failed to remove member',
+    transferOwnership: 'Transfer ownership',
+    types: {
+      personal: 'Personal',
+      team: 'Team',
+    },
+    roles: {
+      owner: 'Owner',
+      admin: 'Admin',
+      developer: 'Developer',
+      operator: 'Operator',
+      viewer: 'Viewer',
+    },
   },
 };
 

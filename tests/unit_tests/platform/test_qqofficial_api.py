@@ -1,15 +1,18 @@
-"""Tests for QQ Official keyboard payload helpers."""
+"""Tests for QQ Official message and keyboard payload helpers."""
 
 import asyncio
+import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 import langbot_plugin.api.entities.builtin.platform.message as platform_message
 
 from langbot.libs.qq_official_api.api import (
     QQ_SELECT_ACTION_PREFIX,
+    QQOfficialClient,
     build_keyboard_from_select_field,
     get_select_field_options,
     resolve_select_button_action,
@@ -49,6 +52,28 @@ def test_qq_select_button_resolves_field_and_value():
     assert resolve_select_button_action(form_data, f'{QQ_SELECT_ACTION_PREFIX}99') is None
 
 
+@pytest.mark.asyncio
+async def test_qq_seed_rejects_empty_secret_without_spinning():
+    client = QQOfficialClient('', 'token', 'app-id', AsyncMock())
+
+    with pytest.raises(ValueError, match='must not be empty'):
+        await asyncio.wait_for(client.repeat_seed(''), timeout=0.1)
+
+
+def test_qq_auxiliary_tasks_are_bounded():
+    import langbot.pkg.core.app  # noqa: F401
+    from langbot.pkg.platform.sources.qqofficial import QQOfficialAdapter
+
+    adapter = QQOfficialAdapter.model_construct()
+    adapter._background_tasks = {MagicMock(done=MagicMock(return_value=False)) for _ in range(100)}
+
+    async def callback():
+        raise AssertionError('rejected callback must not run')
+
+    assert adapter._start_background_task(callback()) is False
+    assert len(adapter._background_tasks) == 100
+
+
 def test_qq_select_keyboard_fits_twenty_five_options():
     form_data = _select_form_data()
     form_data['input_defs'][0]['option_source']['value'] = [f'Option {idx}' for idx in range(25)]
@@ -76,6 +101,12 @@ def _stream_test_adapter():
     adapter.bot = MagicMock()
     adapter.bot.send_stream_msg = AsyncMock(return_value={'id': 'stream-1'})
     adapter.bot.send_markdown_keyboard = AsyncMock(return_value={'id': 'message-1'})
+    adapter.bot.send_private_text_msg = AsyncMock()
+    adapter.bot.send_group_text_msg = AsyncMock()
+    adapter.bot.send_private_markdown_msg = AsyncMock()
+    adapter.bot.send_group_markdown_msg = AsyncMock()
+    adapter.bot.send_channle_group_text_msg = AsyncMock()
+    adapter.bot.send_channle_private_text_msg = AsyncMock()
     adapter.ap = None
     adapter._stream_ctx = {}
     adapter._stream_ctx_ts = {}
@@ -85,7 +116,7 @@ def _stream_test_adapter():
 
 
 @pytest.mark.asyncio
-async def test_qq_stream_uses_cumulative_chunks_as_snapshots():
+async def test_qq_stream_replace_mode_sends_complete_snapshots():
     adapter = _stream_test_adapter()
     adapter._stream_ctx['message-1'] = {
         'user_openid': 'user-1',
@@ -115,8 +146,107 @@ async def test_qq_stream_uses_cumulative_chunks_as_snapshots():
 
     assert [call.kwargs['content'] for call in adapter.bot.send_stream_msg.await_args_list] == [
         '<think>one',
-        ' two',
+        '<think>one two',
     ]
+
+
+@pytest.mark.asyncio
+async def test_qq_markdown_messages_use_markdown_payloads():
+    requests = []
+
+    def capture_request(request: httpx.Request) -> httpx.Response:
+        requests.append((str(request.url), json.loads(request.content)))
+        return httpx.Response(200, json={})
+
+    client = QQOfficialClient('secret', 'token', 'app-id', AsyncMock())
+    client.access_token = 'access-token'
+    client.access_token_expiry_time = time.time() + 3600
+    client._http_clients[None] = httpx.AsyncClient(transport=httpx.MockTransport(capture_request))
+
+    try:
+        await client.send_private_markdown_msg('user-1', '# Hello', msg_id='message-1', msg_seq=2)
+        await client.send_group_markdown_msg('group-1', '* Hello', event_id='event-1', msg_seq=3)
+    finally:
+        await client.close()
+
+    assert requests == [
+        (
+            'https://api.sgroup.qq.com/v2/users/user-1/messages',
+            {'msg_type': 2, 'markdown': {'content': '# Hello'}, 'msg_seq': 2, 'msg_id': 'message-1'},
+        ),
+        (
+            'https://api.sgroup.qq.com/v2/groups/group-1/messages',
+            {'msg_type': 2, 'markdown': {'content': '* Hello'}, 'msg_seq': 3, 'event_id': 'event-1'},
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_qq_markdown_rendering_switches_c2c_and_group_text_replies():
+    adapter = _stream_test_adapter()
+    adapter.config = {'enable-markdown-rendering': True}
+
+    await adapter._send_c2c_or_group_text_reply('c2c', 'user-1', '# Hello', msg_id='message-1')
+    await adapter._send_c2c_or_group_text_reply('group', 'group-1', '* Hello', event_id='event-1')
+
+    adapter.bot.send_private_markdown_msg.assert_awaited_once_with(
+        user_openid='user-1',
+        content='# Hello',
+        msg_id='message-1',
+        event_id=None,
+        msg_seq=1,
+    )
+    adapter.bot.send_group_markdown_msg.assert_awaited_once_with(
+        group_openid='group-1',
+        content='* Hello',
+        msg_id=None,
+        event_id='event-1',
+        msg_seq=1,
+    )
+    adapter.bot.send_private_text_msg.assert_not_awaited()
+    adapter.bot.send_group_text_msg.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_qq_markdown_rendering_defaults_to_plain_text_replies():
+    adapter = _stream_test_adapter()
+    adapter.config = {}
+
+    await adapter._send_c2c_or_group_text_reply('c2c', 'user-1', 'Hello')
+    await adapter._send_c2c_or_group_text_reply('group', 'group-1', 'Hello')
+
+    adapter.bot.send_private_text_msg.assert_awaited_once()
+    adapter.bot.send_group_text_msg.assert_awaited_once()
+    adapter.bot.send_private_markdown_msg.assert_not_awaited()
+    adapter.bot.send_group_markdown_msg.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_qq_markdown_rendering_does_not_affect_channel_messages():
+    adapter = _stream_test_adapter()
+    adapter.config = {'enable-markdown-rendering': True}
+    message = platform_message.MessageChain([platform_message.Plain(text='# Hello')])
+
+    channel_source = MagicMock()
+    channel_source.t = 'AT_MESSAGE_CREATE'
+    channel_source.channel_id = 'channel-1'
+    channel_source.d_id = 'message-1'
+    channel_event = MagicMock()
+    channel_event.source_platform_object = channel_source
+    await adapter.reply_message(channel_event, message)
+
+    dm_source = MagicMock()
+    dm_source.t = 'DIRECT_MESSAGE_CREATE'
+    dm_source.guild_id = 'guild-1'
+    dm_source.d_id = 'message-2'
+    dm_event = MagicMock()
+    dm_event.source_platform_object = dm_source
+    await adapter.reply_message(dm_event, message)
+
+    adapter.bot.send_channle_group_text_msg.assert_awaited_once_with('channel-1', '# Hello', 'message-1')
+    adapter.bot.send_channle_private_text_msg.assert_awaited_once_with('guild-1', '# Hello', 'message-2')
+    adapter.bot.send_private_markdown_msg.assert_not_awaited()
+    adapter.bot.send_group_markdown_msg.assert_not_awaited()
 
 
 @pytest.mark.asyncio

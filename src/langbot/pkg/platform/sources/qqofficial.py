@@ -102,7 +102,7 @@ class QQOfficialMessageConverter(abstract_platform_adapter.AbstractMessageConver
         yiri_msg_list.append(platform_message.Source(id=message_id, time=datetime.datetime.now()))
         if pic_url is not None:
             base64_url = await image.get_qq_official_image_base64(pic_url=pic_url, content_type=content_type)
-            yiri_msg_list.append(platform_message.Image(base64=base64_url))
+            yiri_msg_list.append(platform_message.Image(url=pic_url, base64=base64_url))
 
         yiri_msg_list.append(platform_message.Plain(text=message))
         chain = platform_message.MessageChain(yiri_msg_list)
@@ -205,7 +205,7 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         bot = QQOfficialClient(
             app_id=config['appid'],
             secret=config['secret'],
-            token=config['token'],
+            token=config.get('token', ''),
             logger=logger,
             unified_mode=enable_webhook,
         )
@@ -241,6 +241,7 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         # per (msg_id|event_id) within 60 min, but each reuse needs a
         # fresh ``msg_seq`` — re-sending with msg_seq=1 is silently dedup'd.
         self._anchor_msg_seq: dict[str, int] = {}
+        self._background_tasks: set[asyncio.Task] = set()
 
         # Wire button-click handler so webhook mode catches INTERACTION_CREATE.
         # (ws mode is wired separately via on_event in _run_websocket so the
@@ -248,6 +249,30 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         @self.bot.on_interaction()
         async def _on_interaction(event_data: dict, interaction_id: typing.Optional[str]):
             await self._handle_interaction_create(event_data, interaction_id)
+
+    def _start_background_task(self, coro) -> bool:
+        """Start one bounded adapter-side auxiliary task."""
+
+        background_tasks = getattr(self, '_background_tasks', None)
+        if background_tasks is None:
+            background_tasks = set()
+            object.__setattr__(self, '_background_tasks', background_tasks)
+        for task in tuple(background_tasks):
+            if task.done():
+                background_tasks.discard(task)
+        if len(background_tasks) >= 100:
+            coro.close()
+            return False
+        task = asyncio.create_task(coro)
+        background_tasks.add(task)
+
+        def done(done_task: asyncio.Task) -> None:
+            background_tasks.discard(done_task)
+            if not done_task.cancelled():
+                done_task.exception()
+
+        task.add_done_callback(done)
+        return True
 
     async def reply_message(
         self,
@@ -304,17 +329,12 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             content_type = content.get('type', 'text')
 
             if content_type == 'text':
-                if target_type == 'c2c':
-                    await self.bot.send_private_text_msg(
+                if target_type in {'c2c', 'group'}:
+                    await self._send_c2c_or_group_text_reply(
+                        target_type,
                         target_id,
                         content['content'],
-                        qq_official_event.d_id,
-                    )
-                elif target_type == 'group':
-                    await self.bot.send_group_text_msg(
-                        target_id,
-                        content['content'],
-                        qq_official_event.d_id,
+                        msg_id=qq_official_event.d_id,
                     )
 
             elif content_type == 'image':
@@ -357,6 +377,39 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
 
     async def send_message(self, target_type: str, target_id: str, message: platform_message.MessageChain):
         pass
+
+    async def _send_c2c_or_group_text_reply(
+        self,
+        target_type: str,
+        target_id: str,
+        content: str,
+        *,
+        msg_id: typing.Optional[str] = None,
+        event_id: typing.Optional[str] = None,
+        msg_seq: int = 1,
+    ) -> None:
+        """Send a text reply using the configured C2C/group render mode."""
+        use_markdown = self.config.get('enable-markdown-rendering', False)
+        if target_type == 'c2c':
+            send = self.bot.send_private_markdown_msg if use_markdown else self.bot.send_private_text_msg
+            await send(
+                user_openid=target_id,
+                content=content,
+                msg_id=msg_id,
+                event_id=event_id,
+                msg_seq=msg_seq,
+            )
+        elif target_type == 'group':
+            send = self.bot.send_group_markdown_msg if use_markdown else self.bot.send_group_text_msg
+            await send(
+                group_openid=target_id,
+                content=content,
+                msg_id=msg_id,
+                event_id=event_id,
+                msg_seq=msg_seq,
+            )
+        else:
+            raise ValueError(f'Unsupported QQ Official text reply target: {target_type}')
 
     def register_listener(
         self,
@@ -449,6 +502,14 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             pass
 
     async def kill(self) -> bool:
+        task_set = getattr(self, '_background_tasks', set())
+        background_tasks = list(task_set)
+        for task in background_tasks:
+            if not task.done():
+                task.cancel()
+        if background_tasks:
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+        task_set.clear()
         if self._ws_task:
             self._ws_task.cancel()
             try:
@@ -456,6 +517,14 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             except asyncio.CancelledError:
                 pass
             self._ws_task = None
+        await self.bot.close()
+        self._pending_forms.clear()
+        self._session_event_ids.clear()
+        self._anchor_msg_seq.clear()
+        self._stream_ctx.clear()
+        self._stream_ctx_ts.clear()
+        self._fallback_text.clear()
+        self._fallback_text_ts.clear()
         return True
 
     # --------------- 流式输出 ---------------
@@ -473,6 +542,14 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         for mid in stale_fb:
             self._fallback_text.pop(mid, None)
             self._fallback_text_ts.pop(mid, None)
+        while len(self._stream_ctx) > 1000:
+            oldest = min(self._stream_ctx_ts, key=self._stream_ctx_ts.__getitem__)
+            self._stream_ctx.pop(oldest, None)
+            self._stream_ctx_ts.pop(oldest, None)
+        while len(self._fallback_text) > 1000:
+            oldest = min(self._fallback_text_ts, key=self._fallback_text_ts.__getitem__)
+            self._fallback_text.pop(oldest, None)
+            self._fallback_text_ts.pop(oldest, None)
         if stale_ids or stale_fb:
             await self.logger.debug(f'Cleaned up {len(stale_ids)} stream contexts, {len(stale_fb)} fallback texts')
 
@@ -508,6 +585,8 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         # msg_seq=2 instead of being deduplicated by QQ as another seq=1 send.
         if source.d_id:
             self._anchor_msg_seq[source.d_id] = max(self._anchor_msg_seq.get(source.d_id, 0), 1)
+            while len(self._anchor_msg_seq) > 4096:
+                self._anchor_msg_seq.pop(next(iter(self._anchor_msg_seq)), None)
 
         ctx = {
             'user_openid': source.user_openid,
@@ -577,7 +656,7 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             # 非流式场景（如群聊不支持流式），累积文本后一次性回复
             if chunk_text:
                 # Chunks carry the latest full snapshot, not a text delta.
-                self._fallback_text[message_id] = chunk_text
+                self._fallback_text[message_id] = chunk_text[:200000]
                 self._fallback_text_ts[message_id] = time.time()
             if is_final:
                 full_text = self._fallback_text.pop(message_id, '')
@@ -590,7 +669,7 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
 
         # 累积文本
         if chunk_text:
-            ctx['accumulated_text'] = chunk_text
+            ctx['accumulated_text'] = chunk_text[:200000]
 
         # 未启动会话时，等第一个有内容的 chunk 来建立会话
         if not ctx['session_started']:
@@ -599,13 +678,13 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             # 用第一个 chunk 的文本建立会话（不发 "..." 避免污染前缀）
             ctx['session_started'] = True
 
-        # 发送内容 = 全量累积文本
-        # QQ API 的 replace 模式不允许修改已下发前缀，所以：
-        # - 首次：发送全部文本，建立会话
-        # - 后续：只能发送新增部分（append 行为）
-        content_to_send = ctx['accumulated_text'][ctx['sent_length'] :]
-        if not content_to_send and not is_final:
+        # `replace` mode requires every update to contain the previously
+        # delivered content as its prefix. `sent_length` only tells us whether
+        # a non-final snapshot has new content; it must not truncate the
+        # content sent to QQ.
+        if len(ctx['accumulated_text']) <= ctx['sent_length'] and not is_final:
             return
+        content_to_send = ctx['accumulated_text']
 
         input_state = 10 if is_final else 1
 
@@ -668,6 +747,8 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         if used >= self._MAX_REPLIES_PER_ANCHOR:
             return None
         self._anchor_msg_seq[anchor] = used + 1
+        while len(self._anchor_msg_seq) > 4096:
+            self._anchor_msg_seq.pop(next(iter(self._anchor_msg_seq)), None)
         return used + 1
 
     async def _reply_synthetic(
@@ -725,20 +806,13 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             return
 
         try:
-            if target_type == 'c2c':
-                await self.bot.send_private_text_msg(
-                    user_openid=target_id,
-                    content=text,
-                    event_id=event_id,
-                    msg_seq=msg_seq,
-                )
-            elif target_type == 'group':
-                await self.bot.send_group_text_msg(
-                    group_openid=target_id,
-                    content=text,
-                    event_id=event_id,
-                    msg_seq=msg_seq,
-                )
+            await self._send_c2c_or_group_text_reply(
+                target_type,
+                target_id,
+                text,
+                event_id=event_id,
+                msg_seq=msg_seq,
+            )
         except Exception:
             await self.logger.error(f'QQ Official: synthetic reply delivery failed: {traceback.format_exc()}')
 
@@ -791,7 +865,9 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             k for k, v in self._session_event_ids.items() if now - v.get('posted_at', 0) > self._PENDING_FORM_TTL
         ]
         for k in stale_e:
-            self._session_event_ids.pop(k, None)
+            stale_event = self._session_event_ids.pop(k, None)
+            if stale_event:
+                self._anchor_msg_seq.pop(stale_event.get('event_id'), None)
 
     async def _handle_form_chunk(
         self,
@@ -973,7 +1049,7 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
         # ACK uses the interaction id, NOT the ws event id.
         interaction_id = event_data.get('id') or ''
         if interaction_id:
-            asyncio.create_task(self.bot.ack_interaction(interaction_id, code=0))
+            self._start_background_task(self.bot.ack_interaction(interaction_id, code=0))
 
         resolved = (event_data.get('data') or {}).get('resolved') or {}
         action_id = str(resolved.get('button_data') or resolved.get('button_id') or '').strip()
@@ -1018,6 +1094,8 @@ class QQOfficialAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter
             }
             # New anchor → fresh 5-reply budget.
             self._anchor_msg_seq[cached_event_id] = 0
+            while len(self._anchor_msg_seq) > 4096:
+                self._anchor_msg_seq.pop(next(iter(self._anchor_msg_seq)), None)
             if self.ap is not None and not ws_event_id:
                 self.ap.logger.warning(
                     'QQ Official: INTERACTION_CREATE lacked ws_event_id; '

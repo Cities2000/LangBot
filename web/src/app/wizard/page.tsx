@@ -6,27 +6,29 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   ArrowRight,
+  AlertTriangle,
   Check,
   Sparkles,
-  PartyPopper,
   Loader2,
   X,
   ExternalLink,
+  Cable,
+  Settings2,
+  Blocks,
+  Copy,
+  Send,
+  Webhook,
+  MessageSquare,
 } from 'lucide-react';
 
 import { httpClient } from '@/app/infra/http/HttpClient';
 import {
-  userInfo,
   systemInfo,
-  initializeUserInfo,
+  bootstrapWorkspaceSession,
   initializeSystemInfo,
+  userInfo,
 } from '@/app/infra/http';
-import {
-  Adapter,
-  Bot,
-  Pipeline,
-  WizardProgress,
-} from '@/app/infra/entities/api';
+import { Adapter, Bot, WizardProgress } from '@/app/infra/entities/api';
 import { IDynamicFormItemSchema } from '@/app/infra/entities/form/dynamic';
 import {
   PipelineConfigTab,
@@ -39,6 +41,9 @@ import {
 } from '@/app/home/components/dynamic-form/DynamicFormItemConfig';
 import DynamicFormComponent from '@/app/home/components/dynamic-form/DynamicFormComponent';
 import { BotLogListComponent } from '@/app/home/bots/components/bot-log/view/BotLogListComponent';
+import OwnModelSetup, {
+  OwnModelSelection,
+} from '@/app/wizard/components/OwnModelSetup';
 import { extractI18nObject } from '@/i18n/I18nProvider';
 import {
   groupByCategory,
@@ -47,7 +52,17 @@ import {
 import { getAdapterDocUrl } from '@/app/infra/entities/adapter-docs';
 import i18n from 'i18next';
 
+import {
+  configureLocalAgentPrimaryModel,
+  ensureHttpBotSigningSecret,
+  findDefaultPipeline,
+  getErrorMessage,
+  isRequiredRunnerConfigComplete,
+  isWebhookModeEnabled,
+} from '@/app/wizard/utils';
+
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -71,7 +86,7 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 // ---------------------------------------------------------------------------
 // Main Wizard Page (full-screen, no sidebar)
@@ -93,6 +108,9 @@ export default function WizardPage() {
   );
   const [runnerConfig, setRunnerConfig] = useState<Record<string, unknown>>({});
   const [createdBotUuid, setCreatedBotUuid] = useState<string | null>(null);
+  const [createdPipelineUuid, setCreatedPipelineUuid] = useState<string | null>(
+    null,
+  );
   const [webhookUrl, setWebhookUrl] = useState<string>('');
   const [extraWebhookUrl, setExtraWebhookUrl] = useState<string>('');
 
@@ -106,6 +124,12 @@ export default function WizardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingBot, setIsSavingBot] = useState(false);
   const [botSaved, setBotSaved] = useState(false);
+  const [messageReceived, setMessageReceived] = useState(false);
+  const [aiChoice, setAiChoice] = useState<
+    'external' | 'own-model' | 'more-features' | null
+  >('more-features');
+  const [ownModelSelection, setOwnModelSelection] =
+    useState<OwnModelSelection | null>(null);
 
   // ---- Helper: persist wizard progress to backend (fire-and-forget) ----
   const saveProgress = useCallback(
@@ -114,14 +138,25 @@ export default function WizardPage() {
         step: overrides.step ?? currentStep,
         selected_adapter: overrides.selected_adapter ?? selectedAdapter,
         created_bot_uuid: overrides.created_bot_uuid ?? createdBotUuid,
+        created_pipeline_uuid:
+          overrides.created_pipeline_uuid ?? createdPipelineUuid,
         bot_saved: overrides.bot_saved ?? botSaved,
+        message_received: overrides.message_received ?? messageReceived,
         selected_runner: overrides.selected_runner ?? selectedRunner,
       };
       httpClient.saveWizardProgress(progress).catch((err) => {
         console.error('Failed to save wizard progress', err);
       });
     },
-    [currentStep, selectedAdapter, createdBotUuid, botSaved, selectedRunner],
+    [
+      currentStep,
+      selectedAdapter,
+      createdBotUuid,
+      createdPipelineUuid,
+      botSaved,
+      messageReceived,
+      selectedRunner,
+    ],
   );
 
   // ---- Fetch remote data & restore progress ----
@@ -129,8 +164,16 @@ export default function WizardPage() {
     let cancelled = false;
     (async () => {
       try {
-        // Initialize user/system info (wizard is outside /home layout)
-        await Promise.all([initializeUserInfo(), initializeSystemInfo()]);
+        // Resolve the Account's Workspace before loading scoped wizard data.
+        const workspaceResult = await bootstrapWorkspaceSession();
+        if (workspaceResult.status === 'selection-required') {
+          navigate('/workspaces/select?returnTo=%2Fwizard', { replace: true });
+          return;
+        }
+        if (workspaceResult.status === 'unavailable') {
+          throw new Error('No Workspace is available for this Account');
+        }
+        await initializeSystemInfo({ throwOnError: true });
 
         const [adaptersResp, metadataResp] = await Promise.all([
           httpClient.getAdapters(),
@@ -149,13 +192,30 @@ export default function WizardPage() {
             const botData = await httpClient.getBot(progress.created_bot_uuid);
             if (cancelled) return;
 
-            setSelectedAdapter(progress.selected_adapter);
+            const restoredAdapter =
+              progress.selected_adapter ?? botData.bot.adapter;
+            const restoredConfig = (botData.bot.adapter_config ?? {}) as Record<
+              string,
+              unknown
+            >;
+            const configToRestore = ensureHttpBotSigningSecret(
+              restoredAdapter,
+              restoredConfig,
+            );
+            const configNeedsSave = configToRestore !== restoredConfig;
+
+            setSelectedAdapter(restoredAdapter);
             setCreatedBotUuid(progress.created_bot_uuid);
-            setBotSaved(progress.bot_saved ?? false);
+            setCreatedPipelineUuid(progress.created_pipeline_uuid ?? null);
+            setBotSaved(
+              configNeedsSave ? false : (progress.bot_saved ?? false),
+            );
+            setMessageReceived(progress.message_received ?? false);
             setSelectedRunner(progress.selected_runner);
 
             // Restore bot name from fetched bot data
             setBotName(botData.bot.name);
+            setAdapterConfig(configToRestore);
 
             // Restore webhook URLs
             const runtimeValues = botData.bot.adapter_runtime_values as
@@ -175,7 +235,9 @@ export default function WizardPage() {
                 step: 0,
                 selected_adapter: null,
                 created_bot_uuid: null,
+                created_pipeline_uuid: null,
                 bot_saved: false,
+                message_received: false,
                 selected_runner: null,
               })
               .catch(() => {});
@@ -191,7 +253,7 @@ export default function WizardPage() {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [navigate, t]);
 
   // ---- Derived data ----
 
@@ -203,7 +265,9 @@ export default function WizardPage() {
   const runnerOptions = useMemo(() => {
     if (!runnerStage) return [];
     const runnerField = runnerStage.config.find((c) => c.name === 'runner');
-    return runnerField?.options ?? [];
+    return (runnerField?.options ?? []).filter(
+      (option) => option.name !== 'local-agent',
+    );
   }, [runnerStage]);
 
   const selectedRunnerConfigStage: PipelineConfigStage | undefined =
@@ -261,13 +325,20 @@ export default function WizardPage() {
     );
   }, [selectedRunnerConfigStage]);
 
+  const isRunnerConfigComplete = useMemo(
+    () =>
+      isRequiredRunnerConfigComplete(selectedRunnerConfigItems, runnerConfig),
+    [selectedRunnerConfigItems, runnerConfig],
+  );
+
   // ---- Runner selection with progress saving ----
   const handleSelectRunner = useCallback(
     (runner: string) => {
+      if (runner !== selectedRunner) setRunnerConfig({});
       setSelectedRunner(runner);
       saveProgress({ step: 2, selected_runner: runner });
     },
-    [saveProgress],
+    [saveProgress, selectedRunner],
   );
 
   // ---- Navigation helpers ----
@@ -277,13 +348,20 @@ export default function WizardPage() {
       case 0:
         return selectedAdapter !== null;
       case 1:
-        return createdBotUuid !== null && botSaved;
+        return createdBotUuid !== null && botSaved && messageReceived;
       case 2:
-        return selectedRunner !== null;
+        return aiChoice !== null;
       default:
         return false;
     }
-  }, [currentStep, selectedAdapter, createdBotUuid, botSaved, selectedRunner]);
+  }, [
+    currentStep,
+    selectedAdapter,
+    createdBotUuid,
+    botSaved,
+    messageReceived,
+    aiChoice,
+  ]);
 
   const goNext = useCallback(() => {
     if (currentStep < TOTAL_STEPS - 1 && canProceed()) {
@@ -296,6 +374,9 @@ export default function WizardPage() {
   const goPrev = useCallback(() => {
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
+      if (currentStep === 2) {
+        setOwnModelSelection(null);
+      }
       setCurrentStep(prevStep);
       saveProgress({ step: prevStep });
     }
@@ -319,12 +400,17 @@ export default function WizardPage() {
       const defaultConfig = adapter
         ? getDefaultValues(adapter.spec.config)
         : {};
+      const initialConfig = ensureHttpBotSigningSecret(
+        selectedAdapter,
+        defaultConfig,
+      );
+      setAdapterConfig(initialConfig);
 
       const bot: Bot = {
         name: defaultName,
         description: '',
         adapter: selectedAdapter,
-        adapter_config: defaultConfig,
+        adapter_config: initialConfig,
         enable: false,
       };
       const resp = await httpClient.createBot(bot);
@@ -352,7 +438,9 @@ export default function WizardPage() {
         step: 1,
         selected_adapter: selectedAdapter,
         created_bot_uuid: resp.uuid,
+        created_pipeline_uuid: null,
         bot_saved: false,
+        message_received: false,
         selected_runner: null,
       });
     } catch (err) {
@@ -366,21 +454,99 @@ export default function WizardPage() {
   }, [selectedAdapter, adapters, t, saveProgress]);
 
   // ---- Save Bot Config & Enable (Step 1) ----
-  // Updates the bot's adapter config and enables it.
+  // Binds the bot to the Workspace default pipeline and enables it.
 
   const handleSaveBot = useCallback(async () => {
     if (!createdBotUuid || !selectedAdapter) return;
     setIsSavingBot(true);
 
+    let createdPipelineThisAttempt: string | null = null;
     try {
+      const pipelinesResponse = await httpClient.getPipelines(
+        'updated_at',
+        'DESC',
+      );
+      const defaultPipeline = findDefaultPipeline(pipelinesResponse.pipelines);
+      let pipelineUuid = defaultPipeline?.uuid ?? null;
+      let createdDefaultPipeline = false;
+
+      if (!pipelineUuid) {
+        const pipelineResp = await httpClient.createPipeline({
+          name: `${botName} Agent`,
+          description: botDescription || '',
+          config: {},
+          is_default: true,
+        });
+        pipelineUuid = pipelineResp.uuid;
+        createdPipelineThisAttempt = pipelineUuid;
+        createdDefaultPipeline = true;
+      }
+
+      const pipelineData = await httpClient.getPipeline(pipelineUuid);
+      const fullConfig = pipelineData.pipeline.config as unknown as Record<
+        string,
+        unknown
+      >;
+      const aiConfig = (fullConfig.ai ?? {}) as Record<string, unknown>;
+      const runnerConfig = (aiConfig.runner ?? {}) as Record<string, unknown>;
+      const localAgentConfig = (aiConfig['local-agent'] ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const modelConfig = (localAgentConfig.model ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const usesLocalAgent =
+        createdDefaultPipeline || runnerConfig.runner === 'local-agent';
+      const needsPrimaryModel =
+        usesLocalAgent &&
+        (typeof modelConfig.primary !== 'string' || !modelConfig.primary);
+
+      if (createdDefaultPipeline || needsPrimaryModel) {
+        const recommendedModel = await httpClient.getWizardRecommendedModel();
+        await httpClient.updatePipeline(pipelineUuid, {
+          name: pipelineData.pipeline.name,
+          description: pipelineData.pipeline.description || '',
+          config: {
+            ...fullConfig,
+            ai: {
+              ...aiConfig,
+              runner: createdDefaultPipeline
+                ? { ...runnerConfig, runner: 'local-agent' }
+                : runnerConfig,
+              'local-agent': {
+                ...localAgentConfig,
+                model: {
+                  ...modelConfig,
+                  primary: recommendedModel.uuid,
+                  fallbacks: Array.isArray(modelConfig.fallbacks)
+                    ? modelConfig.fallbacks
+                    : [],
+                },
+              },
+            },
+          },
+        });
+      }
+      setCreatedPipelineUuid(pipelineUuid);
+
+      const configToSave = ensureHttpBotSigningSecret(
+        selectedAdapter,
+        adapterConfig,
+      );
+      setAdapterConfig(configToSave);
+
       await httpClient.updateBot(createdBotUuid, {
         name: botName,
         description: botDescription || '',
         adapter: selectedAdapter,
-        adapter_config: adapterConfig,
+        adapter_config: configToSave,
         enable: true,
+        use_pipeline_uuid: pipelineUuid,
       });
       setBotSaved(true);
+      setMessageReceived(false);
 
       // Re-fetch runtime info to get updated webhook URL(s)
       try {
@@ -397,8 +563,19 @@ export default function WizardPage() {
       }
 
       // Persist progress
-      saveProgress({ step: 1, bot_saved: true });
+      saveProgress({
+        step: 1,
+        bot_saved: true,
+        message_received: false,
+        created_pipeline_uuid: pipelineUuid,
+      });
     } catch (err) {
+      if (createdPipelineThisAttempt) {
+        await httpClient
+          .deletePipeline(createdPipelineThisAttempt)
+          .catch(() => {});
+        setCreatedPipelineUuid(null);
+      }
       const apiErr = err as { msg?: string };
       toast.error(
         t('wizard.createError') + (apiErr?.msg ? `: ${apiErr.msg}` : ''),
@@ -416,56 +593,154 @@ export default function WizardPage() {
     saveProgress,
   ]);
 
-  // ---- Create Pipeline & Link (Step 2 finish) ----
+  const handleMessageReceived = useCallback(() => {
+    if (messageReceived) return;
+    setMessageReceived(true);
+    saveProgress({ step: 1, message_received: true });
+  }, [messageReceived, saveProgress]);
+
+  const completeWizard = useCallback(async () => {
+    await httpClient.updateWizardStatus('completed');
+    systemInfo.wizard_status = 'completed';
+    systemInfo.wizard_progress = null;
+  }, []);
+
+  // ---- Complete the optional AI Engine step ----
 
   const handleFinish = useCallback(async () => {
-    if (!selectedRunner || !createdBotUuid) return;
+    if (!aiChoice || !createdBotUuid || !createdPipelineUuid) return;
+    if (aiChoice === 'external' && (!selectedRunner || !isRunnerConfigComplete))
+      return;
+    if (aiChoice === 'own-model' && !ownModelSelection) return;
     setIsSubmitting(true);
+    let externalPipelineUuid: string | null = null;
+    let externalPipelineBound = false;
+    let createdOwnModelUuid: string | null = null;
+    let ownModelPipelineUuid: string | null = null;
+    let ownModelPipelineBound = false;
+    let originalOwnModelBot: Bot | null = null;
 
     try {
-      // 1. Create pipeline (backend fills config from default template)
-      const pipeline: Pipeline = {
-        name: `${botName} Pipeline`,
-        description: botDescription || '',
-        config: {},
-      };
-      const pipelineResp = await httpClient.createPipeline(pipeline);
+      if (aiChoice === 'external' && selectedRunner) {
+        const pipelineResp = await httpClient.createPipeline({
+          name: `${botName} External Agent`,
+          description: botDescription || '',
+          config: {},
+        });
+        externalPipelineUuid = pipelineResp.uuid;
+        const createdPipeline = await httpClient.getPipeline(pipelineResp.uuid);
+        const fullConfig = createdPipeline.pipeline.config;
+        await httpClient.updatePipeline(pipelineResp.uuid, {
+          name: `${botName} External Agent`,
+          description: botDescription || '',
+          config: {
+            ...fullConfig,
+            ai: {
+              ...fullConfig.ai,
+              runner: { runner: selectedRunner },
+              [selectedRunner]: runnerConfig,
+            },
+          },
+        });
 
-      // 2. Fetch the created pipeline to get the full default config
-      //    (includes trigger, safety, ai, output sections).
-      //    Then merge only the AI section with the wizard's runner config.
-      const createdPipeline = await httpClient.getPipeline(pipelineResp.uuid);
-      const fullConfig = createdPipeline.pipeline.config;
+        const botData = await httpClient.getBot(createdBotUuid);
+        const existingBot = botData.bot;
+        await httpClient.updateBot(createdBotUuid, {
+          name: existingBot.name,
+          description: existingBot.description,
+          adapter: existingBot.adapter,
+          adapter_config: existingBot.adapter_config,
+          enable: existingBot.enable,
+          use_pipeline_uuid: pipelineResp.uuid,
+        });
+        externalPipelineBound = true;
+      }
 
-      const mergedConfig = {
-        ...fullConfig,
-        ai: {
-          ...fullConfig.ai,
-          runner: { runner: selectedRunner },
-          [selectedRunner]: runnerConfig,
-        },
-      };
+      if (aiChoice === 'own-model' && ownModelSelection) {
+        const modelResponse = await httpClient.createProviderLLMModel({
+          name: ownModelSelection.model.name,
+          provider_uuid: ownModelSelection.providerUuid,
+          abilities: ownModelSelection.model.abilities ?? [],
+          reasoning_config: { level: 'provider_default' },
+          context_length: ownModelSelection.model.context_length ?? null,
+          extra_args: {},
+        });
+        createdOwnModelUuid = modelResponse.uuid;
 
-      await httpClient.updatePipeline(pipelineResp.uuid, {
-        name: `${botName} Pipeline`,
-        description: botDescription || '',
-        config: mergedConfig,
-      });
+        const pipelineResponse = await httpClient.createPipeline({
+          name: `${botName} Custom Agent`,
+          description: botDescription || '',
+          config: {},
+        });
+        ownModelPipelineUuid = pipelineResponse.uuid;
+        const createdPipeline =
+          await httpClient.getPipeline(ownModelPipelineUuid);
+        const fullConfig = createdPipeline.pipeline.config as unknown as Record<
+          string,
+          unknown
+        >;
+        await httpClient.updatePipeline(ownModelPipelineUuid, {
+          name: `${botName} Custom Agent`,
+          description: botDescription || '',
+          config: configureLocalAgentPrimaryModel(
+            fullConfig,
+            createdOwnModelUuid,
+          ),
+        });
 
-      // 3. Link pipeline to the bot created in Step 1
-      const botData = await httpClient.getBot(createdBotUuid);
-      const existingBot = botData.bot;
-      await httpClient.updateBot(createdBotUuid, {
-        name: existingBot.name,
-        description: existingBot.description,
-        adapter: existingBot.adapter,
-        adapter_config: existingBot.adapter_config,
-        enable: existingBot.enable,
-        use_pipeline_uuid: pipelineResp.uuid,
-      });
+        originalOwnModelBot = (await httpClient.getBot(createdBotUuid)).bot;
+        await httpClient.updateBot(createdBotUuid, {
+          name: originalOwnModelBot.name,
+          description: originalOwnModelBot.description,
+          adapter: originalOwnModelBot.adapter,
+          adapter_config: originalOwnModelBot.adapter_config,
+          enable: originalOwnModelBot.enable,
+          use_pipeline_uuid: ownModelPipelineUuid,
+        });
+        ownModelPipelineBound = true;
+      }
 
-      setCurrentStep(3);
+      await completeWizard();
+      navigate('/home', { replace: true });
     } catch (err) {
+      if (externalPipelineUuid && !externalPipelineBound) {
+        await httpClient.deletePipeline(externalPipelineUuid).catch(() => {});
+      }
+      if (createdOwnModelUuid) {
+        let canCleanUpOwnModelResources = !ownModelPipelineBound;
+        if (ownModelPipelineBound && originalOwnModelBot) {
+          try {
+            await httpClient.updateBot(createdBotUuid, {
+              name: originalOwnModelBot.name,
+              description: originalOwnModelBot.description,
+              adapter: originalOwnModelBot.adapter,
+              adapter_config: originalOwnModelBot.adapter_config,
+              enable: originalOwnModelBot.enable,
+              use_pipeline_uuid: originalOwnModelBot.use_pipeline_uuid,
+            });
+            canCleanUpOwnModelResources = true;
+          } catch {
+            canCleanUpOwnModelResources = false;
+          }
+        }
+
+        if (canCleanUpOwnModelResources) {
+          let pipelineDeleted = ownModelPipelineUuid === null;
+          if (ownModelPipelineUuid) {
+            try {
+              await httpClient.deletePipeline(ownModelPipelineUuid);
+              pipelineDeleted = true;
+            } catch {
+              pipelineDeleted = false;
+            }
+          }
+          if (pipelineDeleted) {
+            await httpClient
+              .deleteProviderLLMModel(createdOwnModelUuid)
+              .catch(() => {});
+          }
+        }
+      }
       const apiErr = err as { msg?: string };
       toast.error(
         t('wizard.createError') + (apiErr?.msg ? `: ${apiErr.msg}` : ''),
@@ -475,30 +750,18 @@ export default function WizardPage() {
     }
   }, [
     selectedRunner,
+    isRunnerConfigComplete,
     createdBotUuid,
+    createdPipelineUuid,
+    aiChoice,
     botName,
     botDescription,
     runnerConfig,
+    ownModelSelection,
+    completeWizard,
+    navigate,
     t,
   ]);
-
-  // ---- Space auth redirect ----
-
-  const handleSpaceAuth = useCallback(async () => {
-    try {
-      const callbackUrl = `${window.location.origin}/auth/space/callback`;
-      const resp = await httpClient.getSpaceAuthorizeUrl(callbackUrl);
-      window.location.href = resp.authorize_url;
-    } catch (err) {
-      console.error('Failed to get space authorize URL', err);
-      toast.error(t('wizard.spaceAuthError'));
-    }
-  }, [t]);
-
-  // ---- Check if local account ----
-  // Re-evaluated after remote data fetch (when userInfo is populated)
-  const isLocalAccount =
-    !isLoading && (!userInfo || userInfo.account_type === 'local');
 
   // ---- Skip handler ----
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
@@ -516,7 +779,9 @@ export default function WizardPage() {
         step: 0,
         selected_adapter: null,
         created_bot_uuid: null,
+        created_pipeline_uuid: null,
         bot_saved: false,
+        message_received: false,
         selected_runner: null,
       });
       systemInfo.wizard_progress = null;
@@ -544,7 +809,6 @@ export default function WizardPage() {
     t('wizard.step.platform'),
     t('wizard.step.botConfig'),
     t('wizard.step.aiEngine'),
-    t('wizard.step.done'),
   ];
 
   return (
@@ -559,7 +823,7 @@ export default function WizardPage() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageSelector />
-          {currentStep < 3 && (
+          {currentStep < TOTAL_STEPS && (
             <Button
               variant="ghost"
               size="sm"
@@ -622,7 +886,7 @@ export default function WizardPage() {
       <div
         className={cn(
           'flex-1 min-h-0 px-4 sm:px-6 pb-4 sm:pb-6',
-          currentStep === 2 && selectedRunner
+          currentStep === 2 && aiChoice === 'external' && selectedRunner
             ? 'lg:flex lg:flex-col lg:overflow-hidden overflow-y-auto'
             : 'overflow-y-auto',
         )}
@@ -644,6 +908,8 @@ export default function WizardPage() {
             createdBotUuid={createdBotUuid}
             isSavingBot={isSavingBot}
             botSaved={botSaved}
+            messageReceived={messageReceived}
+            onMessageReceived={handleMessageReceived}
             onSaveBot={handleSaveBot}
             webhookUrl={webhookUrl}
             extraWebhookUrl={extraWebhookUrl}
@@ -652,20 +918,20 @@ export default function WizardPage() {
         {currentStep === 2 && (
           <StepAIEngine
             runnerOptions={runnerOptions}
+            choice={aiChoice}
+            onChoiceChange={setAiChoice}
             selected={selectedRunner}
             onSelect={handleSelectRunner}
-            isLocalAccount={isLocalAccount}
-            onSpaceAuth={handleSpaceAuth}
             runnerConfigItems={selectedRunnerConfigItems}
             runnerConfigValues={runnerConfig}
             onRunnerConfigChange={setRunnerConfig}
+            onOwnModelSelectionChange={setOwnModelSelection}
           />
         )}
-        {currentStep === 3 && <StepDone />}
       </div>
 
       {/* Footer navigation */}
-      {currentStep < 3 && (
+      {currentStep < TOTAL_STEPS && (
         <div className="shrink-0 flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-t">
           <Button
             variant="outline"
@@ -695,12 +961,22 @@ export default function WizardPage() {
           ) : (
             <Button
               onClick={handleFinish}
-              disabled={!canProceed() || isSubmitting}
+              disabled={
+                !canProceed() ||
+                isSubmitting ||
+                (aiChoice === 'external' &&
+                  (!selectedRunner || !isRunnerConfigComplete)) ||
+                (aiChoice === 'own-model' && !ownModelSelection)
+              }
             >
               {isSubmitting && (
                 <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
               )}
-              {t('wizard.finish')}
+              {aiChoice === 'external'
+                ? t('wizard.aiEngine.createExternal')
+                : aiChoice === 'own-model'
+                  ? t('wizard.aiEngine.finishWithModel')
+                  : t('wizard.aiEngine.openWorkbench')}
             </Button>
           )}
         </div>
@@ -752,7 +1028,10 @@ function StepPlatform({
   const { t } = useTranslation();
 
   const groupedAdapters = useMemo(() => {
-    const withCategories = adapters.map((a) => ({
+    const uniqueAdapters = Array.from(
+      new Map(adapters.map((adapter) => [adapter.name, adapter])).values(),
+    );
+    const withCategories = uniqueAdapters.map((a) => ({
       ...a,
       categories: a.spec.categories,
     }));
@@ -841,6 +1120,38 @@ function StepPlatform({
 // Step 1: Bot Configuration + Logs
 // ---------------------------------------------------------------------------
 
+function PageBotFloatingWidget({
+  botUuid,
+  title,
+  testNotice,
+}: {
+  botUuid: string;
+  title?: string;
+  testNotice: string;
+}) {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = `${window.location.origin}/api/v1/embed/${botUuid}/widget.js?preview=wizard&v=${Date.now()}`;
+    script.dataset.title = title || 'LangBot';
+    script.dataset.testNotice = testNotice;
+    document.body.appendChild(script);
+
+    return () => {
+      script.remove();
+      const root = document.getElementById('langbot-widget-root') as
+        | (HTMLElement & { langbotDestroy?: () => void })
+        | null;
+      if (root?.langbotDestroy) {
+        root.langbotDestroy();
+      } else {
+        root?.remove();
+      }
+    };
+  }, [botUuid, testNotice, title]);
+
+  return null;
+}
+
 function StepBotConfig({
   adapterConfigItems,
   adapterConfigValues,
@@ -850,6 +1161,8 @@ function StepBotConfig({
   createdBotUuid,
   isSavingBot,
   botSaved,
+  messageReceived,
+  onMessageReceived,
   onSaveBot,
   webhookUrl,
   extraWebhookUrl,
@@ -862,16 +1175,33 @@ function StepBotConfig({
   createdBotUuid: string | null;
   isSavingBot: boolean;
   botSaved: boolean;
+  messageReceived: boolean;
+  onMessageReceived: () => void;
   onSaveBot: () => void;
   webhookUrl: string;
   extraWebhookUrl: string;
 }) {
   const { t } = useTranslation();
+  const [testMessage, setTestMessage] = useState(
+    t('wizard.botConfig.httpTestDefaultMessage'),
+  );
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   const adapterLabel = useMemo(() => {
     const a = adapters.find((ad) => ad.name === selectedAdapterName);
     return a ? extractI18nObject(a.label) : (selectedAdapterName ?? '');
   }, [adapters, selectedAdapterName]);
+
+  const webhookModeEnabled = useMemo(
+    () =>
+      isWebhookModeEnabled(adapterConfigItems, adapterConfigValues) &&
+      Boolean(webhookUrl),
+    [adapterConfigItems, adapterConfigValues, webhookUrl],
+  );
+  const receivedMessageWithoutLangBotAccount =
+    messageReceived && userInfo?.account_type !== 'space';
+  const receivedMessageSuccessfully =
+    messageReceived && !receivedMessageWithoutLangBotAccount;
 
   // Stable callback ref
   const onAdapterConfigRef = useRef(onAdapterConfigChange);
@@ -881,14 +1211,153 @@ function StepBotConfig({
     [],
   );
 
+  const copyWebhookUrl = useCallback(async () => {
+    if (!webhookUrl) return;
+    await navigator.clipboard.writeText(webhookUrl);
+    toast.success(t('common.copySuccess'));
+  }, [t, webhookUrl]);
+
+  const sendHttpBotTest = useCallback(async () => {
+    if (!createdBotUuid || !testMessage.trim()) return;
+    setIsSendingTest(true);
+    try {
+      await httpClient.testHttpBotInbound(createdBotUuid, testMessage.trim());
+      toast.success(t('wizard.botConfig.httpTestAccepted'));
+    } catch (error) {
+      toast.error(
+        t('wizard.botConfig.httpTestFailed', {
+          error: getErrorMessage(error),
+        }),
+      );
+    } finally {
+      setIsSendingTest(false);
+    }
+  }, [createdBotUuid, testMessage, t]);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {selectedAdapterName === 'web_page_bot' && botSaved && createdBotUuid && (
+        <PageBotFloatingWidget
+          botUuid={createdBotUuid}
+          title={
+            typeof adapterConfigValues.title === 'string'
+              ? adapterConfigValues.title
+              : undefined
+          }
+          testNotice={t('wizard.botConfig.pageBotTestNotice')}
+        />
+      )}
+
       <div className="text-center">
         <h2 className="text-xl font-semibold">{t('wizard.botConfig.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1">
           {t('wizard.botConfig.description')}
         </p>
       </div>
+
+      {botSaved && (
+        <div
+          className={cn(
+            'border px-4 py-3',
+            receivedMessageSuccessfully
+              ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30'
+              : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30',
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
+                receivedMessageSuccessfully ? 'bg-green-500' : 'bg-amber-500',
+              )}
+            >
+              {receivedMessageWithoutLangBotAccount ? (
+                <AlertTriangle className="size-3 text-white" />
+              ) : messageReceived ? (
+                <Check className="size-3 text-white" />
+              ) : selectedAdapterName === 'web_page_bot' ? (
+                <MessageSquare className="size-3 text-white" />
+              ) : selectedAdapterName === 'http_bot' ? (
+                <Send className="size-3 text-white" />
+              ) : webhookModeEnabled ? (
+                <Webhook className="size-3 text-white" />
+              ) : (
+                <Loader2 className="size-3 animate-spin text-white" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p
+                className={cn(
+                  'text-sm font-medium',
+                  receivedMessageSuccessfully
+                    ? 'text-green-800 dark:text-green-200'
+                    : 'text-amber-800 dark:text-amber-200',
+                )}
+              >
+                {messageReceived
+                  ? t(
+                      receivedMessageWithoutLangBotAccount
+                        ? 'wizard.botConfig.messageReceivedLocalAccountWarning'
+                        : 'wizard.botConfig.messageReceived',
+                    )
+                  : selectedAdapterName === 'web_page_bot'
+                    ? t('wizard.botConfig.pageBotTestPrompt')
+                    : selectedAdapterName === 'http_bot'
+                      ? t('wizard.botConfig.httpTestPrompt')
+                      : webhookModeEnabled
+                        ? t('wizard.botConfig.webhookTestPrompt')
+                        : t('wizard.botConfig.waitingForMessage')}
+              </p>
+
+              {!messageReceived && webhookModeEnabled && (
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap border bg-background px-2.5 py-2 text-xs">
+                      {webhookUrl}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-9 shrink-0"
+                      onClick={copyWebhookUrl}
+                      title={t('common.copy')}
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                  </div>
+
+                  {selectedAdapterName === 'http_bot' && (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        value={testMessage}
+                        onChange={(event) => setTestMessage(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') void sendHttpBotTest();
+                        }}
+                        className="bg-background"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void sendHttpBotTest()}
+                        disabled={isSendingTest || !testMessage.trim()}
+                        className="shrink-0"
+                      >
+                        {isSendingTest ? (
+                          <Loader2 className="mr-1.5 size-4 animate-spin" />
+                        ) : (
+                          <Send className="mr-1.5 size-4" />
+                        )}
+                        {t('wizard.botConfig.sendHttpTest')}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Left column: Adapter config form */}
@@ -953,18 +1422,6 @@ function StepBotConfig({
               </CardContent>
             </Card>
           )}
-
-          {/* Bot saved indicator */}
-          {botSaved && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
-              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-sm text-green-700 dark:text-green-300">
-                {t('wizard.botConfig.botSaved')}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Right column: Bot logs */}
@@ -981,6 +1438,7 @@ function StepBotConfig({
                 botId={createdBotUuid}
                 autoExpandImages
                 hideToolbar
+                onMessageReceived={onMessageReceived}
               />
             </CardContent>
           </Card>
@@ -996,22 +1454,26 @@ function StepBotConfig({
 
 function StepAIEngine({
   runnerOptions,
+  choice,
+  onChoiceChange,
   selected,
   onSelect,
-  isLocalAccount,
-  onSpaceAuth,
   runnerConfigItems,
   runnerConfigValues,
   onRunnerConfigChange,
+  onOwnModelSelectionChange,
 }: {
   runnerOptions: { name: string; label: { en_US: string; zh_Hans: string } }[];
+  choice: 'external' | 'own-model' | 'more-features' | null;
+  onChoiceChange: (
+    choice: 'external' | 'own-model' | 'more-features' | null,
+  ) => void;
   selected: string | null;
   onSelect: (name: string) => void;
-  isLocalAccount: boolean;
-  onSpaceAuth: () => void;
   runnerConfigItems: IDynamicFormItemSchema[];
   runnerConfigValues: Record<string, unknown>;
   onRunnerConfigChange: (v: Record<string, unknown>) => void;
+  onOwnModelSelectionChange: (selection: OwnModelSelection | null) => void;
 }) {
   const { t } = useTranslation();
 
@@ -1028,18 +1490,103 @@ function StepAIEngine({
     return r ? extractI18nObject(r.label) : (selected ?? '');
   }, [runnerOptions, selected]);
 
-  // Before any runner is selected: centered grid layout
-  if (!selected) {
+  const choices = [
+    {
+      id: 'more-features' as const,
+      icon: Blocks,
+      title: t('wizard.aiEngine.moreFeaturesTitle'),
+      description: t('wizard.aiEngine.moreFeaturesDescription'),
+    },
+    {
+      id: 'external' as const,
+      icon: Cable,
+      title: t('wizard.aiEngine.externalTitle'),
+      description: t('wizard.aiEngine.externalDescription'),
+    },
+    {
+      id: 'own-model' as const,
+      icon: Settings2,
+      title: t('wizard.aiEngine.ownModelTitle'),
+      description: t('wizard.aiEngine.ownModelDescription'),
+    },
+  ];
+
+  if (choice === 'own-model') {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div
+        key="ai-engine-own-model"
+        className="w-full animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out motion-reduce:animate-none"
+      >
+        <OwnModelSetup
+          onBack={() => onChoiceChange('more-features')}
+          onSelectionChange={onOwnModelSelectionChange}
+        />
+      </div>
+    );
+  }
+
+  if (choice !== 'external') {
+    return (
+      <div
+        key="ai-engine-choices"
+        className="mx-auto max-w-4xl space-y-6 animate-in fade-in-0 slide-in-from-left-4 duration-300 ease-out motion-reduce:animate-none"
+      >
         <div className="text-center">
           <h2 className="text-xl font-semibold">
             {t('wizard.aiEngine.title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('wizard.aiEngine.description')}
+            {t('wizard.aiEngine.optionalDescription')}
           </p>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {choices.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card
+                key={item.id}
+                className={cn(
+                  'cursor-pointer transition-all hover:border-primary/50',
+                  choice === item.id && 'ring-2 ring-primary',
+                )}
+                onClick={() => onChoiceChange(item.id)}
+              >
+                <CardHeader>
+                  <Icon className="size-6 text-primary" />
+                  <CardTitle className="text-base">{item.title}</CardTitle>
+                  <CardDescription>{item.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Before any runner is selected: centered grid layout
+  if (!selected) {
+    return (
+      <div
+        key="ai-engine-external-picker"
+        className="mx-auto max-w-4xl space-y-6 animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out motion-reduce:animate-none"
+      >
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">
+            {t('wizard.aiEngine.externalTitle')}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('wizard.aiEngine.runnerDescription')}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onChoiceChange('more-features')}
+        >
+          <ArrowLeft className="size-4 mr-1.5" />
+          {t('wizard.aiEngine.backToChoices')}
+        </Button>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {runnerOptions.map((opt) => (
             <Card
@@ -1068,15 +1615,30 @@ function StepAIEngine({
   // On mobile (< lg): single column, normal scroll from parent
   // On desktop (>= lg): side-by-side with independent scroll per column
   return (
-    <div className="flex flex-col lg:flex-1 lg:min-h-0 max-w-6xl mx-auto w-full">
+    <div
+      key={`ai-engine-external-config-${selected}`}
+      className="mx-auto flex w-full max-w-6xl flex-col animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out motion-reduce:animate-none lg:min-h-0 lg:flex-1"
+    >
       <div className="text-center shrink-0 mb-4">
-        <h2 className="text-xl font-semibold">{t('wizard.aiEngine.title')}</h2>
+        <h2 className="text-xl font-semibold">
+          {t('wizard.aiEngine.externalTitle')}
+        </h2>
         <p className="text-sm text-muted-foreground mt-1">
           {t('wizard.aiEngine.description')}
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:justify-center gap-6 lg:flex-1 lg:min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start mb-3"
+        onClick={() => onChoiceChange('more-features')}
+      >
+        <ArrowLeft className="size-4 mr-1.5" />
+        {t('wizard.aiEngine.backToChoices')}
+      </Button>
+
+      <div className="flex flex-col gap-6 lg:min-h-0 lg:flex-1 lg:flex-row lg:justify-center">
         {/* Left: runner list */}
         <div className="w-full lg:w-[280px] shrink-0 lg:overflow-y-auto lg:pr-3">
           {/* p-1 provides space for ring-2 (4px) to render without clipping */}
@@ -1119,33 +1681,11 @@ function StepAIEngine({
                 </Card>
               );
             })}
-
-            {/* Space promotion banner */}
-            {selected === 'local-agent' && isLocalAccount && (
-              <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="relative rounded-lg p-[2px] bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500">
-                  <div className="rounded-[calc(0.5rem-2px)] bg-background p-3 flex flex-col items-center gap-2 text-center">
-                    <Sparkles className="w-6 h-6 text-purple-500 shrink-0" />
-                    <p className="text-xs font-medium">
-                      {t('wizard.spaceBanner.message')}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={onSpaceAuth}
-                      className="w-full"
-                    >
-                      {t('wizard.spaceBanner.action')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Right: runner configuration — fixed width on desktop */}
-        <div className="w-full lg:w-[560px] shrink-0 lg:overflow-y-auto lg:pr-3 animate-in fade-in slide-in-from-right-2 duration-300">
+        <div className="w-full shrink-0 lg:w-[560px] lg:overflow-y-auto lg:pr-3">
           <div className="p-1">
             {runnerConfigItems.length > 0 && (
               <Card>
@@ -1168,103 +1708,6 @@ function StepAIEngine({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step 3: Done
-// ---------------------------------------------------------------------------
-
-function StepDone() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-
-  const [particles] = useState(() =>
-    Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 2,
-      duration: 2 + Math.random() * 2,
-      size: 4 + Math.random() * 6,
-      color: [
-        'bg-purple-400',
-        'bg-pink-400',
-        'bg-orange-400',
-        'bg-blue-400',
-        'bg-green-400',
-        'bg-yellow-400',
-      ][Math.floor(Math.random() * 6)],
-    })),
-  );
-
-  const [isCompleting, setIsCompleting] = useState(false);
-
-  const handleBack = useCallback(async () => {
-    setIsCompleting(true);
-    try {
-      if (systemInfo.wizard_status === 'none') {
-        await httpClient.updateWizardStatus('completed');
-        systemInfo.wizard_status = 'completed';
-      }
-      // Always clear persisted progress so re-entering starts fresh
-      await httpClient.saveWizardProgress({
-        step: 0,
-        selected_adapter: null,
-        created_bot_uuid: null,
-        bot_saved: false,
-        selected_runner: null,
-      });
-      systemInfo.wizard_progress = null;
-    } catch {
-      toast.error(t('wizard.completeSaveError'));
-      setIsCompleting(false);
-      return;
-    }
-    setIsCompleting(false);
-    navigate('/home/bots');
-  }, [navigate, t]);
-
-  return (
-    <div className="relative flex flex-col items-center justify-center h-full min-h-[400px]">
-      {/* Confetti particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {particles.map((p) => (
-          <div
-            key={p.id}
-            className={cn('absolute rounded-full opacity-0', p.color)}
-            style={{
-              left: `${p.left}%`,
-              width: p.size,
-              height: p.size,
-              animation: `wizardConfetti ${p.duration}s ease-out ${p.delay}s forwards`,
-            }}
-          />
-        ))}
-      </div>
-
-      <PartyPopper className="w-16 h-16 text-primary mb-4" />
-      <h2 className="text-2xl font-bold">{t('wizard.done.title')}</h2>
-      <p className="text-muted-foreground mt-2 text-center max-w-md">
-        {t('wizard.done.description')}
-      </p>
-      <Button className="mt-6" onClick={handleBack} disabled={isCompleting}>
-        {isCompleting && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-        {t('wizard.done.backToWorkbench')}
-      </Button>
-
-      <style>{`
-        @keyframes wizardConfetti {
-          0% {
-            transform: translateY(100vh) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-20vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 }

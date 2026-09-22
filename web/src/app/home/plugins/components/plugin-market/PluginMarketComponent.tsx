@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  Suspense,
+} from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +44,8 @@ import {
 } from '@/components/ui/tooltip';
 import PluginMarketCardComponent from './plugin-market-card/PluginMarketCardComponent';
 import { PluginMarketCardVO } from './plugin-market-card/PluginMarketCardVO';
+import { resolveInstalledState } from './marketplace-installed';
+import { useMarketplaceInstalledIndex } from './useMarketplaceInstalledIndex';
 import { RecommendationLists } from './RecommendationLists';
 import type { RecommendationList } from './RecommendationLists';
 import {
@@ -80,9 +89,13 @@ function loadMarketFilters(): MarketFilters {
 function MarketPageContent({
   installPlugin,
   headerActions,
+  installDisabled,
+  installDisabledTooltip,
 }: {
   installPlugin: (plugin: PluginV4) => void;
   headerActions?: React.ReactNode;
+  installDisabled?: boolean;
+  installDisabledTooltip?: string;
 }) {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -118,6 +131,8 @@ function MarketPageContent({
   const [recommendationLists, setRecommendationLists] = useState<
     RecommendationList[]
   >([]);
+  // Installed extensions from the sidebar; used to mark market cards.
+  const installedIndex = useMarketplaceInstalledIndex();
   const [plugins, setPlugins] = useState<PluginMarketCardVO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -127,7 +142,7 @@ function MarketPageContent({
   // Per-format extension counts shown next to the type filter options.
   const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
   const [sortOption, setSortOption] = useState<string>(
-    () => loadMarketFilters().sortOption ?? 'install_count_desc',
+    () => loadMarketFilters().sortOption ?? 'hot_score_desc',
   );
 
   // Persist filter conditions so they survive navigation / reload.
@@ -154,6 +169,12 @@ function MarketPageContent({
 
   // 排序选项
   const sortOptions: SortOption[] = [
+    {
+      value: 'hot_score_desc',
+      label: t('market.sort.hottest'),
+      sortBy: 'hot_score',
+      sortOrder: 'DESC',
+    },
     {
       value: 'created_at_desc',
       label: t('market.sort.recentlyAdded'),
@@ -211,7 +232,7 @@ function MarketPageContent({
     const option = sortOptions.find((opt) => opt.value === sortOption);
     return option
       ? { sortBy: option.sortBy, sortOrder: option.sortOrder }
-      : { sortBy: 'install_count', sortOrder: 'DESC' };
+      : { sortBy: 'hot_score', sortOrder: 'DESC' };
   }, [sortOption]);
 
   // 将API响应转换为VO对象
@@ -233,6 +254,7 @@ function MarketPageContent({
         description:
           extractI18nObject(plugin.description) || t('market.noDescription'),
         installCount: plugin.install_count || 0,
+        likeCount: plugin.like_count || 0,
         iconURL,
         githubURL: plugin.repository,
         version: plugin.latest_version,
@@ -560,7 +582,27 @@ function MarketPageContent({
     };
   }, []);
 
-  const visiblePlugins = plugins;
+  // Annotate cards with installed state derived from the sidebar index. This is
+  // computed (rather than baked into `plugins`) so a finished install updates
+  // the badges as soon as the sidebar refreshes.
+  const visiblePlugins = useMemo(
+    () =>
+      plugins.map((plugin) => {
+        const state = resolveInstalledState(installedIndex, plugin);
+        if (
+          state.installed === plugin.installed &&
+          state.hasUpdate === plugin.hasUpdate
+        ) {
+          return plugin;
+        }
+        return new PluginMarketCardVO({
+          ...plugin,
+          installed: state.installed,
+          hasUpdate: state.hasUpdate,
+        });
+      }),
+    [plugins, installedIndex],
+  );
 
   // 加载更多
   const loadMore = useCallback(() => {
@@ -840,6 +882,9 @@ function MarketPageContent({
               lists={recommendationLists}
               tagNames={tagNames}
               onInstall={handleInstallPlugin}
+              installDisabled={installDisabled}
+              installDisabledTooltip={installDisabledTooltip}
+              installedIndex={installedIndex}
             />
           )}
 
@@ -869,6 +914,8 @@ function MarketPageContent({
                   cardVO={plugin}
                   onInstall={handleInstallPlugin}
                   tagNames={tagNames}
+                  installDisabled={installDisabled}
+                  installDisabledTooltip={installDisabledTooltip}
                 />
               ))}
             </div>
@@ -908,9 +955,13 @@ function MarketPageContent({
 export default function MarketPage({
   installPlugin,
   headerActions,
+  installDisabled,
+  installDisabledTooltip,
 }: {
   installPlugin: (plugin: PluginV4) => void;
   headerActions?: React.ReactNode;
+  installDisabled?: boolean;
+  installDisabledTooltip?: string;
 }) {
   return (
     <Suspense
@@ -925,6 +976,8 @@ export default function MarketPage({
       <MarketPageContent
         installPlugin={installPlugin}
         headerActions={headerActions}
+        installDisabled={installDisabled}
+        installDisabledTooltip={installDisabledTooltip}
       />
     </Suspense>
   );

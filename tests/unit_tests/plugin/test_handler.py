@@ -9,14 +9,88 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock
 import pytest
 
-from langbot_plugin.entities.io.actions.enums import PluginToRuntimeAction
+from langbot_plugin.entities.io.actions.enums import LangBotToRuntimeAction, PluginToRuntimeAction
+from langbot_plugin.entities.io.context import ActionContext, InstallationBinding, PluginInstallationDesiredState
 
 
 def make_handler(app):
     """Create a RuntimeConnectionHandler with mocked external connection."""
     from langbot.pkg.plugin.handler import RuntimeConnectionHandler
 
-    return RuntimeConnectionHandler(Mock(), AsyncMock(return_value=True), app)
+    workspace_context = ActionContext(
+        instance_uuid='instance-a',
+        workspace_uuid='workspace-a',
+        placement_generation=1,
+    )
+    app.workspace_service = SimpleNamespace(
+        get_execution_binding=AsyncMock(
+            return_value=SimpleNamespace(
+                instance_uuid=workspace_context.instance_uuid,
+                workspace_uuid=workspace_context.workspace_uuid,
+                placement_generation=workspace_context.placement_generation,
+            )
+        )
+    )
+    runtime_handler = RuntimeConnectionHandler(
+        Mock(),
+        AsyncMock(return_value=True),
+        app,
+    )
+    installation_binding = InstallationBinding(
+        **workspace_context.model_dump(exclude_none=True),
+        installation_uuid='00000000-0000-4000-8000-000000000001',
+        runtime_revision=1,
+        artifact_digest='a' * 64,
+    )
+    runtime_handler.register_installation_binding(
+        installation_binding,
+        plugin_author='test-author',
+        plugin_name='test-plugin',
+    )
+    runtime_handler._current_action_context.set(installation_binding)
+    query_pool = getattr(app, 'query_pool', None)
+    if query_pool is not None and hasattr(query_pool, 'cached_queries'):
+
+        def scoped_query(query):
+            if query is not None:
+                query.instance_uuid = workspace_context.instance_uuid
+                query.workspace_uuid = workspace_context.workspace_uuid
+                query.placement_generation = workspace_context.placement_generation
+            return query
+
+        query_pool.get_query = AsyncMock(
+            side_effect=lambda workspace_uuid, query_uuid: scoped_query(query_pool.cached_queries.get(query_uuid))
+        )
+        query_pool.get_query_by_legacy_id = AsyncMock(
+            side_effect=lambda workspace_uuid, query_id: scoped_query(query_pool.cached_queries.get(query_id))
+        )
+    return runtime_handler
+
+
+@pytest.mark.asyncio
+async def test_reconcile_plugin_installations_allows_cloud_cold_start_to_finish():
+    app = SimpleNamespace()
+    runtime_handler = make_handler(app)
+    runtime_handler.call_action = AsyncMock(return_value={})
+    binding = next(iter(runtime_handler._installation_bindings.values()))[0]
+    desired = PluginInstallationDesiredState(binding=binding, enabled=True)
+
+    await runtime_handler.reconcile_plugin_installations((desired,))
+
+    assert runtime_handler.call_action.await_args.args[0] == LangBotToRuntimeAction.RECONCILE_PLUGIN_INSTALLATIONS
+    assert runtime_handler.call_action.await_args.kwargs['timeout'] == 300
+
+
+@pytest.mark.asyncio
+async def test_reconcile_plugin_installations_accepts_configured_cold_start_timeout():
+    runtime_handler = make_handler(SimpleNamespace())
+    runtime_handler.call_action = AsyncMock(return_value={})
+    binding = next(iter(runtime_handler._installation_bindings.values()))[0]
+    desired = PluginInstallationDesiredState(binding=binding, enabled=True)
+
+    await runtime_handler.reconcile_plugin_installations((desired,), timeout=900)
+
+    assert runtime_handler.call_action.await_args.kwargs["timeout"] == 900
 
 
 class TestHandlerQueryVariables:

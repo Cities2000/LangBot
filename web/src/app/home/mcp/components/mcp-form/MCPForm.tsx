@@ -8,7 +8,14 @@ import React, {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Braces, Loader2, Trash2, Wrench, XCircle } from 'lucide-react';
+import {
+  Braces,
+  Loader2,
+  ShieldAlert,
+  Trash2,
+  Wrench,
+  XCircle,
+} from 'lucide-react';
 import { Resolver, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,6 +63,7 @@ import {
 import { CustomApiError } from '@/app/infra/entities/common';
 import { BoxUnavailableNotice } from '@/app/home/components/BoxUnavailableNotice';
 import { useBoxStatus } from '@/app/infra/hooks/useBoxStatus';
+import { useMCPStdioPolicy } from '@/app/infra/hooks/useMCPStdioPolicy';
 
 function StatusDisplay({
   testing,
@@ -100,7 +108,7 @@ function StatusDisplay({
       <div className="space-y-1">
         <div className="flex items-center gap-2 text-red-600">
           <XCircle className="size-5" />
-          <span className="font-medium">{t('mcp.connectionFailed')}</span>
+          <span className="font-medium">{t('mcp.connectionFailedStatus')}</span>
         </div>
         <div className="pl-7 text-sm text-red-500 space-y-0.5">
           <div>
@@ -116,15 +124,41 @@ function StatusDisplay({
     );
   }
 
+  if (runtimeInfo.error_phase === 'oauth_required') {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+          <ShieldAlert className="size-5" />
+          <span className="font-medium">
+            {t('mcp.oauthAuthorizationRequired')}
+          </span>
+        </div>
+        <div className="pl-7 text-sm text-muted-foreground">
+          {t('mcp.oauthAuthorizationRequiredSuggestion')}
+        </div>
+      </div>
+    );
+  }
+
+  const httpStatus = runtimeInfo.error_code?.match(/^http_(\d{3})$/)?.[1];
+  const errorDetail =
+    runtimeInfo.error_code === 'connection_unreachable'
+      ? t('mcp.connectionUnreachable')
+      : runtimeInfo.error_code === 'connection_timeout'
+        ? t('mcp.connectionTimeout')
+        : httpStatus
+          ? t('mcp.connectionHttpError', { status: httpStatus })
+          : runtimeInfo.error_message || t('mcp.unknownError');
+
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-red-600">
         <XCircle className="size-5" />
-        <span className="font-medium">{t('mcp.connectionFailed')}</span>
+        <span className="font-medium">{t('mcp.connectionFailedStatus')}</span>
       </div>
-      {runtimeInfo.error_message && (
-        <div className="pl-7 text-sm text-red-500">
-          {runtimeInfo.error_message}
+      {errorDetail && (
+        <div className="pl-7 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+          {errorDetail}
         </div>
       )}
     </div>
@@ -435,6 +469,10 @@ const getFormSchema = (t: TFunction) =>
         .number({ invalid_type_error: t('mcp.timeoutMustBeNumber') })
         .positive({ message: t('mcp.timeoutMustBePositive') })
         .default(30),
+      tool_call_timeout_sec: z
+        .number({ invalid_type_error: t('mcp.timeoutMustBeNumber') })
+        .nonnegative({ message: t('mcp.timeoutNonNegative') })
+        .default(300),
       ssereadtimeout: z
         .number({ invalid_type_error: t('mcp.sseTimeoutMustBeNumber') })
         .positive({ message: t('mcp.timeoutMustBePositive') })
@@ -474,6 +512,7 @@ const getFormSchema = (t: TFunction) =>
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>> & {
   timeout: number;
+  tool_call_timeout_sec: number;
   ssereadtimeout: number;
 };
 
@@ -535,6 +574,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
       command: '',
       args: [],
       timeout: 30,
+      tool_call_timeout_sec: 300,
       ssereadtimeout: 300,
       extra_args: [],
       ...initialDraftRef.current,
@@ -560,11 +600,15 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
     hint: boxHint,
     reason: boxReason,
   } = useBoxStatus();
+  const { enabled: mcpStdioEnabled } = useMCPStdioPolicy();
   // stdio mode requires the Box sandbox at runtime. If the user picks
   // stdio while Box is disabled / unreachable, the server would refuse
   // to start anyway — block creation upfront so they aren't surprised
   // by an immediate "Connection failed" on the detail page.
-  const stdioBlockedByBox = watchMode === 'stdio' && !boxAvailable;
+  const stdioBlockedByPolicy = watchMode === 'stdio' && !mcpStdioEnabled;
+  const stdioBlockedByBox =
+    watchMode === 'stdio' && mcpStdioEnabled && !boxAvailable;
+  const stdioBlocked = stdioBlockedByPolicy || stdioBlockedByBox;
 
   const { isDirty } = form.formState;
   useEffect(() => {
@@ -572,8 +616,8 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
   }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
-    onSaveBlockedChange?.(stdioBlockedByBox);
-  }, [stdioBlockedByBox, onSaveBlockedChange]);
+    onSaveBlockedChange?.(stdioBlocked);
+  }, [stdioBlocked, onSaveBlockedChange]);
 
   useEffect(() => {
     onTestingChange?.(mcpTesting);
@@ -589,10 +633,9 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
       testMcp: () => testMcp(),
       isTesting: mcpTesting,
     }),
-    // testMcp now reads everything via form.getValues(), so it does not need
-    // the latest stdioArgs/extraArgs closure — but keep mcpTesting so the
-    // exposed isTesting flag stays accurate.
-    [mcpTesting],
+    // Form values are read through form.getValues(); policy and runtime health
+    // remain closure values and must refresh the imperative handler.
+    [mcpTesting, mcpStdioEnabled, boxAvailable],
   );
 
   useEffect(() => {
@@ -609,6 +652,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         command: '',
         args: [],
         timeout: 30,
+        tool_call_timeout_sec: 300,
         ssereadtimeout: 300,
         extra_args: [],
         ...initialDraftRef.current,
@@ -687,9 +731,15 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         command: '',
         args: [],
         timeout: 30,
+        tool_call_timeout_sec: 300,
         ssereadtimeout: 300,
         extra_args: [],
       };
+
+      if (typeof server.extra_args.tool_call_timeout_sec === 'number') {
+        formValues.tool_call_timeout_sec =
+          server.extra_args.tool_call_timeout_sec;
+      }
 
       let newExtraArgs: {
         key: string;
@@ -747,6 +797,10 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
   async function handleFormSubmit(value: z.infer<typeof formSchema>) {
     // Belt-and-suspenders: even though the Save button is disabled when
     // stdio is unselectable, intercept programmatic submits too.
+    if (value.mode === 'stdio' && !mcpStdioEnabled) {
+      toast.error(t('mcp.stdioDisabledByPolicy'));
+      return;
+    }
     if (value.mode === 'stdio' && !boxAvailable) {
       toast.error(t('mcp.stdioBlockedByBoxToast'));
       return;
@@ -770,6 +824,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
             url: value.url!,
             headers,
             timeout: value.timeout,
+            tool_call_timeout_sec: value.tool_call_timeout_sec,
           },
         };
       } else {
@@ -786,6 +841,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
             command: value.command!,
             args: value.args?.map((arg) => arg.value) || [],
             env,
+            tool_call_timeout_sec: value.tool_call_timeout_sec,
           },
         };
       }
@@ -812,8 +868,34 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
   async function testMcp() {
     setMcpTesting(true);
 
+    const showConnectionFailure = (
+      message: string,
+      info?: MCPServerRuntimeInfo,
+    ) => {
+      toast.error(t('mcp.connectionFailedStatus'));
+      setRuntimeInfo({
+        tool_count: 0,
+        tools: [],
+        resource_count: 0,
+        resources: [],
+        ...info,
+        status: MCPSessionStatus.ERROR,
+        error_message: info?.error_message || message,
+      });
+    };
+
     try {
       const mode = form.getValues('mode');
+      if (mode === 'stdio' && !mcpStdioEnabled) {
+        showConnectionFailure(t('mcp.stdioDisabledByPolicy'));
+        setMcpTesting(false);
+        return;
+      }
+      if (mode === 'stdio' && !boxAvailable) {
+        showConnectionFailure(t('mcp.stdioBlockedByBoxToast'));
+        setMcpTesting(false);
+        return;
+      }
       // Read every field via form.getValues() rather than the captured
       // `stdioArgs` / `extraArgs` state. testMcp() is invoked through an
       // imperative handle (formRef.current.testMcp()) whose closure is only
@@ -835,6 +917,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
         extraArgsData = {
           url: form.getValues('url')!,
           timeout: form.getValues('timeout'),
+          tool_call_timeout_sec: form.getValues('tool_call_timeout_sec'),
           headers: Object.fromEntries(
             formExtraArgs.map((arg) => [arg.key, arg.value]),
           ),
@@ -846,6 +929,7 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
           env: Object.fromEntries(
             formExtraArgs.map((arg) => [arg.key, arg.value]),
           ),
+          tool_call_timeout_sec: form.getValues('tool_call_timeout_sec'),
         };
       }
 
@@ -879,15 +963,9 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
             if (taskResp.runtime.exception) {
               const errorMsg =
                 taskResp.runtime.exception || t('mcp.unknownError');
-              toast.error(`${t('mcp.testError')}: ${errorMsg}`);
-              setRuntimeInfo({
-                status: MCPSessionStatus.ERROR,
-                error_message: errorMsg,
-                tool_count: 0,
-                tools: [],
-                resource_count: 0,
-                resources: [],
-              });
+              const runtimeInfoFromTest = taskResp.task_context?.metadata
+                ?.runtime_info as MCPServerRuntimeInfo | undefined;
+              showConnectionFailure(errorMsg, runtimeInfoFromTest);
               if (shouldTestPersistedServer) {
                 await onPersistedTestComplete?.(serverName);
               }
@@ -914,14 +992,19 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
           clearInterval(interval);
           setMcpTesting(false);
           const errorMsg =
-            (err as CustomApiError).msg || t('mcp.getTaskFailed');
-          toast.error(`${t('mcp.testError')}: ${errorMsg}`);
+            (err as CustomApiError).msg ||
+            (err as Error).message ||
+            t('mcp.getTaskFailed');
+          showConnectionFailure(errorMsg);
         }
       }, 1000);
     } catch (err) {
       setMcpTesting(false);
-      const errorMsg = (err as Error).message || t('mcp.unknownError');
-      toast.error(`${t('mcp.testError')}: ${errorMsg}`);
+      const errorMsg =
+        (err as CustomApiError).msg ||
+        (err as Error).message ||
+        t('mcp.unknownError');
+      showConnectionFailure(errorMsg);
     }
   }
 
@@ -1020,13 +1103,20 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="remote">{t('mcp.remote')}</SelectItem>
-                  <SelectItem value="stdio" disabled={!boxAvailable}>
+                  <SelectItem
+                    value="stdio"
+                    disabled={!mcpStdioEnabled || !boxAvailable}
+                  >
                     {t('mcp.local')}
-                    {!boxAvailable && (
+                    {!mcpStdioEnabled ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({t('mcp.disabledByPolicy')})
+                      </span>
+                    ) : !boxAvailable ? (
                       <span className="ml-2 text-xs text-muted-foreground">
                         ({t('mcp.boxRequired')})
                       </span>
-                    )}
+                    ) : null}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -1035,6 +1125,14 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                   ? t('mcp.localModeDescription')
                   : t('mcp.remoteModeDescription')}
               </FormDescription>
+              {stdioBlockedByPolicy && (
+                <div
+                  role="alert"
+                  className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200"
+                >
+                  {t('mcp.stdioDisabledByPolicy')}
+                </div>
+              )}
               {stdioBlockedByBox && (
                 <BoxUnavailableNotice
                   hint={boxHint}
@@ -1042,6 +1140,30 @@ const MCPForm = forwardRef<MCPFormHandle, MCPFormProps>(function MCPForm(
                   className="mt-2"
                 />
               )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="tool_call_timeout_sec"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('mcp.toolCallTimeout')}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="300"
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription>
+                {t('mcp.toolCallTimeoutDescription')}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

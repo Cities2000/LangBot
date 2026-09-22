@@ -15,9 +15,9 @@ spec:
   categories:
     - china
   help_links:
-    zh: https://link.langbot.app/zh/platforms/qqofficial
-    en: https://link.langbot.app/en/platforms/qqofficial
-    ja: https://link.langbot.app/ja/platforms/qqofficial
+    zh: https://langbot.app/docs/zh/usage/platforms/qq/official_webhook
+    en: https://langbot.app/docs/en/usage/platforms/qq/official_webhook
+    ja: https://langbot.app/docs/ja/usage/platforms/qq/official_webhook
   config:
     - name: __system.outbound_ips
       label:
@@ -92,6 +92,18 @@ spec:
         en_US: If enabled, the bot will use streaming mode to reply messages (C2C only)
         zh_Hans: 如果启用，机器人将使用流式方式回复消息（仅私聊）
         zh_Hant: 如果啟用，機器人將使用串流方式回覆訊息（僅私聊）
+      type: boolean
+      required: true
+      default: false
+    - name: enable-markdown-rendering
+      label:
+        en_US: Enable Markdown Rendering
+        zh_Hans: 启用 Markdown 渲染
+        zh_Hant: 啟用 Markdown 渲染
+      description:
+        en_US: Render non-stream C2C and QQ group text replies as Markdown. Channel messages always use plain text and are not affected by this setting.
+        zh_Hans: 将非流式 C2C 私聊和 QQ 群聊文本回复渲染为 Markdown。频道消息始终以纯文本发送，不受此设置影响。
+        zh_Hant: 將非串流 C2C 私聊與 QQ 群聊文字回覆渲染為 Markdown。頻道訊息一律以純文字傳送，不受此設定影響。
       type: boolean
       required: true
       default: false

@@ -6,7 +6,9 @@ based on configuration, without actually creating real VDB instances.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from tests.utils.import_isolation import isolated_sys_modules
 
@@ -138,6 +140,7 @@ class TestVectorDBManagerInitialization:
             mgr = VectorDBManager(mock_app)
 
             import asyncio
+
             asyncio.get_event_loop().run_until_complete(mgr.initialize())
 
             mock_valkey_class.assert_called_once_with(mock_app)
@@ -207,7 +210,10 @@ class TestVectorDBManagerInitialization:
             asyncio.get_event_loop().run_until_complete(mgr.initialize())
 
             mock_pgvector_class.assert_called_once_with(
-                mock_app, connection_string='postgresql://user:pass@host:5432/langbot'
+                mock_app,
+                connection_string='postgresql://user:pass@host:5432/langbot',
+                use_business_database=False,
+                allowed_dimensions=[384, 512, 768, 1024, 1536, 3072],
             )
 
     def test_initialize_pgvector_with_individual_params(self):
@@ -238,7 +244,14 @@ class TestVectorDBManagerInitialization:
             asyncio.get_event_loop().run_until_complete(mgr.initialize())
 
             mock_pgvector_class.assert_called_once_with(
-                mock_app, host='db.example.com', port=5433, database='vectordb', user='admin', password='secret'
+                mock_app,
+                host='db.example.com',
+                port=5433,
+                database='vectordb',
+                user='admin',
+                password='secret',
+                use_business_database=False,
+                allowed_dimensions=[384, 512, 768, 1024, 1536, 3072],
             )
 
     def test_initialize_pgvector_defaults(self):
@@ -260,7 +273,42 @@ class TestVectorDBManagerInitialization:
             asyncio.get_event_loop().run_until_complete(mgr.initialize())
 
             mock_pgvector_class.assert_called_once_with(
-                mock_app, host='localhost', port=5432, database='langbot', user='postgres', password='postgres'
+                mock_app,
+                host='localhost',
+                port=5432,
+                database='langbot',
+                user='postgres',
+                password='postgres',
+                use_business_database=False,
+                allowed_dimensions=[384, 512, 768, 1024, 1536, 3072],
+            )
+
+    def test_initialize_pgvector_with_shared_business_database(self):
+        vdb_config = {
+            'use': 'pgvector',
+            'pgvector': {
+                'use_business_database': True,
+                'allowed_dimensions': [768, 1536],
+            },
+        }
+        mock_app = self._create_mock_app(vdb_config)
+        mocks = self._make_vector_import_mocks()
+        mock_pgvector_class = MagicMock()
+        mocks['langbot.pkg.vector.vdbs.pgvector_db'].PgVectorDatabase = mock_pgvector_class
+
+        with isolated_sys_modules(mocks):
+            from langbot.pkg.vector.mgr import VectorDBManager
+
+            mgr = VectorDBManager(mock_app)
+
+            import asyncio
+
+            asyncio.get_event_loop().run_until_complete(mgr.initialize())
+
+            mock_pgvector_class.assert_called_once_with(
+                mock_app,
+                use_business_database=True,
+                allowed_dimensions=[768, 1536],
             )
 
     def test_initialize_unknown_backend_defaults_to_chroma(self):
@@ -337,3 +385,21 @@ class TestVectorDBManagerProxies:
 
             result = mgr.get_supported_search_types()
             assert result == ['vector', 'full_text']
+
+    @pytest.mark.asyncio
+    async def test_shutdown_closes_backend_and_releases_reference(self):
+        mock_app = MagicMock()
+        mocks = {'langbot.pkg.core.app': MagicMock()}
+
+        with isolated_sys_modules(mocks):
+            from langbot.pkg.vector.mgr import VectorDBManager
+
+            mgr = VectorDBManager(mock_app)
+            backend = MagicMock()
+            backend.close = AsyncMock()
+            mgr.vector_db = backend
+
+            await mgr.shutdown()
+
+            backend.close.assert_awaited_once_with()
+            assert mgr.vector_db is None

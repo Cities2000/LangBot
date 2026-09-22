@@ -1,4 +1,4 @@
-FROM node:22-alpine AS node
+FROM --platform=$BUILDPLATFORM node:22-alpine AS node
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ COPY --from=node /app/web/dist ./web/dist
 COPY --from=nsjail-build /usr/local/bin/nsjail /usr/local/bin/nsjail
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc ca-certificates curl gnupg \
+    && apt-get install -y --no-install-recommends gcc ca-certificates curl git gnupg \
     # nsjail runtime libraries (the build toolchain stays in the nsjail-build
     # stage; only these shared libs are needed to execute the binary).
     && apt-get install -y --no-install-recommends libprotobuf32 libnl-route-3-200 \
@@ -64,8 +64,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -f /tmp/nodesource_setup.sh \
     && python -m pip install --no-cache-dir uv  -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    && uv sync -i https://pypi.tuna.tsinghua.edu.cn/simple \
-    && apt-get purge -y --auto-remove curl gnupg \
+    && uv sync --extra seekdb -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    && apt-get purge -y --auto-remove curl git gnupg \
     && rm -rf /var/lib/apt/lists/* \
     && touch /.dockerenv
 

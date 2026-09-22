@@ -5,29 +5,164 @@ import sqlalchemy
 
 from .. import group
 from .....utils import constants
-from .....entity.persistence.metadata import Metadata
+from .....entity.persistence.metadata import WorkspaceMetadata
+from ...authz import Permission
+from ...context import PrincipalType, RequestContext
+from .....provider.tools.loaders.mcp_policy import stdio_mcp_enabled
+from .....workspace.invitation_delivery import InvitationDeliveryService
+
+
+SYSTEM_CAPABILITY_OPERATIONS = (
+    'bot.list',
+    'bot.get',
+    'bot.create',
+    'bot.update',
+    'bot.delete',
+    'pipeline.list',
+    'pipeline.get',
+    'pipeline.create',
+    'pipeline.update',
+    'pipeline.delete',
+    'pipeline.copy',
+    'task.list',
+    'task.get',
+    'knowledge_base.list',
+    'knowledge_base.get',
+    'knowledge_base.create',
+    'knowledge_base.update',
+    'knowledge_base.delete',
+    'knowledge_base.file.list',
+    'knowledge_base.file.store',
+    'knowledge_base.file.delete',
+    'knowledge_base.retrieve',
+    'file.document.upload',
+    'plugin.install.github',
+    'plugin.install.marketplace',
+    'plugin.install.local',
+    'plugin.upgrade',
+    'plugin.get',
+    'plugin.list',
+    'plugin.config.get',
+    'plugin.config.update',
+    'plugin.logs',
+    'plugin.delete',
+    'provider.list',
+    'provider.get',
+    'provider.create',
+    'provider.update',
+    'provider.delete',
+    'provider.scan_models',
+    'model.llm.list',
+    'model.llm.get',
+    'model.llm.create',
+    'model.llm.update',
+    'model.llm.delete',
+    'model.llm.test',
+    'model.embedding.list',
+    'model.embedding.get',
+    'model.embedding.create',
+    'model.embedding.update',
+    'model.embedding.delete',
+    'model.embedding.test',
+    'model.rerank.list',
+    'model.rerank.get',
+    'model.rerank.create',
+    'model.rerank.update',
+    'model.rerank.delete',
+    'model.rerank.test',
+    'skill.list',
+    'skill.get',
+    'skill.create',
+    'skill.update',
+    'skill.delete',
+    'skill.files.list',
+    'skill.files.read',
+    'skill.files.write',
+    'skill.preview',
+    'skill.install.github',
+    'skill.install.upload',
+    'mcp_server.list',
+    'mcp_server.get',
+    'mcp_server.create',
+    'mcp_server.update',
+    'mcp_server.delete',
+    'mcp_server.resources',
+    'mcp_server.resource_templates',
+    'mcp_server.resource_read',
+    'mcp_server.logs',
+    'mcp_server.test',
+)
 
 
 @group.group_class('system', '/api/v1/system')
 class SystemRouterGroup(group.RouterGroup):
     async def initialize(self) -> None:
+        @self.route('/context', methods=['GET'], auth_type=group.AuthType.API_KEY)
+        async def _(request_context: RequestContext) -> str:
+            return self.success(
+                data={
+                    'instance_uuid': request_context.instance_uuid,
+                    'workspace_uuid': request_context.workspace_uuid,
+                    'api_key_id': request_context.principal.api_key_uuid,
+                    'permissions': sorted(request_context.workspace.permissions),
+                }
+            )
+
+        @self.route('/capabilities', methods=['GET'], auth_type=group.AuthType.API_KEY)
+        async def _() -> str:
+            return self.success(
+                data={
+                    'schema_version': 1,
+                    'operations': {operation: {'supported': True} for operation in SYSTEM_CAPABILITY_OPERATIONS},
+                }
+            )
+
         @self.route('/info', methods=['GET'], auth_type=group.AuthType.NONE)
         async def _() -> str:
             # Read wizard_status and wizard_progress from metadata table
             wizard_status = 'none'
             wizard_progress = None
             try:
-                result = await self.ap.persistence_mgr.execute_async(
-                    sqlalchemy.select(Metadata).where(Metadata.key.in_(['wizard_status', 'wizard_progress']))
-                )
-                for row in result:
-                    if row.key == 'wizard_status':
-                        wizard_status = row.value
-                    elif row.key == 'wizard_progress':
-                        try:
-                            wizard_progress = json.loads(row.value)
-                        except (json.JSONDecodeError, TypeError):
-                            wizard_progress = None
+                authorization = quart.request.headers.get('Authorization', '')
+                if authorization.startswith('Bearer '):
+                    account, _ = await self._authenticate_account(authorization.removeprefix('Bearer '))
+                    request_context = await self._resolve_account_context(account, group.AuthType.USER_TOKEN)
+                    if request_context is not None:
+                        tenant_uow = getattr(self.ap.persistence_mgr, 'tenant_uow', None)
+
+                        async def load_workspace_metadata():
+                            return await self.ap.persistence_mgr.execute_async(
+                                sqlalchemy.select(
+                                    WorkspaceMetadata.key,
+                                    WorkspaceMetadata.value,
+                                ).where(
+                                    WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                                    WorkspaceMetadata.key.in_(['wizard_status', 'wizard_progress']),
+                                )
+                            )
+
+                        cloud_runtime = (
+                            getattr(getattr(self.ap.persistence_mgr, 'mode', None), 'value', None) == 'cloud_runtime'
+                        )
+                        if cloud_runtime:
+                            if not callable(tenant_uow):
+                                raise RuntimeError('Cloud system metadata requires an explicit tenant UoW')
+                            async with tenant_uow(request_context.workspace_uuid):
+                                result = await load_workspace_metadata()
+                        else:
+                            result = await load_workspace_metadata()
+                        # ``execute_async`` deliberately preserves its historical
+                        # AsyncConnection result shape. Selecting the two fields
+                        # explicitly keeps this reader independent of ORM Session
+                        # scalar semantics inside a tenant UoW.
+                        for row in result:
+                            if row.key == 'wizard_status':
+                                wizard_status = row.value
+                            elif row.key == 'wizard_progress':
+                                try:
+                                    wizard_progress = json.loads(row.value)
+                                except (json.JSONDecodeError, TypeError):
+                                    wizard_progress = None
             except Exception:
                 pass
 
@@ -42,6 +177,10 @@ class SystemRouterGroup(group.RouterGroup):
                 outbound_ips = [str(ip).strip() for ip in outbound_ips if str(ip).strip()]
             else:
                 outbound_ips = []
+
+            invitation_delivery_service = getattr(self.ap, 'invitation_delivery_service', None)
+            if invitation_delivery_service is None:
+                invitation_delivery_service = InvitationDeliveryService(self.ap)
 
             return self.success(
                 data={
@@ -60,15 +199,24 @@ class SystemRouterGroup(group.RouterGroup):
                     'disable_models_service': self.ap.instance_config.data.get('space', {}).get(
                         'disable_models_service', False
                     ),
+                    # Exposed independently of Box status so the WebUI cannot
+                    # infer stdio permission from sandbox availability.
+                    'mcp_stdio_enabled': stdio_mcp_enabled(self.ap),
                     'limitation': self.ap.instance_config.data.get('system', {}).get('limitation', {}),
                     'outbound_ips': outbound_ips,
+                    'invitation_delivery': invitation_delivery_service.capability(),
                     'wizard_status': wizard_status,
                     'wizard_progress': wizard_progress,
                 }
             )
 
-        @self.route('/wizard/completed', methods=['POST'], auth_type=group.AuthType.USER_TOKEN)
-        async def _() -> str:
+        @self.route(
+            '/wizard/completed',
+            methods=['POST'],
+            auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.WORKSPACE_UPDATE,
+        )
+        async def _(request_context: RequestContext) -> str:
             """Mark wizard status in metadata table and clear progress.
 
             Accepts JSON body: { "status": "skipped" | "completed" }
@@ -80,28 +228,48 @@ class SystemRouterGroup(group.RouterGroup):
 
             try:
                 result = await self.ap.persistence_mgr.execute_async(
-                    sqlalchemy.select(Metadata).where(Metadata.key == 'wizard_status')
+                    sqlalchemy.select(WorkspaceMetadata).where(
+                        WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                        WorkspaceMetadata.key == 'wizard_status',
+                    )
                 )
                 if result.first():
                     await self.ap.persistence_mgr.execute_async(
-                        sqlalchemy.update(Metadata).where(Metadata.key == 'wizard_status').values(value=status)
+                        sqlalchemy.update(WorkspaceMetadata)
+                        .where(
+                            WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                            WorkspaceMetadata.key == 'wizard_status',
+                        )
+                        .values(value=status)
                     )
                 else:
                     await self.ap.persistence_mgr.execute_async(
-                        sqlalchemy.insert(Metadata).values(key='wizard_status', value=status)
+                        sqlalchemy.insert(WorkspaceMetadata).values(
+                            workspace_uuid=request_context.workspace_uuid,
+                            key='wizard_status',
+                            value=status,
+                        )
                     )
 
                 # Clear wizard progress when wizard is completed/skipped
                 await self.ap.persistence_mgr.execute_async(
-                    sqlalchemy.delete(Metadata).where(Metadata.key == 'wizard_progress')
+                    sqlalchemy.delete(WorkspaceMetadata).where(
+                        WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                        WorkspaceMetadata.key == 'wizard_progress',
+                    )
                 )
-            except Exception as e:
-                return self.http_status(500, 500, f'Failed to update wizard status: {e}')
+            except Exception:
+                raise
 
             return self.success(data={})
 
-        @self.route('/wizard/progress', methods=['PUT'], auth_type=group.AuthType.USER_TOKEN)
-        async def _() -> str:
+        @self.route(
+            '/wizard/progress',
+            methods=['PUT'],
+            auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.WORKSPACE_UPDATE,
+        )
+        async def _(request_context: RequestContext) -> str:
             """Save wizard progress to metadata table.
 
             Accepts JSON body with wizard state fields:
@@ -113,23 +281,54 @@ class SystemRouterGroup(group.RouterGroup):
 
             try:
                 result = await self.ap.persistence_mgr.execute_async(
-                    sqlalchemy.select(Metadata).where(Metadata.key == 'wizard_progress')
+                    sqlalchemy.select(WorkspaceMetadata).where(
+                        WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                        WorkspaceMetadata.key == 'wizard_progress',
+                    )
                 )
                 if result.first():
                     await self.ap.persistence_mgr.execute_async(
-                        sqlalchemy.update(Metadata).where(Metadata.key == 'wizard_progress').values(value=progress_json)
+                        sqlalchemy.update(WorkspaceMetadata)
+                        .where(
+                            WorkspaceMetadata.workspace_uuid == request_context.workspace_uuid,
+                            WorkspaceMetadata.key == 'wizard_progress',
+                        )
+                        .values(value=progress_json)
                     )
                 else:
                     await self.ap.persistence_mgr.execute_async(
-                        sqlalchemy.insert(Metadata).values(key='wizard_progress', value=progress_json)
+                        sqlalchemy.insert(WorkspaceMetadata).values(
+                            workspace_uuid=request_context.workspace_uuid,
+                            key='wizard_progress',
+                            value=progress_json,
+                        )
                     )
-            except Exception as e:
-                return self.http_status(500, 500, f'Failed to save wizard progress: {e}')
+            except Exception:
+                raise
 
             return self.success(data={})
 
-        @self.route('/tasks', methods=['GET'], auth_type=group.AuthType.USER_TOKEN)
-        async def _() -> str:
+        @self.route(
+            '/wizard/recommended-model',
+            methods=['GET'],
+            auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.RESOURCE_MANAGE,
+        )
+        async def _(request_context: RequestContext) -> str:
+            """Resolve Space's best available chat model to this Workspace."""
+            try:
+                model = await self.ap.space_service.get_recommended_chat_model(request_context)
+            except ValueError as exc:
+                return self.http_status(503, -1, str(exc))
+            return self.success(data=model)
+
+        @self.route(
+            '/tasks',
+            methods=['GET'],
+            auth_type=group.AuthType.USER_TOKEN_OR_API_KEY,
+            permission=Permission.RESOURCE_VIEW,
+        )
+        async def _(request_context: RequestContext) -> str:
             task_type = quart.request.args.get('type')
             task_kind = quart.request.args.get('kind')
 
@@ -138,29 +337,62 @@ class SystemRouterGroup(group.RouterGroup):
             if task_kind == '':
                 task_kind = None
 
-            return self.success(data=self.ap.task_mgr.get_tasks_dict(task_type, task_kind))
+            return self.success(
+                data=self.ap.task_mgr.get_tasks_dict(
+                    task_type,
+                    task_kind,
+                    instance_uuid=request_context.instance_uuid,
+                    workspace_uuid=request_context.workspace_uuid,
+                    placement_generation=request_context.placement_generation,
+                    public=request_context.principal.principal_type == PrincipalType.API_KEY,
+                )
+            )
 
-        @self.route('/tasks/<task_id>', methods=['GET'], auth_type=group.AuthType.USER_TOKEN)
-        async def _(task_id: str) -> str:
-            task = self.ap.task_mgr.get_task_by_id(int(task_id))
+        @self.route(
+            '/tasks/<task_id>',
+            methods=['GET'],
+            auth_type=group.AuthType.USER_TOKEN_OR_API_KEY,
+            permission=Permission.RESOURCE_VIEW,
+        )
+        async def _(task_id: str, request_context: RequestContext) -> str:
+            try:
+                task_index = int(task_id)
+            except (TypeError, ValueError):
+                return self.http_status(404, 404, 'Task not found')
+            task = self.ap.task_mgr.get_task_by_id(
+                task_index,
+                instance_uuid=request_context.instance_uuid,
+                workspace_uuid=request_context.workspace_uuid,
+                placement_generation=request_context.placement_generation,
+            )
 
             if task is None:
                 return self.http_status(404, 404, 'Task not found')
 
+            if request_context.principal.principal_type == PrincipalType.API_KEY:
+                return self.success(data=task.to_public_dict())
             return self.success(data=task.to_dict())
 
-        @self.route('/storage-analysis', methods=['GET'], auth_type=group.AuthType.USER_TOKEN)
-        async def _() -> str:
-            return self.success(data=await self.ap.maintenance_service.get_storage_analysis())
+        @self.route(
+            '/storage-analysis',
+            methods=['GET'],
+            auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.AUDIT_VIEW,
+        )
+        async def _(request_context: RequestContext) -> str:
+            return self.success(data=await self.ap.maintenance_service.get_storage_analysis(request_context))
 
         @self.route(
             '/debug/plugin/action',
             methods=['POST'],
             auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.RUNTIME_OPERATE,
         )
-        async def _() -> str:
+        async def _(request_context: RequestContext) -> str:
             if not constants.debug_mode:
                 return self.http_status(403, 403, 'Forbidden')
+
+            await self.ap.plugin_connector.require_workspace_context(request_context)
 
             data = await quart.request.json
 
@@ -174,6 +406,7 @@ class SystemRouterGroup(group.RouterGroup):
                 AnoymousAction(data['action']),
                 data['data'],
                 timeout=data.get('timeout', 10),
+                action_context=self.ap.plugin_connector.handler.require_bound_action_context().without_installation(),
             )
 
             return self.success(data=resp)
@@ -182,8 +415,10 @@ class SystemRouterGroup(group.RouterGroup):
             '/status/plugin-system',
             methods=['GET'],
             auth_type=group.AuthType.USER_TOKEN,
+            permission=Permission.RESOURCE_VIEW,
         )
-        async def _() -> str:
+        async def _(request_context: RequestContext) -> str:
+            await self.ap.plugin_connector.require_workspace_context(request_context)
             plugin_connector_error = 'ok'
             is_connected = True
 

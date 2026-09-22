@@ -158,6 +158,7 @@ In this repo:
 - `pkg/plugin/handler.py` exposes LangBot actions to the runtime and calls runtime actions for plugin operations.
 - `pkg/provider/tools/loaders/plugin.py` exposes plugin Tool components to LLM runners.
 - Pipeline handlers emit SDK events such as normal-message events and prompt-processing events.
+- [Certified plugin policy](docs/architecture/certified-plugins.md) defines Core's archive-fact, admission, and tenant-log-visibility boundary; the SDK remains responsible for certificate verification.
 
 In `langbot-plugin-sdk`:
 
@@ -177,6 +178,12 @@ In this repo:
 - `pkg/box/connector.py` connects to the Box Runtime over stdio, Windows subprocess+WebSocket, or remote WebSocket.
 - `pkg/provider/tools/loaders/native.py`, `mcp_stdio.py`, and skill loaders depend on Box availability.
 - `pkg/skill/manager.py` loads skills from the Box runtime, falling back to local `data/skills` when needed.
+
+Durable Box Workspace storage is shared across placement generations, but
+sandbox sessions and managed processes are generation-scoped. LangBot validates
+the current execution binding before an MCP stdio relay attach and sends the
+Workspace/generation binding in authenticated headers, so a placement cutover
+retires stale processes and closes already-attached relays.
 
 In `langbot-plugin-sdk`:
 
