@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import typing
@@ -29,6 +30,9 @@ class GsbAgentRunner(runner.RequestRunner):
         "conversation_id", "sender_id", "launcher_type", "launcher_id",
         "bot_uuid", "pipeline_uuid", "request_id", "extra",
     }
+
+    # 出站队列轮询任务（进程级单例：多个 runner 实例共享）
+    _outbox_poller_task: typing.Any = None
 
     def __init__(self, ap: app.Application, pipeline_config: dict):
         self.ap = ap
@@ -72,6 +76,160 @@ class GsbAgentRunner(runner.RequestRunner):
             resp.raise_for_status()
             data = await resp.json()
             return data.get('data', data)
+
+    # ------------------------------------------------------------------
+    # 人工接管：暂停预检 + 人工回复出站投递（覆盖 wecom / wecombot / wecomcs）
+    # ------------------------------------------------------------------
+
+    def _build_im_route(self, query, wecom_vars: dict) -> dict:
+        """按平台计算人工回复的投递目标（随会话 state 持久化，后端不感知平台差异）。
+
+        - wecomcs（企微客服）：person → external_userid
+        - wecom（标准企微）：person → '{FromUserName}|{AgentID}'（适配器 send_message 约定）
+        - wecombot（智能机器人）：person → userid / group → chatid
+        - 钉钉/飞书及其他通用渠道：适配器 send_message 的目标即会话 launcher
+          （钉钉 person=staff_id/group=conversation_id；飞书 person=open_id/group=chat_id），
+          直接以 launcher_type/launcher_id 作为投递目标
+        仅支持单聊的端（wecom/wecomcs）群聊不路由（仅监控，不可人工回复）。
+        """
+        try:
+            if not query.bot_uuid:
+                return {}
+            launcher_type = ''
+            launcher_id = ''
+            if query.session is not None and query.session.launcher_type is not None:
+                launcher_type = str(query.session.launcher_type.value)
+                launcher_id = str(query.session.launcher_id or '')
+            platform = str(wecom_vars.get('platform', '') or '')
+            route = {'bot_uuid': str(query.bot_uuid or ''), 'platform': platform}
+            if platform == 'wecomcs':
+                if launcher_type == 'person':
+                    route['target_type'] = 'person'
+                    route['target_id'] = str(wecom_vars.get('userid', '') or '')
+            elif platform == 'wecom':
+                userid = str(wecom_vars.get('userid', '') or '')
+                agent_id = str(wecom_vars.get('agent_id', '') or '')
+                if launcher_type == 'person' and userid and agent_id:
+                    route['target_type'] = 'person'
+                    route['target_id'] = f'{userid}|{agent_id}'
+            elif platform == 'wecombot':
+                if launcher_type == 'person':
+                    route['target_type'] = 'person'
+                    route['target_id'] = str(wecom_vars.get('userid', '') or '')
+                elif launcher_type == 'group':
+                    route['target_type'] = 'group'
+                    route['target_id'] = str(wecom_vars.get('chatid', '') or '')
+            else:
+                # 钉钉/飞书等通用渠道：send_message 目标即会话 launcher
+                if launcher_type in ('person', 'group') and launcher_id:
+                    route['target_type'] = launcher_type
+                    route['target_id'] = launcher_id
+            return route if route.get('target_id') else {}
+        except Exception:
+            return {}
+
+    async def _fetch_manual_state(self, agent_id: str, payload: dict) -> dict:
+        """查询会话人工接管状态（暂停时不发占位符、不执行 Agent）。
+
+        网络异常一律按未暂停处理，不影响正常对话。
+        """
+        params = payload.get('params') or {}
+        query_string = (
+            f"?agent_id={agent_id}"
+            f"&sender_id={params.get('sender_id', '')}"
+            f"&conversation_id={params.get('conversation_id') or ''}"
+        )
+        try:
+            session = httpclient.get_session()
+            async with session.get(
+                f'{self.base_url}/api/im/state{query_string}',
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                resp.raise_for_status()
+                data = (await resp.json()).get('data') or {}
+                return {'paused': bool(data.get('paused'))}
+        except Exception:
+            return {'paused': False}
+
+    async def _pull_outbox(self, conversation_id: str = '', limit: int = 10) -> list:
+        """认领出站队列中的人工回复（lease 防多实例重复投递）。失败返回空列表。"""
+        try:
+            session = httpclient.get_session()
+            async with session.post(
+                f'{self.base_url}/api/im/outbox/pull',
+                headers=self._get_headers(),
+                json={'conversation_id': conversation_id or None, 'limit': limit},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                resp.raise_for_status()
+                return ((await resp.json()).get('data') or {}).get('items') or []
+        except Exception as e:
+            self.ap.logger.warning(f'GsbAgent: outbox pull failed: {e}')
+            return []
+
+    async def _ack_outbox(self, item_id, status: str, error: str = '') -> None:
+        """回报出站投递结果：sent（回写已送达）/ failed / release（回队列）。"""
+        try:
+            session = httpclient.get_session()
+            async with session.post(
+                f'{self.base_url}/api/im/outbox/ack',
+                headers=self._get_headers(),
+                json={'id': item_id, 'status': status, 'error': error},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                resp.raise_for_status()
+        except Exception as e:
+            self.ap.logger.warning(f'GsbAgent: outbox ack failed: {e}')
+
+    async def _deliver_outbox_item(self, item: dict) -> str:
+        """投递一条人工消息到平台适配器。返回 'sent' | 'release' | 'failed'。"""
+        bot_uuid = str(item.get('bot_uuid') or '')
+        target_type = str(item.get('target_type') or '')
+        target_id = str(item.get('target_id') or '')
+        content = str(item.get('content') or '')
+        if not (bot_uuid and target_type and target_id and content):
+            return 'failed'
+        try:
+            bot = await self.ap.platform_mgr.get_bot_by_uuid(bot_uuid)
+        except Exception:
+            bot = None
+        if bot is None:
+            return 'release'  # 本实例未承载该 bot，留给其他实例投递
+        try:
+            from langbot_plugin.api.entities.builtin.platform import message as platform_message
+            chain = platform_message.MessageChain.model_validate([{'type': 'text', 'text': content}])
+            await bot.adapter.send_message(target_type, target_id, chain)
+            return 'sent'
+        except Exception as e:
+            self.ap.logger.warning(f'GsbAgent: outbox deliver failed: {e}')
+            return 'failed'
+
+    def _ensure_outbox_poller(self):
+        """启动出站队列轮询任务（进程级单例；未配置 api_key 时本地调试不启动）。"""
+        if GsbAgentRunner._outbox_poller_task is not None or not self.api_key:
+            return
+
+        async def _loop():
+            while True:
+                try:
+                    items = await self._pull_outbox(limit=10)
+                    for item in items:
+                        status = await self._deliver_outbox_item(item)
+                        if status == 'release':
+                            await self._ack_outbox(item.get('id'), 'release')
+                        elif status == 'failed':
+                            await self._ack_outbox(item.get('id'), 'failed', 'deliver failed')
+                        else:
+                            await self._ack_outbox(item.get('id'), 'sent')
+                except asyncio.CancelledError:
+                    return
+                except Exception as e:
+                    self.ap.logger.warning(f'GsbAgent: outbox poll error: {e}')
+                await asyncio.sleep(3)
+
+        GsbAgentRunner._outbox_poller_task = asyncio.ensure_future(_loop())
+        self.ap.logger.info('GsbAgent: outbox poller started (manual takeover delivery)')
 
     async def _get_encoding_aes_key(self, query: pipeline_query.Query) -> str:
         """从 LangBot bot 配置获取 EncodingAESKey（用于企微文件解密）。
@@ -267,6 +425,11 @@ class GsbAgentRunner(runner.RequestRunner):
             content = self._format_result(result)
             yield provider_message.Message(role='assistant', content=content)
 
+        # 链接块降级：阻塞响应的 links 以文本列表追加
+        links_text = self._format_links_text(result.get('links') or [])
+        if links_text:
+            yield provider_message.Message(role='assistant', content=links_text)
+
         # Update conversation ID for multi-turn tracking
         conv_id = result.get('conversation_id')
         if conv_id and not query.session.using_conversation.uuid:
@@ -283,12 +446,14 @@ class GsbAgentRunner(runner.RequestRunner):
           agent_tool_call -> tool_calls list
           agent_file (image) -> image content element
           agent_file (other) -> file link text
+          agent_links    -> cached, appended as text list before final sentinel
           agent_end      -> is_final=True sentinel
           agent_error    -> error text with is_final=True
         """
         stream_timeout = aiohttp.ClientTimeout(total=self.timeout, sock_read=600.0)
         msg_seq = 0
         first_message = True
+        pending_links = []
 
         session = httpclient.get_session()
         async with session.post(
@@ -387,9 +552,19 @@ class GsbAgentRunner(runner.RequestRunner):
                                 is_final=False,
                             )
 
+                    elif event_type == 'agent_links':
+                        # 链接块：先缓存，agent_end 哨兵前以文本列表追加（IM 侧无卡片渲染）
+                        pending_links = event.get('links') or []
+
                     elif event_type == 'agent_end':
                         if event.get('conversation_id') and not query.session.using_conversation.uuid:
                             query.session.using_conversation.uuid = event['conversation_id']
+                        links_text = self._format_links_text(pending_links)
+                        if links_text:
+                            msg_seq += 1
+                            yield provider_message.MessageChunk(
+                                role='assistant', content=f'\n{links_text}', is_final=False
+                            )
                         # is_final=True chunk serves as the end sentinel; content is empty
                         yield provider_message.MessageChunk(
                             role='assistant', content='', is_final=True
@@ -403,6 +578,28 @@ class GsbAgentRunner(runner.RequestRunner):
                             content=f'❌ {event.get("message", "Unknown error")}',
                             is_final=True,
                         )
+
+    @staticmethod
+    def _format_links_text(links: list) -> str:
+        """将链接块降级为纯文本列表（IM 侧无卡片渲染能力），无链接返回空串。"""
+        if not links:
+            return ''
+        lines = ['\U0001f517 相关链接：']
+        for i, lk in enumerate(links, 1):
+            if not isinstance(lk, dict):
+                continue
+            title = str(lk.get('title') or '').strip()
+            url = str(lk.get('url') or '').strip()
+            desc = str(lk.get('description') or '').strip()
+            if title:
+                head = f'{i}. {title}｜{desc[:60]}' if desc else f'{i}. {title}'
+            else:
+                head = f'{i}. {desc[:60]}' if desc else f'{i}. {url}'
+            lines.append(head)
+            # head 未包含 url 时补一行地址（无 title 时 url 已在 head 里，避免重复）
+            if url and url not in head:
+                lines.append(f'   {url}')
+        return '\n'.join(lines)
 
     def _format_result(self, result: dict) -> str:
         """Format a blocking-mode result dict into a text string."""
@@ -695,9 +892,44 @@ class GsbAgentRunner(runner.RequestRunner):
         if extra_vars:
             payload['params']['extra'] = extra_vars
 
+        # 人工接管投递路由：按平台算好目标随会话持久化（人工回复经出站队列回投）
+        im_route = self._build_im_route(query, wecom_vars)
+        if im_route:
+            payload['params']['im_route'] = im_route
+
         headers = {**self._get_headers(), "X-Request-Id": request_id}
 
         msg_seq = 0
+        # 人工接管预检：会话被暂停时不发占位符、不执行 Agent；
+        # 排队中的人工回复借本条消息的回复周期顺手投递（passive reply）
+        self._ensure_outbox_poller()
+        try:
+            manual_state = await self._fetch_manual_state(agent_id, payload)
+        except Exception:
+            manual_state = {'paused': False}
+        if manual_state.get('paused'):
+            queued = await self._pull_outbox(
+                conversation_id=str(payload['params'].get('conversation_id') or ''), limit=10)
+            delivered_texts = []
+            for item in queued:
+                status = await self._deliver_outbox_item(item)
+                if status == 'release':
+                    await self._ack_outbox(item.get('id'), 'release')
+                elif status == 'failed':
+                    await self._ack_outbox(item.get('id'), 'failed', 'deliver failed')
+                else:
+                    await self._ack_outbox(item.get('id'), 'sent')
+                    delivered_texts.append(str(item.get('content') or ''))
+            if is_stream:
+                for text in delivered_texts:
+                    msg_seq += 1
+                    yield provider_message.MessageChunk(
+                        role='assistant', content=text, is_final=False)
+                yield provider_message.MessageChunk(role='assistant', content='', is_final=True)
+            else:
+                for text in delivered_texts:
+                    yield provider_message.Message(role='assistant', content=text)
+            return
         if is_stream:
             # 解析流式占位提示词: Agent 级 > 全局默认 > 硬编码回退
             stream_placeholder = '信息已收到，分析中...'
