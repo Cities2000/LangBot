@@ -25,7 +25,15 @@ elif [ $# -gt 0 ]; then
   exit 1
 fi
 
-REVISION="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+# stamp_build_revision.py requires the FULL 40-char SHA; keep a short one
+# only for display. If git is unavailable, omit the build-arg entirely so
+# the Dockerfile skips stamping instead of failing its format check.
+SHORT_REVISION="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+REVISION_ARGS=()
+FULL_REVISION="$(git rev-parse HEAD 2>/dev/null || true)"
+if [ -n "$FULL_REVISION" ]; then
+  REVISION_ARGS+=(--build-arg "LANGBOT_BUILD_REVISION=${FULL_REVISION}")
+fi
 
 # 1. Tag the current image as the rollback target (skipped on first build).
 if docker image inspect "$IMAGE" >/dev/null 2>&1; then
@@ -35,9 +43,9 @@ fi
 # 2. Build the new image; running containers are not touched.
 # ${ARR[@]+...} guards the empty-array expansion: plain "${ARR[@]}" under
 # set -u fails on bash < 4.4 (e.g. CentOS 7) when no flags were given.
-echo "==> building ${IMAGE} (revision ${REVISION})"
+echo "==> building ${IMAGE} (revision ${SHORT_REVISION})"
 docker build ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} \
-  --build-arg "LANGBOT_BUILD_REVISION=${REVISION}" \
+  ${REVISION_ARGS[@]+"${REVISION_ARGS[@]}"} \
   -t "$IMAGE" .
 
 # 3. Recreate compose services whose image changed (langbot, langbot_plugin_runtime).
@@ -54,5 +62,5 @@ echo "==> recreating compose services"
 #    image is tagged, so it is never pruned here.
 docker image prune -f >/dev/null
 
-echo "==> release done (revision ${REVISION})"
+echo "==> release done (revision ${SHORT_REVISION})"
 echo "    rollback: docker tag ${PREVIOUS} ${IMAGE} && (cd docker && docker compose up -d)"
