@@ -521,11 +521,32 @@ class AgentRunOrchestrator:
                         exc_info=True,
                     )
 
+    async def _probe_adapter_stream_capability(self, query: pipeline_query.Query) -> None:
+        """Record the entry adapter's real chunk-streaming capability on the query.
+
+        DeliveryContext is built synchronously, but is_stream_output_supported is
+        async (adapters gate it on per-instance config), so the awaited result is
+        stashed in a private variable for query_entry_adapter._build_delivery_context
+        to read. Adapters without chunk support (openclaw-weixin, wechatpad, wecom,
+        wecomcs, ...) then receive a complete message instead of deltas whose only
+        consumer is the final chunk.
+        """
+        variables = getattr(query, 'variables', None)
+        if not isinstance(variables, dict):
+            return
+        try:
+            variables['_adapter_stream_output_supported'] = bool(
+                await query.adapter.is_stream_output_supported()
+            )
+        except Exception:
+            variables['_adapter_stream_output_supported'] = False
+
     async def run_from_query(
         self,
         query: pipeline_query.Query,
     ) -> typing.AsyncGenerator[provider_message.Message | provider_message.MessageChunk, None]:
         """Run an Runner from the current Pipeline Query entry point."""
+        await self._probe_adapter_stream_capability(query)
         plan = self.query_bridge.build_plan(query)
         adapter_context = dict(plan.adapter_context)
         adapter_context['_query'] = query
@@ -555,6 +576,7 @@ class AgentRunOrchestrator:
         query: pipeline_query.Query,
     ) -> bool:
         """Claim a query as steering input for an active run when possible."""
+        await self._probe_adapter_stream_capability(query)
         plan = self.query_bridge.build_plan(query)
         event = plan.event
         binding = plan.binding

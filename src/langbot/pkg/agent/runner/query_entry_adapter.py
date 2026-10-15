@@ -652,7 +652,14 @@ class QueryEntryAdapter:
                 'target_id': target_id,
                 'message_id': getattr(message_chain, 'message_id', None),
             },
-            'supports_streaming': True,
+            # Populated by an async caller (orchestrator probes the adapter's
+            # real is_stream_output_supported before building the plan).
+            # Adapters without chunk-reply support (openclaw-weixin, wechatpad,
+            # wecom, wecomcs, ...) must NOT see message.delta results: their
+            # downstream reply path consumes only the final chunk.
+            'supports_streaming': bool(
+                (getattr(query, 'variables', None) or {}).get('_adapter_stream_output_supported', False)
+            ),
             'supports_edit': 'edit_message' in supported_apis,
             'supports_reaction': bool({'add_reaction', 'remove_reaction'} & set(supported_apis)),
             'platform_capabilities': {
