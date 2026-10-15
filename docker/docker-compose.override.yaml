@@ -1,0 +1,22 @@
+# Release overrides for the custom LangBot image.
+#
+# `docker compose up -d` merges this file with docker-compose.yaml
+# automatically (no -f needed). Keep docker/docker-compose.yaml identical to
+# upstream master so merges never conflict; every release-specific tweak
+# (custom image tag, pip mirror for plugin dependencies) lives here.
+#
+# Rollback target image after ./build.sh: langbot-custom:previous
+services:
+
+  langbot_plugin_runtime:
+    image: langbot-custom
+    environment:
+      # pip index used when installing plugin requirements.txt. Defaults to
+      # the Tsinghua mirror because pypi.org is often unreachable from
+      # container networks in China; override via .env.
+      - LANGBOT_PLUGIN_PYPI_INDEX_URL=${LANGBOT_PLUGIN_PYPI_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+      # Needed only for plain-HTTP internal mirrors:
+      # - LANGBOT_PLUGIN_PYPI_TRUSTED_HOST=${LANGBOT_PLUGIN_PYPI_TRUSTED_HOST:-}
+
+  langbot:
+    image: langbot-custom

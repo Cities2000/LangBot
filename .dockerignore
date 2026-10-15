@@ -12,3 +12,14 @@ __pycache__
 web/.next
 web/node_modules
 web/.env
+# local agent tooling and deploy artifacts must never enter the image
+.wolf
+.omc
+.claude
+.zcode
+.data
+data
+docker/data
+.env
+*.lbpkg
+*.zip
