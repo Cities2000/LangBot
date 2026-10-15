@@ -107,7 +107,7 @@ class WecomEventConverter(abstract_platform_adapter.AbstractEventConverter):
         if event.type == 'text':
             yiri_chain = await WecomMessageConverter.target2yiri(event.message, event.message_id)
             friend = platform_entities.Friend(
-                id=f'u{event.user_id}',
+                id=f'{event.receiver_id}|u{event.user_id}',
                 nickname=nickname,
                 remark='',
             )
@@ -117,7 +117,7 @@ class WecomEventConverter(abstract_platform_adapter.AbstractEventConverter):
             )
         elif event.type == 'image':
             friend = platform_entities.Friend(
-                id=f'u{event.user_id}',
+                id=f'{event.receiver_id}|u{event.user_id}',
                 nickname=nickname,
                 remark='',
             )
@@ -197,13 +197,20 @@ class WecomCSAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
 
         content_list = await WecomMessageConverter.yiri2target(message, self.bot)
         for content in content_list:
-            msgid = f'langbot_{uuid.uuid4().hex}'
+            msgid = f'{uuid.uuid4().hex}'
             if content['type'] == 'text':
                 await self.bot.send_text_msg(
                     open_kfid=open_kfid,
                     external_userid=external_userid,
                     msgid=msgid,
                     content=content['content'],
+                )
+            elif content['type'] == 'image':
+                await self.bot.send_image_msg(
+                    open_kfid=open_kfid,
+                    external_userid=external_userid,
+                    msgid=msgid,
+                    media_id=content['media_id'],
                 )
 
     def set_bot_uuid(self, bot_uuid: str):
@@ -254,6 +261,8 @@ class WecomCSAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         await keep_alive()
 
     async def kill(self) -> bool:
+        self.bot.clear()
+        await self.bot.close()
         return False
 
     async def is_muted(self, group_id: int) -> bool:

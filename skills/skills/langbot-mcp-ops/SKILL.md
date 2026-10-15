@@ -1,6 +1,6 @@
 ---
 name: langbot-mcp-ops
-description: Operate a LangBot instance through its built-in MCP (Model Context Protocol) server. Use when an AI agent needs to manage LangBot — list/create/update/delete bots, pipelines, models, knowledge bases, MCP servers, and skills — over MCP instead of raw HTTP. Covers the /mcp endpoint, API-key auth (web-UI lbk_ keys and the config.yaml global key), the tool surface, and client configuration. Triggers on "langbot mcp", "manage langbot via mcp", "langbot /mcp", "langbot mcp server".
+description: Operate a LangBot instance through its built-in MCP (Model Context Protocol) server. Use when an AI agent needs to manage LangBot — list/create/update/delete bots, agents, pipelines, models, knowledge bases, MCP servers, and skills — over MCP instead of raw HTTP. Covers the /mcp endpoint, API-key auth (web-UI lbk_ keys and the config.yaml global key), the tool surface, and client configuration. Triggers on "langbot mcp", "manage langbot via mcp", "langbot /mcp", "langbot mcp server".
 ---
 
 # LangBot MCP Operations
@@ -29,13 +29,21 @@ Authorization: Bearer <api-key>
 
 Two kinds of key are accepted:
 
-1. **Web-UI key** — created in the web UI (sidebar → API Keys), prefixed `lbk_`,
-   stored in the database.
+1. **Web-UI key** — created in the web UI (sidebar → API Keys), prefixed `lbk_`.
+   The secret is shown once; only its SHA-256 hash is stored. Each key is bound
+   to one Workspace and has explicit scopes, status, optional expiry, and
+   last-used metadata. The key determines the Workspace; callers cannot switch
+   it with `X-Workspace-Id`.
 2. **Global API key** — set in `data/config.yaml` under `api.global_api_key`.
    Requires no login session and no DB record; does not need the `lbk_` prefix.
-   Leave empty to disable. See the `langbot-deploy` skill for config details.
+   It is accepted only by a community instance with exactly one local
+   Workspace and is disabled for SaaS multi-Workspace operation. Leave empty to
+   disable. See the `langbot-deploy` skill for config details.
 
-Requests without a valid key get `401 Unauthorized`.
+Invalid, revoked, or expired keys get `401 Unauthorized`. A valid key whose
+scopes do not authorize a tool gets `403 Forbidden`.
+
+To inspect key identity and permissions, call `GET /api/v1/system/context` with the API key.
 
 ## Client configuration
 
@@ -52,21 +60,48 @@ Requests without a valid key get `401 Unauthorized`.
 
 ## Tool surface
 
+Slack quick setup: create a disabled `slack-omni` bot draft first, then use
+`start_slack_setup` with the user's App Configuration access/refresh tokens.
+Choose `socket_mode=true` with a browser-reachable OAuth `redirect_url`, or
+provide the public HTTPS `webhook_url` ending in `/bots/<bot_uuid>`.
+Poll `get_slack_setup_status` for the Slack installation authorization URL;
+the user must authorize installation. On success, apply the returned `config`
+using the normal bot update flow. Socket Mode also requires a separately
+generated `app_token` (`xapp-`, scope `connections:write`). Never log tokens.
+`cancel_slack_setup` removes the temporary session without deleting the Slack
+application. Sessions expire after 15 minutes and are bound to the initiating
+Workspace, principal, and placement generation. Restarting a failed setup can
+create another Slack application; inspect the returned `app_id` first.
+
 The tools wrap the LangBot service layer. Current tools (v1):
 
 | Tool | Purpose |
 | --- | --- |
 | `get_system_info` | Version, edition, instance id |
 | `list_bots` / `get_bot` / `create_bot` / `update_bot` / `delete_bot` | Manage messaging-platform bots (secrets redacted on read) |
+| `list_bot_event_route_statuses` | Inspect bot event-route runtime status |
+| `list_processors` / `get_processor` / `create_processor` / `update_processor` / `delete_processor` | Manage the peer Agent, Pipeline and Event processor types |
+| `get_processor_metadata` | Discover installed event-capable Runner components, schemas and supported event patterns. |
+| `list_processor_runs` / `get_processor_run_events` | Read one Agent or plugin processor run history and logs; paginate with `before_id` / `after_sequence`. |
+| `debug_agent` | Execute a synthetic Agent event (`processor_uuid`, `payload`); requires `runtime.operate`. Returns final text and up to 1000 execution events (thinking, text, tool arguments/results). Platform tools use Mock; other configured tools execute normally. Optional `payload.mock`: `errors`/`results` keyed by platform tool name, `unsupported_apis` lists unavailable platform APIs. |
 | `list_pipelines` / `get_pipeline` / `create_pipeline` / `update_pipeline` / `delete_pipeline` | Manage pipelines |
 | `list_llm_models` / `get_llm_model` / `list_embedding_models` / `list_model_providers` | Inspect models & providers |
 | `list_knowledge_bases` / `get_knowledge_base` / `retrieve_knowledge_base` | RAG knowledge bases (incl. semantic search) |
 | `list_mcp_servers` | External MCP servers LangBot connects to (as a client) |
 | `list_skills` / `get_skill` | Installed skills |
+| `list_knowledge_engines` / `get_knowledge_engine_schema` / `list_knowledge_parsers` | Discover RAG configuration |
+| `get_pipeline_extensions` / `update_pipeline_extensions` | Read or completely replace extension bindings; all lists and switches required |
+| `run_pipeline` | One fresh-session turn; requires `runtime.operate`, executes configured models/tools, never auto-retry an unknown outcome |
+| `get_monitoring_records` / `get_monitoring_details` | Bounded Workspace records and existing message/session details |
+| `get_sandbox_diagnostics` | Read status (`resource.view`), sessions/errors (`audit.view`); managed sandbox admission still applies |
 
 Mutating tools (`create_*`, `update_*`) take a JSON object matching the same
 shape as the corresponding HTTP API request body. Discover resources with the
-`list_*` / `get_*` tools before mutating; identifiers are UUIDs.
+`list_*` / `get_*` tools before mutating; identifiers are UUIDs. Reads require
+`resource.view`; mutations require `resource.manage`. All service calls inherit
+the immutable Workspace context authenticated at the MCP transport boundary.
+Pass `is_default: true` to `create_pipeline` only when the Workspace does not
+already have a default pipeline.
 
 ## How to use
 
@@ -75,6 +110,38 @@ shape as the corresponding HTTP API request body. Discover resources with the
 3. Call `get_system_info` to confirm connectivity.
 4. Use `list_*` tools to discover, then `get_*` / `create_*` / `update_*` /
    `delete_*` as needed.
+
+## ChatGPT / Codex subscription providers
+
+`list_model_providers` can return the `openai-codex` requester. Its OAuth
+credentials are server-only and are not provider API keys. Never ask a user
+to paste ChatGPT access tokens, refresh tokens, or a Codex auth cache into an
+MCP tool or model configuration.
+
+A human connects or disconnects the subscription through **Models → provider
+settings** in the LangBot web UI. The provider-scoped `/codex/*` authentication
+routes deliberately require a browser-user session and are not exposed as MCP
+tools or authorized by a LangBot API key. Once connected, models are managed
+and selected through the normal provider/model workflow. A disconnected
+provider must be reauthorized; do not silently replace it with API-key billing.
+
+See [ChatGPT / Codex subscription](../../../docs/CODEX_SUBSCRIPTION.md) for setup,
+usage limits, and the personal-account versus shared-service boundary.
+
+## Provider deletion
+
+The curated MCP surface currently lists providers but has no provider-deletion
+tool. In the web UI, **Edit Provider → Delete** asks for confirmation before
+removing that provider and all its LLM, embedding, and rerank models. This is
+irreversible; never interpret a request to edit a provider as authorization to
+delete it.
+
+The equivalent HTTP operation is
+`DELETE /api/v1/provider/providers/{uuid}?cascade=true`, requiring
+`resource.manage` in the authenticated Workspace. Omitting `cascade` preserves
+the existing refusal to delete providers that still have models. Cloud-managed
+providers remain protected. Cascade deletion removes stored Codex authorization
+state as well; it is not the same operation as disconnecting an account.
 
 ## Implementation & maintenance (for LangBot developers)
 
@@ -93,7 +160,69 @@ shape as the corresponding HTTP API request body. Discover resources with the
 - `/mcp` is the **server** LangBot exposes. The `/api/v1/mcp` routes are the
   **client** side (managing external MCP servers LangBot connects to). Don't
   confuse them.
-- A `401` means the key is wrong, missing, or (for the global key)
-  `api.global_api_key` is empty in config.yaml.
+- A `401` means the key is wrong, missing, revoked, expired, or (for the global
+  key) `api.global_api_key` is empty or the instance is not an OSS singleton.
+- A `403` means the key is valid but lacks the permission required by the tool.
 - The global key is plaintext in config.yaml — only enable it on trusted/internal
   deployments and serve over HTTPS.
+
+## Event processors
+
+Create a processor with `kind: "event_processor"` and basic information. Without
+a component it supports no events. Discover installed components with
+`get_processor_metadata`, then use `update_processor` with `component_ref` and
+optional `parameters`. API callers may also supply these when creating an instance.
+Bind an instance by updating the bot's `plugin_processors` array with
+`{"processor_uuid": "<instance UUID>", "enabled": true}`. This replaces the full
+subscription list; preserve bindings you want to keep. Do not add plugin processors
+to `event_bindings`, which remains exclusive Agent/Pipeline routing.
+Each enabled subscription independently receives the installed Runner's declared
+events. Slow or failed subscribers do not prevent other subscribers or the primary
+route from executing. Installation alone never activates a handler. Reusing an
+instance shares its configuration and runtime state. Use a separate instance for
+independent settings. Optional plugin behavior belongs in the Runner config schema.
+`debug_agent` accepts the complete typed event in `payload.data` for this kind.
+Legacy EventListener plugins remain in the Pipeline lifecycle.
+
+`list_processor_runs` includes `created_at_ms`, `started_at_ms`, and
+`finished_at_ms`: Host lifecycle times in epoch milliseconds. Use the start and finish times for elapsed processing time; select a run and call `get_processor_run_events` for its
+logs and action results. These times are not internal plugin profiling data.
+
+## Unified execution monitoring
+
+Use `get_inflight_executions` for a bounded current-workspace snapshot of active
+and recently started executions, including `progress_event`. Progress is a
+reported stage, not an estimated completion percentage. The UI uses the shared
+`GET /api/v1/monitoring/in-flight/stream` SSE feed instead of polling per viewer.
+
+Use `get_monitoring_executions` for the execution list and
+its legacy `pipeline_ids` parameter to filter any processor kind (Agent,
+Pipeline or event processor); the summary uses the same processor scope. Use
+`get_monitoring_execution_detail` with `source=auto` to resolve a run,
+message or event identifier outside the current list page. The detail exposes
+`inputs`, `outputs` (generated content), `deliveries` (recorded platform sends),
+`events`, `llm_calls`, `tool_calls`, `errors`, `related`, and `conversation` in
+`pages`. Follow each section's `has_more` and `next_offset` independently.
+Conversation history supplies context; historical messages without explicit
+links must not be asserted to belong to the selected execution. Events without
+a processor run use `source=event`. All lookups remain Workspace-scoped.
+
+Monitoring record filters accept `mode` (`all`, `real`, `debug`) and
+`execution_statuses` (normalized execution statuses). These select the owning
+execution, not the individual model/tool call outcome. Calls without a recorded
+execution link are excluded when an execution filter is active.
+
+### Workspace default LLM model
+
+`get_starred_model` reads the Workspace-wide favorite. `set_starred_model`
+requires `provider_secret.manage` and replaces the single starred model; pass
+`null` to clear it. The model must belong to the current Workspace.
+`get_default_model` resolves the favorite first, then the Space wizard chat
+recommendation only when LangBot Models is enabled and the Workspace owner is
+bound to a LangBot Account. It returns a nullable `uuid`.
+New processor LLM selector defaults use this preference; existing configurations
+are not rewritten. Embedding and rerank models are not eligible.
+
+### Reset a bot session context
+
+Use `reset_session_context(bot_id, session_id)` only when a user asks to start a session afresh. It requires `resource.manage`, preserves monitoring records, and refuses sessions with active tasks. It clears conversation runner state and excludes earlier transcript entries from subsequent model context. Files and long-term memory are not removed.

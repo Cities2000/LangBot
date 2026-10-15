@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import base64
 import json
@@ -7,16 +9,21 @@ import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 import re
-from typing import Any, Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 from urllib.parse import unquote
 
-import httpx
 from Crypto.Cipher import AES
 from quart import Quart, request, Response, jsonify
 
 from langbot.libs.wecom_ai_bot_api import wecombotevent
 from langbot.libs.wecom_ai_bot_api.WXBizMsgCrypt3 import WXBizMsgCrypt
-from langbot.pkg.platform.logger import EventLogger
+
+if TYPE_CHECKING:
+    from langbot.pkg.platform.logger import EventLogger
+from langbot.pkg.utils import httpclient
+
+_CLIENT_TRANSIENT_CACHE_MAX = 4096
+_MAX_STREAM_CONTENT_CHARS = 200000
 
 
 @dataclass
@@ -56,7 +63,7 @@ class StreamSession:
     last_access: float = field(default_factory=time.time)
 
     # 将流水线增量结果缓存到队列，刷新请求逐条消费
-    queue: asyncio.Queue = field(default_factory=asyncio.Queue)
+    queue: asyncio.Queue = field(default_factory=lambda: asyncio.Queue(maxsize=1))
 
     # 是否已经完成（收到最终片段）
     finished: bool = False
@@ -85,6 +92,7 @@ class StreamSessionManager:
     # full like → cancel → dislike feedback flow. Must align with the adapter's
     # _stream_to_monitoring_msg TTL (wecombot.py).
     _FEEDBACK_SESSION_TTL = 600  # 10 minutes
+    _MAX_SESSIONS = 4096
 
     def __init__(self, logger: EventLogger, ttl: int = 60) -> None:
         self.logger = logger
@@ -165,6 +173,26 @@ class StreamSessionManager:
         if task_id:
             self._task_index.pop(task_id, None)
 
+    def clear(self) -> None:
+        """Release every retained stream and reverse index."""
+
+        self._sessions.clear()
+        self._msg_index.clear()
+        self._feedback_index.clear()
+        self._task_index.clear()
+
+    def _drop_session(self, stream_id: str) -> StreamSession | None:
+        session = self._sessions.pop(stream_id, None)
+        if session is None:
+            return None
+        if session.msg_id and self._msg_index.get(session.msg_id) == stream_id:
+            self._msg_index.pop(session.msg_id, None)
+        if session.feedback_id:
+            self._feedback_index.pop(session.feedback_id, None)
+        if session.pending_form_task_id:
+            self._task_index.pop(session.pending_form_task_id, None)
+        return session
+
     def create_or_get(self, msg_json: dict[str, Any]) -> tuple[StreamSession, bool]:
         """根据企业微信回调创建或获取会话。
 
@@ -184,6 +212,14 @@ class StreamSessionManager:
             if session:
                 session.last_access = time.time()
                 return session, False
+
+        self.cleanup()
+        while len(self._sessions) >= self._MAX_SESSIONS:
+            oldest_stream_id = min(
+                self._sessions,
+                key=lambda candidate: self._sessions[candidate].last_access,
+            )
+            self._drop_session(oldest_stream_id)
 
         stream_id = str(uuid.uuid4())
         session = StreamSession(
@@ -221,8 +257,13 @@ class StreamSessionManager:
         try:
             session.queue.put_nowait(chunk)
         except asyncio.QueueFull:
-            # 默认无界队列，此处兜底防御
-            await session.queue.put(chunk)
+            # Each chunk is a complete snapshot. Coalesce a slow consumer to
+            # the newest value instead of retaining every intermediate body.
+            try:
+                session.queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+            session.queue.put_nowait(chunk)
 
         if chunk.is_final:
             session.finished = True
@@ -265,7 +306,7 @@ class StreamSessionManager:
             session.finished = True
             session.last_access = time.time()
 
-    def cleanup(self) -> None:
+    def cleanup(self) -> list[str]:
         """定期清理过期会话，防止队列与映射无上限累积。
 
         已注册 feedback_id 的会话使用更长的 TTL，确保用户在点赞/取消/点踩流程中
@@ -279,16 +320,14 @@ class StreamSessionManager:
             if now - session.last_access > effective_ttl:
                 expired.append(stream_id)
 
+        removed_msg_ids: list[str] = []
         for stream_id in expired:
-            session = self._sessions.pop(stream_id, None)
+            session = self._drop_session(stream_id)
             if not session:
                 continue
-            msg_id = session.msg_id
-            if msg_id and self._msg_index.get(msg_id) == stream_id:
-                self._msg_index.pop(msg_id, None)
-            # Clean up feedback index for expired sessions
-            if session.feedback_id:
-                self._feedback_index.pop(session.feedback_id, None)
+            if session.msg_id:
+                removed_msg_ids.append(session.msg_id)
+        return removed_msg_ids
 
 
 def _decrypt_file(encrypted_data: bytes, aes_key_str: str) -> bytes:
@@ -405,19 +444,19 @@ async def download_encrypted_file(
 
     filename: Optional[str] = None
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(download_url)
-            if response.status_code != 200:
-                await logger.error(f'Failed to download file (HTTP {response.status_code}): {response.text[:200]}')
+        client = httpclient.get_session()
+        async with client.get(download_url, timeout=30.0) as response:
+            if response.status != 200:
+                await logger.error(f'Failed to download file (HTTP {response.status})')
                 return None, None
-            encrypted_bytes = response.content
+            encrypted_bytes = await httpclient.read_limited(response)
             filename = _extract_filename(response.headers.get('content-disposition', ''))
     except Exception:
         await logger.error(f'Failed to download file: {traceback.format_exc()}')
         return None, None
 
     try:
-        decrypted = _decrypt_file(encrypted_bytes, aes_key)
+        decrypted = await asyncio.to_thread(_decrypt_file, encrypted_bytes, aes_key)
         return decrypted, filename
     except Exception:
         await logger.error(f'Failed to decrypt file: {traceback.format_exc()}')
@@ -466,7 +505,7 @@ async def parse_wecom_bot_message(
         """Download, decrypt, and convert to data URI for backward compatibility."""
         data, _filename = await _safe_download(url, per_msg_aeskey)
         if data:
-            return _bytes_to_data_uri(data)
+            return await asyncio.to_thread(_bytes_to_data_uri, data)
         return None
 
     if msg_type == 'text':
@@ -579,7 +618,10 @@ async def parse_wecom_bot_message(
                 if (file_data.get('filesize') or 0) <= max_inline_file_size:
                     file_bytes, dl_filename = await _safe_download(download_url, item_aeskey)
                     if file_bytes:
-                        file_data['base64'] = _bytes_to_data_uri(file_bytes)
+                        file_data['base64'] = await asyncio.to_thread(
+                            _bytes_to_data_uri,
+                            file_bytes,
+                        )
                         if dl_filename and not file_data.get('filename'):
                             file_data['filename'] = dl_filename
                 files.append(file_data)
@@ -1567,6 +1609,8 @@ def build_multiple_interaction_update_card(
 
 
 class WecomBotClient:
+    _MAX_DISPATCH_TASKS = 100
+
     def __init__(
         self,
         Token: str,
@@ -1613,6 +1657,9 @@ class WecomBotClient:
         self._feedback_callback: Optional[Callable] = None
         self._card_action_callback: Optional[Callable] = None
         self._stream_last_content: dict[str, str] = {}
+        self._dispatch_tasks: set[asyncio.Task] = set()
+        self._welcome_replies: dict[str, asyncio.Future] = {}
+        self._handled_form_tasks: dict[str, float] = {}
         # Optional `source` block injected into every interactive template_card
         # the client builds. Set via `set_card_source` from the adapter after
         # reading config. Format: {icon_url, desc, desc_color}.
@@ -1695,7 +1742,12 @@ class WecomBotClient:
         """
         reply_plain_str = json.dumps(payload, ensure_ascii=False)
         reply_timestamp = str(int(time.time()))
-        ret, encrypt_text = self.wxcpt.EncryptMsg(reply_plain_str, nonce, reply_timestamp)
+        ret, encrypt_text = await asyncio.to_thread(
+            self.wxcpt.EncryptMsg,
+            reply_plain_str,
+            nonce,
+            reply_timestamp,
+        )
         if ret != 0:
             await self.logger.error(f'加密失败: {ret}')
             return jsonify({'error': 'encrypt_failed'}), 500
@@ -1714,9 +1766,49 @@ class WecomBotClient:
             event: 由企业微信消息转换的内部事件对象。
         """
         try:
-            await self._handle_message(event)
+            if event.msgtype == 'event':
+                kind = 'template_card_event' if extract_wecom_event_type(event) == 'template_card_event' else 'event'
+                for handler in self._message_handlers.get(kind, []):
+                    await handler(event)
+            else:
+                await self._handle_message(event)
         except Exception:
             await self.logger.error(traceback.format_exc())
+
+    def _start_dispatch_task(self, event: wecombotevent.WecomBotEvent) -> bool:
+        """Start one bounded pipeline dispatch task."""
+
+        for task in tuple(self._dispatch_tasks):
+            if task.done():
+                self._dispatch_tasks.discard(task)
+        if len(self._dispatch_tasks) >= self._MAX_DISPATCH_TASKS:
+            return False
+
+        task = asyncio.create_task(self._dispatch_event(event))
+        self._dispatch_tasks.add(task)
+
+        def done(done_task: asyncio.Task) -> None:
+            self._dispatch_tasks.discard(done_task)
+            if not done_task.cancelled():
+                done_task.exception()
+
+        task.add_done_callback(done)
+        return True
+
+    async def close(self) -> None:
+        """Cancel callbacks and release retained webhook state."""
+
+        dispatch_tasks = list(self._dispatch_tasks)
+        for task in dispatch_tasks:
+            if not task.done():
+                task.cancel()
+        if dispatch_tasks:
+            await asyncio.gather(*dispatch_tasks, return_exceptions=True)
+        self._dispatch_tasks.clear()
+        self.generated_content.clear()
+        self.msg_id_map.clear()
+        self._stream_last_content.clear()
+        self.stream_sessions.clear()
 
     async def _handle_post_initial_response(self, msg_json: dict[str, Any], nonce: str) -> tuple[Response, int]:
         """处理企业微信首次推送的消息，返回 stream_id 并开启流水线。
@@ -1747,7 +1839,8 @@ class WecomBotClient:
                 await self.logger.error(traceback.format_exc())
             else:
                 if is_new:
-                    asyncio.create_task(self._dispatch_event(event))
+                    if not self._start_dispatch_task(event):
+                        await self.logger.warning('WeCom webhook dispatch capacity reached; dropping message')
 
         payload = self._build_stream_payload(session.stream_id, '', False, feedback_id)
         return await self._encrypt_and_reply(payload, nonce)
@@ -1870,7 +1963,10 @@ class WecomBotClient:
     async def _handle_post_callback(self, req) -> tuple[Response, int] | Response:
         """处理企业微信的 POST 回调请求。"""
 
-        self.stream_sessions.cleanup()
+        for expired_msg_id in self.stream_sessions.cleanup():
+            self.generated_content.pop(expired_msg_id, None)
+            self._stream_last_content.pop(expired_msg_id, None)
+            self.msg_id_map.pop(expired_msg_id, None)
 
         msg_signature = unquote(req.args.get('msg_signature', ''))
         timestamp = unquote(req.args.get('timestamp', ''))
@@ -1883,12 +1979,18 @@ class WecomBotClient:
             return Response('Bad Request', status=400)
 
         xml_post_data = f'<xml><Encrypt><![CDATA[{encrypted_msg}]]></Encrypt></xml>'
-        ret, decrypted_xml = self.wxcpt.DecryptMsg(xml_post_data, msg_signature, timestamp, nonce)
+        ret, decrypted_xml = await asyncio.to_thread(
+            self.wxcpt.DecryptMsg,
+            xml_post_data,
+            msg_signature,
+            timestamp,
+            nonce,
+        )
         if ret != 0:
             await self.logger.error('解密失败')
             return Response('解密失败', status=400)
 
-        msg_json = json.loads(decrypted_xml)
+        msg_json = await asyncio.to_thread(json.loads, decrypted_xml)
 
         event_type = extract_wecom_event_type(msg_json)
 
@@ -1901,10 +2003,47 @@ class WecomBotClient:
         if event_type == 'template_card_event':
             return await self._handle_template_card_event(msg_json, nonce)
 
+        if event_type == 'enter_chat':
+            return await self._handle_enter_chat(msg_json, nonce)
+
+        if msg_json.get('msgtype') == 'event':
+            event = wecombotevent.WecomBotEvent({**msg_json, 'type': msg_json.get('chattype', 'single')})
+            if not self._start_dispatch_task(event):
+                return Response('Busy', status=503)
+            return await self._encrypt_and_reply({}, nonce)
+
         if msg_json.get('msgtype') == 'stream':
             return await self._handle_post_followup_response(msg_json, nonce)
 
         return await self._handle_post_initial_response(msg_json, nonce)
+
+    async def reply_welcome(self, message_id: str, content: str) -> dict:
+        """Complete the pending HTTP welcome response before its deadline."""
+        future = self._welcome_replies.get(message_id)
+        if future is None or future.done():
+            raise ValueError('WeCom welcome reply window has expired or was already used')
+        future.set_result({'msgtype': 'text', 'text': {'content': content}})
+        return {'ok': True}
+
+    async def _handle_enter_chat(self, msg_json: dict[str, Any], nonce: str):
+        message_id = str(msg_json.get('msgid') or '')
+        if not message_id or message_id in self._welcome_replies:
+            return await self._encrypt_and_reply({}, nonce)
+        future = asyncio.get_running_loop().create_future()
+        self._welcome_replies[message_id] = future
+        try:
+            event = wecombotevent.WecomBotEvent({**msg_json, 'type': msg_json.get('chattype', 'single')})
+            if not self._start_dispatch_task(event):
+                return Response('Busy', status=503)
+            try:
+                reply = await asyncio.wait_for(asyncio.shield(future), timeout=4.5)
+            except asyncio.TimeoutError:
+                reply = {}
+            return await self._encrypt_and_reply(reply, nonce)
+        finally:
+            self._welcome_replies.pop(message_id, None)
+            if not future.done():
+                future.cancel()
 
     async def _handle_template_card_event(self, msg_json: dict[str, Any], nonce: str) -> tuple[Response, int]:
         """Handle a button click on a button_interaction template_card.
@@ -1919,10 +2058,29 @@ class WecomBotClient:
 
             await self.logger.info(f'收到按钮点击: task_id={task_id} event_key={event_key!r} card_type={card_type}')
 
+            now = time.monotonic()
+            self._handled_form_tasks = {
+                key: seen for key, seen in self._handled_form_tasks.items() if now - seen < 3600
+            }
+            if task_id in self._handled_form_tasks:
+                return await self._encrypt_and_reply({}, nonce)
             session = self.stream_sessions.get_session_by_task_id(task_id)
             if session is None:
-                await self.logger.warning(f'未找到 task_id={task_id} 对应的 session，按钮点击被丢弃')
+                if not task_id.startswith('dify-'):
+                    event = wecombotevent.WecomBotEvent(
+                        {
+                            **msg_json,
+                            'type': msg_json.get('chattype', 'single'),
+                            'msgtype': 'event',
+                            'eventtype': 'template_card_event',
+                        }
+                    )
+                    if not self._start_dispatch_task(event):
+                        return Response('Busy', status=503)
             else:
+                self._handled_form_tasks[task_id] = now
+                if len(self._handled_form_tasks) > 2048:
+                    self._handled_form_tasks.pop(next(iter(self._handled_form_tasks)))
                 if self._card_action_callback is not None:
                     try:
                         await self._card_action_callback(session, event_key, task_id, msg_json)
@@ -2014,6 +2172,8 @@ class WecomBotClient:
                 self.msg_id_map[message_id] += 1
                 return
             self.msg_id_map[message_id] = 1
+            while len(self.msg_id_map) > _CLIENT_TRANSIENT_CACHE_MAX:
+                self.msg_id_map.pop(next(iter(self.msg_id_map)), None)
             msg_type = event.type
             if msg_type in self._message_handlers:
                 for handler in self._message_handlers[msg_type]:
@@ -2026,7 +2186,7 @@ class WecomBotClient:
 
         Args:
             msg_id: 原始企业微信消息 ID。
-            content: 模型产生的片段内容。
+            content: 流水线传入的累计正文快照。
             is_final: 是否为最终片段。
 
         Returns:
@@ -2041,12 +2201,10 @@ class WecomBotClient:
             return False
 
         previous_content = self._stream_last_content.get(msg_id, '')
-        if previous_content and content.startswith(previous_content):
-            next_content = content
-        elif previous_content and not content:
-            next_content = previous_content
-        else:
-            next_content = previous_content + content if previous_content else content
+        # Pipeline delivery provides a snapshot, not a provider delta.
+        next_content = content or previous_content
+        if len(next_content) > _MAX_STREAM_CONTENT_CHARS:
+            next_content = next_content[-_MAX_STREAM_CONTENT_CHARS:]
 
         if not is_final and next_content == previous_content:
             return True
@@ -2096,7 +2254,9 @@ class WecomBotClient:
         """
         handled = await self.push_stream_chunk(msg_id, content, is_final=True)
         if not handled:
-            self.generated_content[msg_id] = content
+            self.generated_content[msg_id] = content[-_MAX_STREAM_CONTENT_CHARS:]
+            while len(self.generated_content) > _CLIENT_TRANSIENT_CACHE_MAX:
+                self.generated_content.pop(next(iter(self.generated_content)), None)
 
     def on_message(self, msg_type: str):
         def decorator(func: Callable[[wecombotevent.WecomBotEvent], None]):
@@ -2119,7 +2279,7 @@ class WecomBotClient:
     async def download_url_to_base64(self, download_url, encoding_aes_key):
         data, _filename = await download_encrypted_file(download_url, encoding_aes_key, self.logger)
         if data:
-            return _bytes_to_data_uri(data)
+            return await asyncio.to_thread(_bytes_to_data_uri, data)
         return None
 
     async def run_task(self, host: str, port: int, *args, **kwargs):

@@ -164,6 +164,8 @@ export interface OverviewMetrics {
 }
 
 export interface FilterState {
+  mode?: 'all' | 'real' | 'debug';
+  statusGroup?: string;
   selectedBots: string[];
   selectedPipelines: string[];
   timeRange: TimeRangeOption;
@@ -176,6 +178,9 @@ export type TimeRangeOption =
   | 'last24Hours'
   | 'last7Days'
   | 'last30Days'
+  | 'last90Days'
+  | 'last180Days'
+  | 'last365Days'
   | 'custom';
 
 export interface DateRange {
@@ -217,6 +222,11 @@ export interface FeedbackStats {
 }
 
 export interface MonitoringData {
+  traffic?: {
+    bucket: 'hour' | 'day';
+    points: Array<{ timestamp: Date; messages: number; llmCalls: number }>;
+    truncated: boolean;
+  };
   overview: OverviewMetrics;
   messages: MonitoringMessage[];
   llmCalls: LLMCall[];

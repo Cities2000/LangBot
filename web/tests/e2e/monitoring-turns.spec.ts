@@ -1,6 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, Route } from '@playwright/test';
 
-import { installLangBotApiMocks } from './fixtures/langbot-api';
+import {
+  installLangBotApiMocks,
+  buildExecutionList,
+} from './fixtures/langbot-api';
 import { buildConversationTurns } from '../../src/app/home/monitoring/utils/conversationTurns';
 import {
   ErrorLog,
@@ -254,7 +257,15 @@ function rawMonitoringData() {
       success_rate: 100,
       active_sessions: 2,
     },
-    messages: scenario.messages.map(rawMessage),
+    messages: scenario.messages.map((item) => ({
+      ...rawMessage(item),
+      parent_message_id:
+        item.role === 'assistant'
+          ? item.id === 'agent-assistant-4'
+            ? 'agent-user-2'
+            : 'agent-user-1'
+          : undefined,
+    })),
     llmCalls: scenario.llmCalls.map(rawLlmCall),
     toolCalls: scenario.toolCalls.map(rawToolCall),
     embeddingCalls: [],
@@ -271,7 +282,204 @@ function rawMonitoringData() {
   };
 }
 
+async function respond(route: Route, label: string) {
+  const data = rawMonitoringData();
+  data.messages = [
+    {
+      ...rawMessage(message(label, 'user', 10, label)),
+      parent_message_id: undefined,
+    },
+  ];
+  await route.fulfill({ json: { code: 0, data: buildExecutionList(data) } });
+}
+
+test.describe('monitoring request contracts', () => {
+  test('shows failures instead of empty success and retries with auth and Workspace headers', async ({
+    page,
+  }) => {
+    await installLangBotApiMocks(page, { authenticated: true });
+    let failing = true;
+    await page.route('**/api/v1/monitoring/executions?*', async (route) => {
+      expect(route.request().headers().authorization).toBe(
+        'Bearer playwright-token',
+      );
+      expect(route.request().headers()['x-workspace-id']).toBe(
+        'workspace-playwright',
+      );
+      if (failing)
+        await route.fulfill({
+          status: 500,
+          json: { code: 500, msg: 'fixture database unavailable' },
+        });
+      else await respond(route, 'Recovered monitoring');
+    });
+    await page.goto('/home/monitoring');
+    await expect(
+      page.getByText('Failed to load execution trace'),
+    ).toBeVisible();
+    await expect(page.getByText('No message records')).toHaveCount(0);
+    failing = false;
+    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await expect(
+      page.getByText('Recovered monitoring', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('latest filter request wins over delayed data and delayed failures', async ({
+    page,
+  }) => {
+    await installLangBotApiMocks(page, { authenticated: true });
+    const pending: Route[] = [];
+    await page.route('**/api/v1/monitoring/executions?*', (route) => {
+      pending.push(route);
+    });
+    await page.goto('/home/monitoring');
+    await expect.poll(() => pending.length).toBe(2);
+    await page.locator('#monitoring-filter-time').click();
+    await page.getByRole('option', { name: /Last 7 days/i }).click();
+    await expect.poll(() => pending.length).toBe(3);
+    await respond(pending[2], 'Latest filter data');
+    // The message-turn view now lives behind its own tab.
+    await expect(
+      page.getByText('Latest filter data', { exact: true }).first(),
+    ).toBeVisible();
+    await respond(pending[0], 'Obsolete filter data');
+    await respond(pending[1], 'Obsolete filter data');
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await expect(
+      page.getByText('Latest filter data', { exact: true }).first(),
+    ).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Refresh Data', exact: true })
+      .click();
+    await expect.poll(() => pending.length).toBe(4);
+    await expect(
+      page.getByText('Obsolete filter data', { exact: true }),
+    ).toHaveCount(0);
+    await page.locator('#monitoring-filter-time').click();
+    await page.getByRole('option', { name: /Last 24 hours/i }).click();
+    await expect.poll(() => pending.length).toBe(5);
+    await respond(pending[4], 'Current result');
+    await expect(
+      page.getByText('Current result', { exact: true }).first(),
+    ).toBeVisible();
+    await pending[3].fulfill({
+      status: 500,
+      json: { code: 500, msg: 'old failure' },
+    });
+    await expect(
+      page.getByText('Current result', { exact: true }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('uses aggregate traffic rather than the sparse record page and discloses truncation', async ({
+    page,
+  }) => {
+    const data = rawMonitoringData();
+    data.totalCount.messages = 125;
+    await installLangBotApiMocks(page, {
+      authenticated: true,
+      monitoringData: {
+        ...data,
+        traffic: {
+          bucket: 'hour',
+          truncated: true,
+          points: [
+            { timestamp: time(0).toISOString(), messages: 125, llm_calls: 77 },
+            { timestamp: time(1).toISOString(), messages: 0, llm_calls: 0 },
+          ],
+        },
+      },
+    });
+    await page.goto('/home/monitoring');
+    await expect(
+      page.getByText(
+        'Showing 7 of 125 messages. Conversation traces may be incomplete.',
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText('Traffic range truncated. Choose a shorter time range.'),
+    ).toBeVisible();
+    const chart = page.locator('.recharts-wrapper');
+    await expect(chart).toHaveCount(1);
+    await chart
+      .locator(':scope > .recharts-surface')
+      .hover({ position: { x: 70, y: 100 } });
+    await expect(chart.locator('.recharts-tooltip-wrapper')).toContainText(
+      '125',
+    );
+    await expect(chart.locator('.recharts-tooltip-wrapper')).toContainText(
+      '77',
+    );
+  });
+
+  test('does not invent traffic totals when aggregation is unavailable', async ({
+    page,
+  }) => {
+    await installLangBotApiMocks(page, {
+      authenticated: true,
+      monitoringData: rawMonitoringData(),
+    });
+    await page.goto('/home/monitoring');
+    await expect(
+      page.getByText('Traffic aggregation unavailable'),
+    ).toBeVisible();
+    await expect(page.locator('.recharts-wrapper')).toHaveCount(0);
+  });
+});
+
 test.describe('monitoring conversation turn grouping', () => {
+  test('does not reassign explicitly linked activity outside the visible page', () => {
+    const turns = buildConversationTurns(
+      [message('visible', 'user', 10, 'Visible turn')],
+      [llmCall('older-call', 11, 'off-page', 10, 5, 40)],
+      [errorLog('older-error', 11, 'off-page')],
+      [toolCall('older-tool', 11, 'off-page', 'search', 40)],
+    );
+    expect(turns[0].llmCalls).toEqual([]);
+    expect(turns[0].toolCalls).toEqual([]);
+    expect(turns[0].errors).toEqual([]);
+  });
+
+  test('does not assign unlinked activity before the first visible turn', () => {
+    const turns = buildConversationTurns(
+      [message('visible', 'user', 10, 'Visible turn')],
+      [llmCall('older-call', 1, undefined, 10, 5, 40)],
+      [{ ...errorLog('older-error', 1, ''), messageId: undefined }],
+      [toolCall('older-tool', 1, undefined, 'search', 40)],
+    );
+    expect(turns[0].llmCalls).toEqual([]);
+    expect(turns[0].toolCalls).toEqual([]);
+    expect(turns[0].errors).toEqual([]);
+  });
+
+  test('isolates same-session messages and activity by bot identity', () => {
+    const first = message('first', 'user', 1, 'Bot one');
+    const other = {
+      ...message('other', 'user', 2, 'Bot two'),
+      botId: 'other-bot',
+    };
+    const reply = message('reply', 'assistant', 3, 'Bot one reply');
+    const turns = buildConversationTurns(
+      [first, other, reply],
+      [llmCall('call', 3, undefined, 10, 5, 40)],
+      [errorLog('error', 3, first.id)],
+      [toolCall('tool', 3, undefined, 'search', 40)],
+    );
+    const own = turns.find((turn) => turn.id === first.id)!;
+    expect(own.assistantMessages.map((item) => item.id)).toEqual(['reply']);
+    expect(own.llmCalls.map((item) => item.id)).toEqual(['call']);
+    expect(own.toolCalls.map((item) => item.id)).toEqual(['tool']);
+    expect(turns.find((turn) => turn.id === other.id)?.totalTokens).toBe(0);
+  });
+
   test('keeps a single user message as one observable turn', () => {
     const userOnly = message(
       'single-user-only',
@@ -398,56 +606,45 @@ test.describe('monitoring conversation turn grouping', () => {
     expect(turns[0].totalToolDuration).toBe(45);
   });
 
-  test('renders user-only, multi-agent, and multi-turn cases in the monitoring page', async ({
+  test('replaces the messages tab with full execution inputs, deliveries and calls', async ({
     page,
   }) => {
     await installLangBotApiMocks(page, {
       authenticated: true,
       monitoringData: rawMonitoringData(),
     });
-
     await page.goto('/home/monitoring');
-
-    await expect(page.getByText('3 conversation turns')).toBeVisible();
     await expect(
-      page.getByText('Standalone question with no reply'),
-    ).toBeVisible();
-    await expect(page.getByText('No assistant reply recorded')).toBeVisible();
-    await expect(page.getByText('Need deployment plan')).toBeVisible();
-    await expect(page.getByText('Agent step 1: inspect repo')).toBeVisible();
-    await expect(page.getByText('Assistant +2')).toBeVisible();
-    await expect(page.getByText('3 LLM')).toBeVisible();
-    await expect(page.getByText('2 tools')).toBeVisible();
-    await expect(page.getByText('790 tokens')).toBeVisible();
-    await expect(page.getByText('1 errors')).toBeVisible();
-    await expect(page.getByText('Continue with rollback plan')).toBeVisible();
-    await expect(page.getByText('Rollback plan ready')).toBeVisible();
-
-    const agentTurn = page
-      .locator('div[role="button"]')
-      .filter({ hasText: 'Need deployment plan' });
-    await expect(agentTurn).toHaveCount(1);
-    await agentTurn.click();
-
-    await expect(page.getByText('Conversation Trace')).toBeVisible();
-    await expect(page.getByText('Agent step 2: run tests')).toBeVisible();
+      page.getByRole('tab', { name: 'Message Records' }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('button')
+      .filter({ hasText: 'Need deployment plan' })
+      .click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Event / input (1)')).toBeVisible();
     await expect(
-      page.getByText('Final answer: deployment plan ready'),
+      sheet.getByText('Need deployment plan', { exact: true }).first(),
     ).toBeVisible();
-    await expect(page.getByText('LLM Calls (3)')).toBeVisible();
-    await expect(page.getByText('#3 gpt-5.5')).toBeVisible();
-    await expect(page.getByText('In: 300')).toBeVisible();
-    await expect(page.getByText('Out: 90')).toBeVisible();
-    await expect(page.getByText('Total: 390')).toBeVisible();
-    await expect(page.getByText('Tool Calls (2)')).toBeVisible();
-    await expect(page.getByText('#1 repo_search')).toBeVisible();
-    await expect(page.getByText('#2 run_tests')).toBeVisible();
-    await expect(page.getByText('Arguments')).toHaveCount(0);
-    await expect(page.getByText('Result')).toHaveCount(0);
-
-    await page.getByText('#1 repo_search').click();
-    await expect(page.getByText('Arguments').first()).toBeVisible();
-    await expect(page.getByText('Result').first()).toBeVisible();
-    await expect(page.getByText('Tool retry failed')).toBeVisible();
+    await expect(sheet.getByText('Delivery records (3)')).toBeVisible();
+    await expect(
+      sheet.getByText('Final answer: deployment plan ready').first(),
+    ).toBeVisible();
+    await sheet.getByText('Model calls (3)', { exact: true }).click();
+    await expect(sheet.getByText('gpt-5.5').first()).toBeVisible();
+    await sheet.getByText('Tool calls (2)', { exact: true }).click();
+    await expect(
+      sheet.locator('span.break-all').filter({ hasText: /^repo_search$/ }),
+    ).toBeVisible();
+    await expect(
+      sheet.getByText('Errors (1)', { exact: true }).locator('..'),
+    ).toHaveAttribute('open', '');
+    await expect(
+      sheet.getByText('Tool retry failed').filter({ visible: true }).first(),
+    ).toBeVisible();
+    await sheet.getByText('Conversation context (6)', { exact: true }).click();
+    await expect(
+      sheet.getByText('Rollback plan ready').filter({ visible: true }),
+    ).toBeVisible();
   });
 });

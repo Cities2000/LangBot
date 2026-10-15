@@ -1,3 +1,4 @@
+from langbot.libs.dingtalk_api.thinking import visible_think_markers
 import asyncio
 import json
 import pathlib
@@ -5,6 +6,7 @@ import re
 import traceback
 import typing
 import uuid
+import time
 
 from langbot.libs.dingtalk_api.dingtalkevent import DingTalkEvent
 import langbot_plugin.api.entities.builtin.platform.message as platform_message
@@ -12,10 +14,10 @@ import langbot_plugin.api.definition.abstract.platform.adapter as abstract_platf
 import langbot_plugin.api.entities.builtin.platform.events as platform_events
 import langbot_plugin.api.entities.builtin.platform.entities as platform_entities
 import langbot_plugin.api.entities.builtin.provider.session as provider_session
-from langbot.libs.dingtalk_api.api import DingTalkClient
+from langbot.libs.dingtalk_api.api import DingTalkClient, is_stream_card_configured
 import datetime
 from langbot.pkg.platform.logger import EventLogger
-from langbot.pkg.provider.runners.difysvapi import _format_human_input_text
+from langbot.pkg.platform.human_input import format_human_input_text
 
 
 class DingTalkMessageConverter(abstract_platform_adapter.AbstractMessageConverter):
@@ -64,15 +66,19 @@ class DingTalkMessageConverter(abstract_platform_adapter.AbstractMessageConverte
             platform_message.Source(id=event.incoming_message.message_id, time=datetime.datetime.now())
         )
 
-        for atUser in event.incoming_message.at_users:
-            if atUser.dingtalk_id == event.incoming_message.chatbot_user_id:
-                yiri_msg_list.append(platform_message.At(target=bot_name))
+        chatbot_id = getattr(event.incoming_message, 'chatbot_user_id', None)
+        mentioned = getattr(event.incoming_message, 'is_in_at_list', False) or any(
+            chatbot_id and getattr(at_user, 'dingtalk_id', None) == chatbot_id
+            for at_user in getattr(event.incoming_message, 'at_users', []) or []
+        )
+        if mentioned:
+            yiri_msg_list.append(platform_message.At(target=bot_name))
 
         if event.rich_content:
             elements = event.rich_content.get('Elements')
             for element in elements:
                 if element.get('Type') == 'text':
-                    text = element.get('Content', '').replace('@' + bot_name, '')
+                    text = element.get('Content', '')
                     if text.strip():
                         yiri_msg_list.append(platform_message.Plain(text=text))
                 elif element.get('Type') == 'image' and element.get('Picture'):
@@ -81,7 +87,7 @@ class DingTalkMessageConverter(abstract_platform_adapter.AbstractMessageConverte
             # 回退到原有简单逻辑
             # 对于音频消息，content 来自 recognition 转写文字，在下方音频处理块中统一处理
             if event.content and event.type != 'audio':
-                text_content = event.content.replace('@' + bot_name, '')
+                text_content = event.content
                 yiri_msg_list.append(platform_message.Plain(text=text_content))
             if event.picture:
                 yiri_msg_list.append(platform_message.Image(base64=event.picture))
@@ -518,8 +524,6 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         required_keys = [
             'client_id',
             'client_secret',
-            'robot_name',
-            'robot_code',
         ]
         missing_keys = [key for key in required_keys if key not in config]
         if missing_keys:
@@ -527,12 +531,12 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         bot = DingTalkClient(
             client_id=config['client_id'],
             client_secret=config['client_secret'],
-            robot_name=config['robot_name'],
-            robot_code=config['robot_code'],
+            robot_name=config.get('robot_name', ''),
+            robot_code=config.get('robot_code', ''),
             markdown_card=config['markdown_card'],
             logger=logger,
         )
-        bot_account_id = config['robot_name']
+        bot_account_id = config['client_id']
         super().__init__(
             config=config,
             logger=logger,
@@ -544,10 +548,58 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             bot=bot,
             listeners={},
         )
+        self._background_tasks: set[asyncio.Task] = set()
         # Wire the card-action callback after super().__init__ so we can reference
         # self.* — the client's handler stores this as a soft reference and reads
         # it at fire time.
         self.bot.card_action_callback = self._on_card_action
+
+    def _start_background_task(self, coro) -> bool:
+        """Start one bounded adapter-side auxiliary task."""
+
+        background_tasks = getattr(self, '_background_tasks', None)
+        if background_tasks is None:
+            background_tasks = set()
+            object.__setattr__(self, '_background_tasks', background_tasks)
+        for task in tuple(background_tasks):
+            if task.done():
+                background_tasks.discard(task)
+        if len(background_tasks) >= 100:
+            coro.close()
+            return False
+        task = asyncio.create_task(coro)
+        background_tasks.add(task)
+
+        def done(done_task: asyncio.Task) -> None:
+            background_tasks.discard(done_task)
+            if not done_task.cancelled():
+                done_task.exception()
+
+        task.add_done_callback(done)
+        return True
+
+    def _prune_card_state(self) -> None:
+        now = time.monotonic()
+        ttl_seconds = 1800
+        for card_id, state in tuple(self.card_state.items()):
+            if now - float(state.get('created_at', now)) <= ttl_seconds:
+                continue
+            self.card_state.pop(card_id, None)
+            for session_key, active_card_id in tuple(self.active_turn_card.items()):
+                if active_card_id == card_id:
+                    self.active_turn_card.pop(session_key, None)
+                    self.active_turn_text.pop(session_key, None)
+        while len(self.card_state) > 1000:
+            card_id = next(iter(self.card_state))
+            self.card_state.pop(card_id, None)
+        while len(self.active_turn_card) > 1000:
+            session_key = next(iter(self.active_turn_card))
+            self.active_turn_card.pop(session_key, None)
+            self.active_turn_text.pop(session_key, None)
+        card_instances = getattr(self, 'card_instance_id_dict', None)
+        if isinstance(card_instances, dict):
+            while len(card_instances) > 1000:
+                card_instances.pop(next(iter(card_instances)), None)
 
     async def reply_message(
         self,
@@ -561,8 +613,14 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         incoming_message = event.incoming_message
 
         markdown_enabled = self.config.get('markdown_card', False)
-        content, at = await DingTalkMessageConverter.yiri2target(message, markdown_enabled)
+        text_message = platform_message.MessageChain(
+            [part for part in message if not isinstance(part, (platform_message.Image, platform_message.File))]
+        )
+        content, at = await DingTalkMessageConverter.yiri2target(text_message, markdown_enabled)
         await self.bot.send_message(content, incoming_message, at)
+        for part in message:
+            if isinstance(part, (platform_message.Image, platform_message.File)):
+                await self.bot.send_attachment(part, incoming_message)
 
     async def reply_message_chunk(
         self,
@@ -589,7 +647,10 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
 
         if (msg_seq - 1) % 8 == 0 or is_final:
             markdown_enabled = self.config.get('markdown_card', False)
-            content, at = await DingTalkMessageConverter.yiri2target(message, markdown_enabled)
+            text_message = platform_message.MessageChain(
+                [part for part in message if not isinstance(part, (platform_message.Image, platform_message.File))]
+            )
+            content, at = await DingTalkMessageConverter.yiri2target(text_message, markdown_enabled)
             if not content and bot_message.content:
                 content = bot_message.content  # 兼容直接传入content的情况
 
@@ -658,6 +719,10 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                         pass
                 if bot_message.tool_calls is None:
                     self.card_instance_id_dict.pop(message_id, None)
+                    event = await DingTalkEventConverter.yiri2target(message_source)
+                    for part in message:
+                        if isinstance(part, (platform_message.Image, platform_message.File)):
+                            await self.bot.send_attachment(part, event.incoming_message)
 
     async def send_message(self, target_type: str, target_id: str, message: platform_message.MessageChain):
         markdown_enabled = self.config.get('markdown_card', False)
@@ -668,14 +733,12 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             await self.bot.send_proactive_message_to_group(target_id, content)
 
     async def is_stream_output_supported(self) -> bool:
-        is_stream = False
-        if self.config.get('enable-stream-reply', None):
-            is_stream = True
-        return is_stream
+        return is_stream_card_configured(self.config)
 
     async def create_message_card(self, message_id, event):
+        self._prune_card_state()
         form_template_id = (self.config.get('human_input_card_template_id') or '').strip()
-        legacy_template_id = self.config.get('card_template_id', '')
+        legacy_template_id = (self.config.get('card_template_id') or '').strip()
 
         # Synthetic events (button clicks): look up the card already in
         # active_turn_card so reply_message_chunk can stream to it.
@@ -726,7 +789,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
 
         # Legacy chat-card path (no form template).
         incoming_message = event.source_platform_object.incoming_message
-        card_auto_layout = self.config.get('card_auto_layout', False)
+        card_auto_layout = self.config.get('card_auto_layout', True)
         card_instance, card_instance_id = await self.bot.create_and_card(
             legacy_template_id, incoming_message, card_auto_layout=card_auto_layout
         )
@@ -762,8 +825,9 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
     ):
         async def on_message(event: DingTalkEvent):
             try:
+                self.bot_account_id = getattr(event.incoming_message, 'chatbot_user_id', None) or self.bot_account_id
                 return await callback(
-                    await self.event_converter.target2yiri(event, self.config['robot_name']),
+                    await self.event_converter.target2yiri(event, self.bot_account_id),
                     self,
                 )
             except Exception:
@@ -803,9 +867,25 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         if self.bot_avatar_media_id:
             params['bot_avatar'] = self.bot_avatar_media_id
         params.update(extra)
+        if isinstance(params.get('content'), str):
+            params['content'] = visible_think_markers(params['content'])
         return params
 
     async def kill(self) -> bool:
+        task_set = getattr(self, '_background_tasks', set())
+        background_tasks = list(task_set)
+        for task in background_tasks:
+            if not task.done():
+                task.cancel()
+        if background_tasks:
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+        task_set.clear()
+        card_instances = getattr(self, 'card_instance_id_dict', None)
+        if isinstance(card_instances, dict):
+            card_instances.clear()
+        self.card_state.clear()
+        self.active_turn_card.clear()
+        self.active_turn_text.clear()
         await self.bot.stop()
         return True
 
@@ -931,6 +1011,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             )
 
         # Record form state for the click-handler.
+        self._prune_card_state()
         launcher_type, launcher_id, sender_user_id = self._derive_session_descriptor(message_source)
         self.card_state[out_track_id] = {
             'session_key': session_key,
@@ -947,6 +1028,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             'current_input_field': str(form_data.get('_current_input_field') or ''),
             'input_defs': _dingtalk_form_input_defs(form_data),
             'inputs': form_data.get('inputs') or {},
+            'created_at': time.monotonic(),
         }
 
         btns = self._build_btns(actions if should_show_actions else [], out_track_id)
@@ -1040,6 +1122,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 f'options={len(component_params.get("select_options") or [])}'
             )
 
+        self._prune_card_state()
         self.card_state[out_track_id] = {
             'session_key': session_key,
             'launcher_type': launcher_type.value,
@@ -1057,6 +1140,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             'inputs': form_data.get('inputs') or {},
             'open_space_id': open_space_id,
             'is_group': is_group,
+            'created_at': time.monotonic(),
         }
 
         parts = []
@@ -1128,7 +1212,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
             # Legacy chat-card template doesn't carry a `bot_avatar`
             # variable, so don't decorate the param map here.
             card_param_map = {'content': '', 'query': '...'}
-            card_data_config = {'autoLayout': self.config.get('card_auto_layout', False)}
+            card_data_config = {'autoLayout': self.config.get('card_auto_layout', True)}
         try:
             success = await self.bot.create_and_deliver_card(
                 card_template_id=template_id,
@@ -1171,7 +1255,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 parts.append(form_content)
             display_text = '\n\n'.join(parts)
         else:
-            display_text = _format_human_input_text(
+            display_text = format_human_input_text(
                 form_data.get('node_title', ''),
                 form_data.get('form_content', ''),
                 form_data.get('actions', []) or [],
@@ -1223,6 +1307,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
                 f'payload_action_id={payload.get("action_id")!r} params={payload.get("params")!r}'
             )
         out_track_id = payload.get('out_track_id') or ''
+        self._prune_card_state()
         params = payload.get('params') or {}
         # ButtonGroup `sendCardRequest` events surface the click id at the
         # callback top level as `actionId`; fall back to `params.action_id`
@@ -1359,7 +1444,7 @@ class DingTalkAdapter(abstract_platform_adapter.AbstractMessagePlatformAdapter):
         # output lives on a separate new card (lazy-created in
         # reply_message_chunk on the synthetic event), so the form card
         # stays put as a record of the user's selection.
-        asyncio.create_task(
+        self._start_background_task(
             self._mark_card_resolved(
                 out_track_id,
                 action_title,

@@ -1,5 +1,6 @@
 import sys
 import types
+from unittest.mock import Mock
 
 import pytest
 
@@ -22,6 +23,105 @@ from langbot.libs.wecom_ai_bot_api.api import (  # noqa: E402
     parse_select_button_action,
 )
 from langbot.libs.wecom_ai_bot_api.ws_client import WecomBotWsClient  # noqa: E402
+
+
+def test_ws_callback_tasks_are_bounded():
+    client = WecomBotWsClient('bot-id', 'secret', object())
+    client._callback_tasks = {Mock(done=Mock(return_value=False)) for _ in range(100)}
+
+    async def callback():
+        raise AssertionError('rejected callback must not run')
+
+    assert client._start_callback_task(callback()) is False
+    assert len(client._callback_tasks) == 100
+
+
+def test_webhook_dispatch_tasks_are_bounded():
+    client = WecomBotClient('', '', '', object(), unified_mode=True)
+    client._dispatch_tasks = {Mock(done=Mock(return_value=False)) for _ in range(100)}
+
+    assert client._start_dispatch_task(Mock()) is False
+    assert len(client._dispatch_tasks) == 100
+
+
+@pytest.mark.asyncio
+async def test_ws_initial_stream_frame_precedes_pipeline_dispatch(monkeypatch):
+    from langbot.libs.wecom_ai_bot_api import ws_client as ws_client_module
+
+    order = []
+    logger = types.SimpleNamespace(
+        debug=Mock(),
+        error=Mock(),
+        warning=Mock(),
+    )
+    client = WecomBotWsClient('bot-id', 'secret', logger)
+
+    async def parse_message(*args, **kwargs):
+        del args, kwargs
+        return {'msgid': 'msg-1', 'type': 'single', 'userid': 'user-1'}
+
+    async def reply_stream(*args, **kwargs):
+        del args, kwargs
+        order.append('initial-frame')
+        return {}
+
+    async def dispatch_event(event):
+        del event
+        order.append('pipeline-dispatch')
+
+    monkeypatch.setattr(ws_client_module, 'parse_wecom_bot_message', parse_message)
+    monkeypatch.setattr(ws_client_module.wecombotevent, 'WecomBotEvent', lambda data: data)
+    client.reply_stream = reply_stream
+    client._dispatch_event = dispatch_event
+
+    await client._handle_message_callback({'headers': {'req_id': 'req-1'}, 'body': {}})
+
+    assert order == ['initial-frame', 'pipeline-dispatch']
+
+
+@pytest.mark.asyncio
+async def test_ws_initial_stream_failure_still_dispatches_message(monkeypatch):
+    from langbot.libs.wecom_ai_bot_api import ws_client as ws_client_module
+
+    dispatched = []
+
+    class Logger:
+        def __init__(self):
+            self.warnings = []
+
+        async def debug(self, message):
+            del message
+
+        async def error(self, message):
+            raise AssertionError(message)
+
+        async def warning(self, message):
+            self.warnings.append(message)
+
+    logger = Logger()
+    client = WecomBotWsClient('bot-id', 'secret', logger)
+
+    async def parse_message(*args, **kwargs):
+        del args, kwargs
+        return {'msgid': 'msg-1', 'type': 'single', 'userid': 'user-1'}
+
+    async def reply_stream(*args, **kwargs):
+        del args, kwargs
+        raise ConnectionError('simulated reply failure')
+
+    async def dispatch_event(event):
+        dispatched.append(event)
+
+    monkeypatch.setattr(ws_client_module, 'parse_wecom_bot_message', parse_message)
+    monkeypatch.setattr(ws_client_module.wecombotevent, 'WecomBotEvent', lambda data: data)
+    client.reply_stream = reply_stream
+    client._dispatch_event = dispatch_event
+
+    await client._handle_message_callback({'headers': {'req_id': 'req-1'}, 'body': {}})
+
+    assert len(dispatched) == 1
+    assert len(logger.warnings) == 1
+    assert 'simulated reply failure' in logger.warnings[0]
 
 
 def test_extract_template_card_action_supports_nested_button_key():
@@ -269,11 +369,13 @@ async def test_ws_stream_sends_cumulative_snapshots_to_wecom():
 
     assert await client.push_stream_chunk('msg-1', '你', is_final=False)
     assert await client.push_stream_chunk('msg-1', '你好', is_final=False)
+    assert await client.push_stream_chunk('msg-1', '<think>test</think>你好', is_final=False)
     assert await client.push_stream_chunk('msg-1', '你好', is_final=True)
 
     assert sent == [
         ('req-1', 'stream-1', '你', False),
         ('req-1', 'stream-1', '你好', False),
+        ('req-1', 'stream-1', '<think>test</think>你好', False),
         ('req-1', 'stream-1', '你好', True),
     ]
 
@@ -285,18 +387,12 @@ async def test_webhook_stream_queues_cumulative_snapshots_for_followups():
 
     assert await client.push_stream_chunk('msg-1', '你', is_final=False)
     assert await client.push_stream_chunk('msg-1', '你好', is_final=False)
+    assert await client.push_stream_chunk('msg-1', '<think>test</think>你好', is_final=False)
     assert await client.push_stream_chunk('msg-1', '你好', is_final=True)
 
-    chunks = [
-        await client.stream_sessions.consume(session.stream_id),
-        await client.stream_sessions.consume(session.stream_id),
-        await client.stream_sessions.consume(session.stream_id),
-    ]
-    assert [(chunk.content, chunk.is_final) for chunk in chunks] == [
-        ('你', False),
-        ('你好', False),
-        ('你好', True),
-    ]
+    assert session.queue.qsize() == 1
+    chunk = await client.stream_sessions.consume(session.stream_id)
+    assert (chunk.content, chunk.is_final) == ('你好', True)
 
 
 def test_human_input_payload_keeps_action_select_stage_as_buttons():
@@ -473,3 +569,132 @@ def test_action_stage_only_shows_content_after_fields_without_placeholders():
     assert card['sub_title_text'] == '请选择操作'
     assert '{{#$output.' not in card['sub_title_text']
     assert [button['text'] for button in card['button_list']] == ['yes', 'no']
+
+
+@pytest.mark.asyncio
+async def test_webhook_enter_chat_returns_welcome_without_message_stream():
+    from unittest.mock import AsyncMock
+    from langbot.libs.wecom_ai_bot_api.wecombotevent import WecomBotEvent
+
+    logger = types.SimpleNamespace(info=AsyncMock(), debug=AsyncMock(), error=AsyncMock(), warning=AsyncMock())
+    client = WecomBotClient('', '', '', logger, unified_mode=True)
+    client._encrypt_and_reply = AsyncMock(side_effect=lambda reply, nonce: reply)
+    ordinary = AsyncMock()
+    client.on_message('single')(ordinary)
+
+    async def welcome(event):
+        assert isinstance(event, WecomBotEvent)
+        await client.reply_welcome(event.message_id, 'Welcome')
+
+    client.on_message('event')(welcome)
+    result = await client._handle_enter_chat(
+        {
+            'msgid': 'entry-1',
+            'msgtype': 'event',
+            'chattype': 'single',
+            'from': {'userid': 'visitor'},
+            'event': {'eventtype': 'enter_chat'},
+        },
+        'nonce',
+    )
+    assert result == {'msgtype': 'text', 'text': {'content': 'Welcome'}}
+    ordinary.assert_not_awaited()
+    assert not client._welcome_replies
+    with pytest.raises(ValueError, match='expired'):
+        await client.reply_welcome('entry-1', 'too late')
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_webhook_unmanaged_card_dispatches_but_expired_dify_does_not():
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    logger = types.SimpleNamespace(info=AsyncMock(), debug=AsyncMock(), error=AsyncMock(), warning=AsyncMock())
+    client = WecomBotClient('', '', '', logger, unified_mode=True)
+    client._encrypt_and_reply = AsyncMock(return_value={})
+    handler = AsyncMock()
+    client.on_message('template_card_event')(handler)
+    for task_id in ['business-card', 'dify-expired']:
+        await client._handle_template_card_event(
+            {
+                'msgid': task_id,
+                'msgtype': 'event',
+                'chattype': 'single',
+                'from': {'userid': 'visitor'},
+                'event': {
+                    'eventtype': 'template_card_event',
+                    'template_card_event': {
+                        'task_id': task_id,
+                        'event_key': 'approve',
+                    },
+                },
+            },
+            'nonce',
+        )
+    await asyncio.gather(*client._dispatch_tasks)
+    handler.assert_awaited_once()
+    assert handler.await_args.args[0].userid == 'visitor'
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_ws_welcome_uses_dedicated_command():
+    from unittest.mock import AsyncMock
+
+    client = WecomBotWsClient('bot-id', 'secret', object())
+    client._send_reply = AsyncMock(return_value={})
+    await client.reply_welcome('req-1', 'Welcome')
+    client._send_reply.assert_awaited_once_with(
+        'req-1', {'msgtype': 'text', 'text': {'content': 'Welcome'}}, cmd='aibot_respond_welcome_msg'
+    )
+
+
+@pytest.mark.asyncio
+async def test_expired_custom_managed_card_never_becomes_business_event():
+    from unittest.mock import AsyncMock
+
+    logger = types.SimpleNamespace(info=AsyncMock(), debug=AsyncMock(), error=AsyncMock(), warning=AsyncMock())
+    client = WecomBotWsClient('bot-id', 'secret', logger)
+    handler = AsyncMock()
+    client.on_message('template_card_event')(handler)
+    client._drop_pending_form_task('custom-managed-task', {})
+    body = {
+        'msgtype': 'event',
+        'event': {
+            'eventtype': 'template_card_event',
+            'template_card_event': {
+                'task_id': 'custom-managed-task',
+                'event_key': 'approve',
+            },
+        },
+    }
+    await client._handle_template_card_event_frame({'headers': {'req_id': 'r1'}}, body)
+    handler.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_webhook_welcome_timeout_cleans_pending_reply(monkeypatch):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    logger = types.SimpleNamespace(info=AsyncMock(), debug=AsyncMock(), error=AsyncMock(), warning=AsyncMock())
+    client = WecomBotClient('', '', '', logger, unified_mode=True)
+    client._encrypt_and_reply = AsyncMock(side_effect=lambda reply, nonce: reply)
+
+    async def timeout(awaitable, timeout):
+        awaitable.cancel()
+        raise asyncio.TimeoutError
+
+    monkeypatch.setattr(asyncio, 'wait_for', timeout)
+    result = await client._handle_enter_chat(
+        {
+            'msgid': 'no-reply',
+            'msgtype': 'event',
+            'event': {'eventtype': 'enter_chat'},
+        },
+        'nonce',
+    )
+    assert result == {}
+    assert not client._welcome_replies
+    await client.close()

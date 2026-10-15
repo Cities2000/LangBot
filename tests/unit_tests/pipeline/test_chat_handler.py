@@ -30,22 +30,8 @@ def mock_circular_import_chain():
         make_pipeline_handler_import_mocks,
         get_handler_modules_to_clear,
     )
-    from langbot_plugin.api.entities.builtin.provider.message import Message
 
     mocks = make_pipeline_handler_import_mocks()
-
-    # Create a default runner that yields a simple response
-    class DefaultRunner:
-        name = 'local-agent'
-
-        def __init__(self, app, config):
-            self.app = app
-            self.config = config
-
-        async def run(self, query):
-            yield Message(role='assistant', content='fake response')
-
-    mocks['langbot.pkg.provider.runner'].preregistered_runners = [DefaultRunner]
 
     clear = get_handler_modules_to_clear('chat')
 
@@ -56,7 +42,30 @@ def mock_circular_import_chain():
 @pytest.fixture
 def fake_app():
     """Create FakeApp instance."""
-    return FakeApp()
+    from langbot_plugin.api.entities.builtin.provider.message import Message
+
+    app = FakeApp()
+
+    class FakeAgentRunOrchestrator:
+        runner_class = None
+
+        async def try_claim_steering_from_query(self, query):
+            return False
+
+        async def run_from_query(self, query):
+            if self.runner_class is None:
+                yield Message(role='assistant', content='fake response')
+                return
+
+            runner = self.runner_class(app, {})
+            async for result in runner.run(query):
+                yield result
+
+        def resolve_runner_id_for_telemetry(self, query):
+            return 'plugin:langbot-team/LocalAgent/default'
+
+    app.agent_run_orchestrator = FakeAgentRunOrchestrator()
+    return app
 
 
 @pytest.fixture
@@ -71,13 +80,11 @@ def mock_event_ctx():
 
 
 @pytest.fixture
-def set_runner():
-    """Factory fixture to set a custom runner for tests."""
+def set_runner(fake_app):
+    """Configure the orchestrator test double for one test."""
 
     def _set_runner(runner_class):
-        import sys
-
-        sys.modules['langbot.pkg.provider.runner'].preregistered_runners = [runner_class]
+        fake_app.agent_run_orchestrator.runner_class = runner_class
 
     return _set_runner
 
@@ -257,6 +264,57 @@ class TestChatHandlerStreaming:
     """Tests for streaming behavior."""
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize('with_tool_call', [False, True])
+    async def test_terminal_delta_and_snapshot_close_card_once(
+        self, fake_app, mock_event_ctx, set_runner, with_tool_call
+    ):
+        from tests.factories import text_query
+        from langbot_plugin.api.entities.builtin.provider.message import Message, MessageChunk
+        from langbot_plugin.api.entities.builtin.platform.message import File, MessageChain
+
+        fake_app.plugin_connector.emit_event = AsyncMock(return_value=mock_event_ctx)
+        query = text_query('stream test')
+        query.adapter = Mock()
+        query.adapter.is_stream_output_supported = AsyncMock(return_value=True)
+        query.adapter.create_message_card = AsyncMock()
+        attachments = MessageChain([File(url='https://example.com/file.txt', name='file.txt')])
+
+        class StreamRunner:
+            def __init__(self, app, config):
+                pass
+
+            async def run(self, query):
+                if with_tool_call:
+                    yield MessageChunk(
+                        role='assistant',
+                        is_final=True,
+                        tool_calls=[
+                            {'id': 'call-1', 'type': 'function', 'function': {'name': 'search', 'arguments': '{}'}}
+                        ],
+                    )
+                yield MessageChunk(role='assistant', content='hello')
+                yield MessageChunk(role='assistant', content='hello world', is_final=True)
+                completed = Message(role='assistant', content='hello world')
+                completed.attachments = attachments
+                yield completed
+
+        set_runner(StreamRunner)
+        handler = get_chat_handler().ChatMessageHandler(fake_app)
+        handler._ensure_conversation_for_history = AsyncMock()
+        delivered = []
+        async for stage_result in handler.handle(query):
+            assert stage_result.result_type == get_entities().ResultType.CONTINUE
+            delivered.append(query.resp_messages[-1])
+        assert [result.content for result in delivered if result.content] == ['hello', 'hello world']
+        if with_tool_call:
+            assert delivered[0].tool_calls
+            assert not delivered[0].is_final
+        assert sum(result.is_final for result in delivered) == 1
+        assert delivered[-1].attachments is attachments
+        assert len({result.resp_message_id for result in delivered}) == 1
+        query.adapter.create_message_card.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_streaming_chunks_collected(self, fake_app, mock_event_ctx, set_runner):
         """Streaming produces multiple results."""
         from tests.factories import text_query
@@ -319,8 +377,13 @@ class TestChatHandlerExceptions:
         query.pipeline_config = {
             'output': {'misc': {'exception-handling': 'show-hint', 'failure-hint': 'Request failed.'}},
             'ai': {
-                'runner': {'runner': 'local-agent'},
-                'local-agent': {'prompt': 'default', 'model': {'primary': 'test'}},
+                'runner': {'id': 'plugin:langbot-team/LocalAgent/default'},
+                'runner_config': {
+                    'plugin:langbot-team/LocalAgent/default': {
+                        'prompt': 'default',
+                        'model': {'primary': 'test'},
+                    },
+                },
             },
         }
 
@@ -367,8 +430,13 @@ class TestChatHandlerExceptions:
         query.pipeline_config = {
             'output': {'misc': {'exception-handling': 'show-error'}},
             'ai': {
-                'runner': {'runner': 'local-agent'},
-                'local-agent': {'prompt': 'default', 'model': {'primary': 'test'}},
+                'runner': {'id': 'plugin:langbot-team/LocalAgent/default'},
+                'runner_config': {
+                    'plugin:langbot-team/LocalAgent/default': {
+                        'prompt': 'default',
+                        'model': {'primary': 'test'},
+                    },
+                },
             },
         }
 
@@ -412,8 +480,13 @@ class TestChatHandlerExceptions:
         query.pipeline_config = {
             'output': {'misc': {'exception-handling': 'hide'}},
             'ai': {
-                'runner': {'runner': 'local-agent'},
-                'local-agent': {'prompt': 'default', 'model': {'primary': 'test'}},
+                'runner': {'id': 'plugin:langbot-team/LocalAgent/default'},
+                'runner_config': {
+                    'plugin:langbot-team/LocalAgent/default': {
+                        'prompt': 'default',
+                        'model': {'primary': 'test'},
+                    },
+                },
             },
         }
 
@@ -464,3 +537,13 @@ class TestChatHandlerHelper:
         handler = chat.ChatMessageHandler(fake_app)
         result = handler.cut_str('first line\nsecond line')
         assert '...' in result
+
+    def test_response_size_limit_uses_instance_config(self, fake_app):
+        from langbot_plugin.api.entities.builtin.provider.message import Message
+
+        fake_app.instance_config.data['system'] = {'response_limits': {'max_generated_chars': 4}}
+        chat = get_chat_handler()
+        handler = chat.ChatMessageHandler(fake_app)
+
+        with pytest.raises(RuntimeError, match='configured limit'):
+            handler._check_response_size(Message(role='assistant', content='12345'))
