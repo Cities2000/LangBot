@@ -33,8 +33,10 @@ if docker image inspect "$IMAGE" >/dev/null 2>&1; then
 fi
 
 # 2. Build the new image; running containers are not touched.
+# ${ARR[@]+...} guards the empty-array expansion: plain "${ARR[@]}" under
+# set -u fails on bash < 4.4 (e.g. CentOS 7) when no flags were given.
 echo "==> building ${IMAGE} (revision ${REVISION})"
-docker build "${BUILD_FLAGS[@]}" \
+docker build ${BUILD_FLAGS[@]+"${BUILD_FLAGS[@]}"} \
   --build-arg "LANGBOT_BUILD_REVISION=${REVISION}" \
   -t "$IMAGE" .
 
