@@ -72,11 +72,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && touch /.dockerenv
 
-EXPOSE 5300
-EXPOSE 2280-2285
-EXPOSE 5401
-
-VOLUME /app/data
-VOLUME /app/data/plugins
-
 CMD [ "uv", "run", "--no-sync", "main.py" ]
